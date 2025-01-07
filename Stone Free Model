@@ -1,0 +1,234 @@
+# Economic Model for Kidney Stone Patient Follow-up with Updated Costs
+library(gt)
+library(tidyverse)
+
+# Population and Incidence Data
+# English population is 54,370,300 (ONS estimate 2024)
+KSD_patients_total_n_2014 <- 54370300 * 0.01
+KSD_patients_total_n_2014 <- as_tibble(KSD_patients_total_n_2014)
+colnames(KSD_patients_total_n_2014) <- "N"
+
+# Parameters
+total_patients <- KSD_patients_total_n_2014$N * 0.5  # Base cohort - presume that half of all patients with incident stones are stone free
+follow_up_years <- 5
+
+# Risk Status Parameters
+risk_status_proportion_low <- 0.5
+risk_status_proportion_high <- 0.5
+
+# Recurrence Rates - presumed 50% over 5 years
+recurrence_rate_low <- 0.2 # 20% recurrence for low-risk patients
+recurrence_rate_high <- 0.6  # 60% recurrence for high-risk patients
+
+# Costs derived from NHS tariff 2022-23
+# Clinic costs
+initial_consultation_cost <- 145  # First appointment
+clinic_review_cost <- 71  # Follow-up appointment
+imaging_cost <- 40  # Added imaging cost
+
+# Intervention Costs 
+eswl_cost <- 445 * 2  # assume 2 ESWL treatments (LB36Z)
+urs_cost <- 2386  # median cost for URS (LB65D)
+pcnl_cost <- 4548  # cost for CC 0-2 (LB75B)
+
+# Calculate patients in each risk category
+total_patients_low_risk <- total_patients * risk_status_proportion_low
+total_patients_high_risk <- total_patients * risk_status_proportion_high
+
+# Recurrence Calculations
+patients_with_recurrence_low <- total_patients_low_risk * recurrence_rate_low
+patients_with_recurrence_high <- total_patients_high_risk * recurrence_rate_high
+
+# Combine total recurrence
+patients_with_recurrence <- patients_with_recurrence_low + patients_with_recurrence_high
+
+# Symptomatic vs Asymptomatic Breakdown
+asymptomatic_patients_low <- patients_with_recurrence_low * 0.7
+symptomatic_patients_low <- patients_with_recurrence_low * 0.3
+
+asymptomatic_patients_high <- patients_with_recurrence_high * 0.7
+symptomatic_patients_high <- patients_with_recurrence_high * 0.3
+
+# Combine symptomatic and asymptomatic patients
+asymptomatic_patients <- asymptomatic_patients_low + asymptomatic_patients_high
+symptomatic_patients <- symptomatic_patients_low + symptomatic_patients_high
+
+# Intervention Types Distribution
+eswl_proportion <- 0.5
+urs_proportion <- 0.3
+pcnl_proportion <- 0.2
+
+# Calculate Intervention Patients
+intervention_patients <- symptomatic_patients
+eswl_patients <- intervention_patients * eswl_proportion
+urs_patients <- intervention_patients * urs_proportion
+pcnl_patients <- intervention_patients * pcnl_proportion
+
+# Intervention Outcomes
+eswl_stone_free <- eswl_patients * 0.5
+eswl_residual_stones <- eswl_patients * 0.5
+
+# Residual Stone Outcomes
+eswl_residual_asymptomatic <- eswl_residual_stones * 0.5
+eswl_residual_symptomatic <- eswl_residual_stones * 0.5
+
+urs_stone_free <- urs_patients * 0.8
+urs_residual_stones <- urs_patients * 0.2
+urs_residual_asymptomatic <- urs_residual_stones * 0.5
+urs_residual_symptomatic <- urs_residual_stones * 0.5
+
+pcnl_stone_free <- pcnl_patients * 0.95
+pcnl_residual_stones <- pcnl_patients * 0.05
+pcnl_residual_asymptomatic <- pcnl_residual_stones * 0.5
+pcnl_residual_symptomatic <- pcnl_residual_stones * 0.5
+
+# Total Cost Calculation Function
+calculate_total_cost <- function() {
+  # Initial Costs
+  initial_costs <- total_patients * (initial_consultation_cost + 2 * (clinic_review_cost + imaging_cost))
+  
+  # Follow-up Costs for Years 3-5
+  annual_follow_up_costs <- total_patients * 3 * (clinic_review_cost + imaging_cost)
+  
+  # Intervention Costs
+  intervention_costs <- (
+    eswl_patients * eswl_cost +
+      urs_patients * urs_cost +
+      pcnl_patients * pcnl_cost
+  )
+  
+  # Additional Intervention for Residual Stones
+  residual_stone_intervention_patients <- (
+    eswl_residual_symptomatic + 
+      urs_residual_symptomatic + 
+      pcnl_residual_symptomatic
+  )
+  
+  eswl_reintervention_patients <- residual_stone_intervention_patients * eswl_proportion
+  urs_reintervention_patients <- residual_stone_intervention_patients * urs_proportion
+  pcnl_reintervention_patients <- residual_stone_intervention_patients * pcnl_proportion
+  
+  residual_stone_intervention_costs <- (
+    eswl_reintervention_patients * eswl_cost +
+      urs_reintervention_patients * urs_cost +
+      pcnl_reintervention_patients * pcnl_cost
+  )
+  
+  # Total Costs
+  total_cost <- initial_costs + annual_follow_up_costs + intervention_costs + residual_stone_intervention_costs
+  
+  return(total_cost)
+}
+
+# Calculate Total Cost
+total_model_cost <- calculate_total_cost()
+
+# Per Patient Cost Calculation
+per_patient_cost <- total_model_cost / total_patients
+
+# Create a data frame with the cost breakdown
+cost_breakdown <- data.frame(
+  Cost_Category = c(
+    "Initial Consultation and First-Year Costs",
+    "Annual Follow-up Costs (Years 3-5)",
+    "Initial Intervention Costs",
+    "Residual Stone Intervention Costs",
+    "Total 5-Year Follow-up Cost",
+    "Mean Cost per Patient"
+  ),
+  Cost = c(
+    round(total_patients * (initial_consultation_cost + 2 * (clinic_review_cost + imaging_cost)), 2),
+    round(total_patients * 3 * (clinic_review_cost + imaging_cost), 2),
+    round((eswl_patients * eswl_cost + urs_patients * urs_cost + pcnl_patients * pcnl_cost), 2),
+    round((eswl_residual_symptomatic + urs_residual_symptomatic + pcnl_residual_symptomatic) * eswl_cost, 2),
+    round(total_model_cost, 2),
+    round(per_patient_cost, 2)
+  )
+)
+
+# Create GT table for cost breakdown
+gt_table <- cost_breakdown %>%
+  gt() %>%
+  tab_header(
+    title = "Economic Model: Stone Free Patients Follow-up Costs",
+    subtitle = "5-Year Cost Analysis for Estimated Stone Free Patients from 2014 Population of England"
+  ) %>%
+  fmt_currency(
+    columns = Cost,
+    currency = "GBP"
+  ) %>%
+  cols_label(
+    Cost_Category = "Cost Category",
+    Cost = "Amount (£)"
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_body(columns = Cost_Category, rows = 5:6)
+  ) %>%
+  opt_stylize(style = 1) %>% tab_style(
+    style = cell_borders(sides = "all", color = "black", weight = px(2)),
+    locations = cells_body()
+  )
+
+# Create Risk Status Breakdown
+risk_breakdown <- data.frame(
+  Risk_Status = c("Low Risk", "High Risk", "Total"),
+  Patients = c(
+    total_patients_low_risk, 
+    total_patients_high_risk, 
+    total_patients
+  ),
+  Recurrence_Rate = c(
+    recurrence_rate_low * 100, 
+    recurrence_rate_high * 100, 
+    "(Weighted)"
+  ),
+  Recurrence_Patients = c(
+    patients_with_recurrence_low, 
+    patients_with_recurrence_high, 
+    patients_with_recurrence
+  ),
+  Cost_per_Patient = c(
+    round(per_patient_cost * risk_status_proportion_low, 2),
+    round(per_patient_cost * risk_status_proportion_high, 2),
+    round(per_patient_cost, 2)
+  )
+) 
+
+# Create GT table for risk status breakdown
+risk_status_gt_table <- risk_breakdown %>%
+  gt() %>%
+  tab_header(
+    title = "Risk Status Impact on Stone Recurrence",
+    subtitle = "Comparison of Low and High-Risk Patient Groups"
+  ) %>%
+  fmt_percent(
+    columns = Recurrence_Rate,
+    scale_values = FALSE
+  ) %>%
+  fmt_currency(
+    columns = Cost_per_Patient,
+    currency = "GBP"
+  ) %>%
+  cols_label(
+    Risk_Status = "Risk Status",
+    Patients = "Number of Patients",
+    Recurrence_Rate = "Recurrence Rate (%)",
+    Recurrence_Patients = "Patients with Recurrence",
+    Cost_per_Patient = "Cost per Patient (£)"
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_body(columns = Risk_Status, rows = 3)
+  ) %>%
+  opt_stylize(style = 1) %>% tab_style(
+    style = cell_borders(sides = "all", color = "black", weight = px(2)),
+    locations = cells_body()
+  )
+
+# Print both tables
+print("Cost Breakdown:")
+gt_table
+
+print("Risk Status Breakdown:")
+risk_status_gt_table
