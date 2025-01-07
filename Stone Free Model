@@ -1,6 +1,8 @@
 # Economic Model for Kidney Stone Patient Follow-up with Updated Costs
 library(gt)
 library(tidyverse)
+library(DiagrammeR)
+
 
 # Population and Incidence Data
 # English population is 54,370,300 (ONS estimate 2024)
@@ -122,6 +124,50 @@ calculate_total_cost <- function() {
 
 # Calculate Total Cost
 total_model_cost <- calculate_total_cost()
+
+# Visualise Model
+grViz("
+digraph MarkovModel {
+  graph [layout = dot, rankdir = LR]
+  
+  # Nodes for model states
+  StoneFree [shape = oval, label = 'Stone Free']
+  LowRisk [shape = rectangle, label = 'Low Risk (50%)']
+  HighRisk [shape = rectangle, label = 'High Risk (50%)']
+  LowRecurrence [shape = rectangle, label = 'Low Recurrence (20%)']
+  HighRecurrence [shape = rectangle, label = 'High Recurrence (60%)']
+  NoRecurrence [shape = rectangle, label = 'No Recurrence']
+  Symptomatic [shape = rectangle, label = 'Symptomatic']
+  Asymptomatic [shape = rectangle, label = 'Asymptomatic']
+  ESWL [shape = rectangle, label = 'ESWL Intervention (50%)']
+  URS [shape = rectangle, label = 'URS Intervention (30%)']
+  PCNL [shape = rectangle, label = 'PCNL Intervention (20%)']
+  FollowUp [shape = oval, label = '5 Years Follow-up']
+
+  # Transitions and probabilities
+  StoneFree -> LowRisk [label = '50%']
+  StoneFree -> HighRisk [label = '50%']
+  LowRisk -> LowRecurrence [label = '20% Recurrence']
+  HighRisk -> HighRecurrence [label = '60% Recurrence']
+  LowRisk -> NoRecurrence [label = '80% No Recurrence']
+  HighRisk -> NoRecurrence [label = '40% No Recurrence']
+  LowRecurrence -> Symptomatic [label = '30% Symptomatic']
+  LowRecurrence -> Asymptomatic [label = '70% Asymptomatic']
+  HighRecurrence -> Symptomatic [label = '30% Symptomatic']
+  HighRecurrence -> Asymptomatic [label = '70% Asymptomatic']
+  Symptomatic -> ESWL [label = '50% ESWL']
+  Symptomatic -> URS [label = '30% URS']
+  Symptomatic -> PCNL [label = '20% PCNL']
+  ESWL -> FollowUp [label = '50% Stone Free']
+  URS -> FollowUp [label = '80% Stone Free']
+  PCNL -> FollowUp [label = '95% Stone Free']
+  ESWL -> Symptomatic [label = '50% Residual']
+  URS -> Symptomatic [label = '20% Residual']
+  PCNL -> Symptomatic [label = '5% Residual']
+  Asymptomatic -> FollowUp [label = 'Continue Follow-Up']
+  NoRecurrence -> FollowUp [label = 'Continue Follow-Up']
+}
+")
 
 # Per Patient Cost Calculation
 per_patient_cost <- total_model_cost / total_patients
