@@ -3,7 +3,6 @@ library(gt)
 library(tidyverse)
 library(DiagrammeR)
 
-
 # Population and Incidence Data
 # English population is 54,370,300 (ONS estimate 2024)
 KSD_patients_total_n_2014 <- 54370300 * 0.01
@@ -13,6 +12,96 @@ colnames(KSD_patients_total_n_2014) <- "N"
 # Parameters
 total_patients <- KSD_patients_total_n_2014$N * 0.5  # Base cohort - presume that half of all patients with incident stones are stone free
 follow_up_years <- 5
+
+# Simulate population distribution of ages & genders
+age <- rnorm(n = total_patients, mean = 40, sd = 10) # Presuming that mean age of first stone is 40 + normally distributed
+hist(age)
+
+gender <- sample(c("Male", "Female"), size = total_patients, replace = TRUE, prob = c(0.5, 0.5)) # assume 1:1 male:female ratio
+
+population <- data.frame(
+  ID = 1:total_patients,
+  Gender = gender,
+  Age = age
+) %>% as_tibble()
+
+# Death rates - as per ONS per 1000 population in UK in 2021 by gender
+
+death_rates <- cbind(
+  Age_range = c(
+    "<1",
+    "1-4",
+    "5-9",
+    "10-14",
+    "15-19",
+    "20-24",
+    "25-29",
+    "30-34",
+    "35-39",
+    "40-44",
+    "45-49",
+    "50-54",
+    "55-59",
+    "60-64",
+    "65-69",
+    "70-74",
+    "75-79",
+    "80-84",
+    "85-90",
+    ">90"
+  ),
+  Male_death_rate = c(
+    4.3,
+    0.1,
+    0.1,
+    0.1,
+    0.3,
+    0.5,
+    0.6,
+    0.9,
+    1.3,
+    2,
+    3.1,
+    4.5,
+    6.6,
+    10.3,
+    15.7,
+    24,
+    40.1,
+    70.7,
+    121.9,
+    231.6
+  ),
+  Female_death_rate = c(
+    3.4,
+    0.1,
+    0.1,
+    0.1,
+    0.2,
+    0.2,
+    0.3,
+    0.5,
+    0.8,
+    1.2,
+    1.9,
+    2.8,
+    4.2,
+    6.5,
+    10.1,
+    16,
+    27.5,
+    51.2,
+    94.9,
+    209.9
+  )
+) %>% as_tibble() 
+
+death_rates$Male_death_rate <- as.numeric(death_rates$Male_death_rate)
+death_rates$Female_death_rate <- as.numeric(death_rates$Female_death_rate)
+death_rates <- death_rates %>% mutate(Male_death_rate = Male_death_rate / 10,
+                             # divide by 10 to get death rate per 100
+                             Female_death_rate = Female_death_rate / 10)
+
 
 # Risk Status Parameters
 risk_status_proportion_low <- 0.5
@@ -84,8 +173,9 @@ pcnl_residual_stones <- pcnl_patients * 0.05
 pcnl_residual_asymptomatic <- pcnl_residual_stones * 0.5
 pcnl_residual_symptomatic <- pcnl_residual_stones * 0.5
 
+
 # Total Cost Calculation Function
-calculate_total_cost <- function() {
+calculate_total_cost <- function(total_patients) {
   # Initial Costs
   initial_costs <- total_patients * (initial_consultation_cost + 2 * (clinic_review_cost + imaging_cost))
   
@@ -100,11 +190,7 @@ calculate_total_cost <- function() {
   )
   
   # Additional Intervention for Residual Stones
-  residual_stone_intervention_patients <- (
-    eswl_residual_symptomatic + 
-      urs_residual_symptomatic + 
-      pcnl_residual_symptomatic
-  )
+  residual_stone_intervention_patients <- total_patients * 0.1
   
   eswl_reintervention_patients <- residual_stone_intervention_patients * eswl_proportion
   urs_reintervention_patients <- residual_stone_intervention_patients * urs_proportion
@@ -118,14 +204,92 @@ calculate_total_cost <- function() {
   
   # Total Costs
   total_cost <- initial_costs + annual_follow_up_costs + intervention_costs + residual_stone_intervention_costs
-  
   return(total_cost)
 }
 
-# Calculate Total Cost
-total_model_cost <- calculate_total_cost()
 
-# Visualise Model
+# Calculate Total Cost
+total_model_cost <- calculate_total_cost(total_patients)
+
+# Build function to get death rate over 5 years
+assign_5yr_death_rate <- function(age, gender) {
+  survival_probability <- 1 # Start with 100% survival probability
+  
+  for (year in 1:5) {
+    # Determine the age range for the current year
+    age_band <- case_when(
+      age < 1 ~ "<1",
+      age >= 1 & age <= 4 ~ "1-4",
+      age >= 5 & age <= 9 ~ "5-9",
+      age >= 10 & age <= 14 ~ "10-14",
+      age >= 15 & age <= 19 ~ "15-19",
+      age >= 20 & age <= 24 ~ "20-24",
+      age >= 25 & age <= 29 ~ "25-29",
+      age >= 30 & age <= 34 ~ "30-34",
+      age >= 35 & age <= 39 ~ "35-39",
+      age >= 40 & age <= 44 ~ "40-44",
+      age >= 45 & age <= 49 ~ "45-49",
+      age >= 50 & age <= 54 ~ "50-54",
+      age >= 55 & age <= 59 ~ "55-59",
+      age >= 60 & age <= 64 ~ "60-64",
+      age >= 65 & age <= 69 ~ "65-69",
+      age >= 70 & age <= 74 ~ "70-74",
+      age >= 75 & age <= 79 ~ "75-79",
+      age >= 80 & age <= 84 ~ "80-84",
+      age >= 85 & age <= 90 ~ "85-90",
+      age > 90 ~ ">90"
+    )
+    
+    # Get the annual death rate for the current age band and gender
+    annual_death_rate <- ifelse(
+      gender == "Male",
+      death_rates %>% filter(Age_range == age_band) %>% pull(Male_death_rate),
+      death_rates %>% filter(Age_range == age_band) %>% pull(Female_death_rate)
+    )
+    
+    # Update survival probability for this year
+    survival_probability <- survival_probability * (1 - annual_death_rate)
+    
+    # Increment age for the next year
+    age <- age + 1
+  }
+  
+  # Convert survival probability to cumulative 5-year death rate
+  death_rate_5yr <- 1 - survival_probability
+  
+  return(death_rate_5yr)
+}
+
+
+# Assign Death Rates to Simulated Population
+population$mortality_rate <- mapply(assign_5yr_death_rate, population$Age, population$Gender)
+
+# Simulate Population
+simulate_population <- function(population) {
+  # Remove deceased individuals based on 5-year mortality rates
+  survival <- runif(nrow(population)) > population$mortality_rate
+  population <- population[survival, ]
+  
+  # Age the population by 5 years
+  population$Age <- population$Age + 5
+  
+  return(population)
+}
+
+
+# Adjust Population and Recalculate Costs
+adjusted_population <- simulate_population(population)
+
+# Total patients after simulation
+total_patients <- nrow(adjusted_population)
+
+# Reuse the cost calculation function from earlier
+adjusted_total_cost <- calculate_total_cost(total_patients)
+
+# Output the result
+cat("Total Cost After Simulation: ", adjusted_total_cost, "\n")
+
+# Visualise the Model
 grViz("
 digraph MarkovModel {
   graph [layout = dot, rankdir = LR]
@@ -143,6 +307,7 @@ digraph MarkovModel {
   URS [shape = rectangle, label = 'URS Intervention (30%)']
   PCNL [shape = rectangle, label = 'PCNL Intervention (20%)']
   FollowUp [shape = oval, label = '5 Years Follow-up']
+  Death [shape = hexagon, label = 'Death', rank = same]
 
   # Transitions and probabilities
   StoneFree -> LowRisk [label = '50%']
@@ -166,8 +331,21 @@ digraph MarkovModel {
   PCNL -> Symptomatic [label = '5% Residual']
   Asymptomatic -> FollowUp [label = 'Continue Follow-Up']
   NoRecurrence -> FollowUp [label = 'Continue Follow-Up']
+
+  # Death state transitions (excluding StoneFree and FollowUp)
+  LowRisk -> Death [label = 'Death Rate']
+  HighRisk -> Death [label = 'Death Rate']
+  LowRecurrence -> Death [label = 'Death Rate']
+  HighRecurrence -> Death [label = 'Death Rate']
+  Symptomatic -> Death [label = 'Death Rate']
+  ESWL -> Death [label = 'Death Rate']
+  URS -> Death [label = 'Death Rate']
+  PCNL -> Death [label = 'Death Rate']
+  Asymptomatic -> Death [label = 'Death Rate']
+  NoRecurrence -> Death [label = 'Death Rate']
 }
 ")
+
 
 # Per Patient Cost Calculation
 per_patient_cost <- total_model_cost / total_patients
