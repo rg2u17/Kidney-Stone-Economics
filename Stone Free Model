@@ -1,458 +1,939 @@
-# Economic Model for Kidney Stone Patient Follow-up with Updated Costs
+# Economic Model for Kidney Stone Patient Follow-up with Costs - Stone Free Patients ####
 library(gt)
 library(tidyverse)
 library(DiagrammeR)
+library(data.table)
+library(janitor)
+library(DataExplorer)
 
-# Population and Incidence Data
-# English population is 54,370,300 (ONS estimate 2024)
-KSD_patients_total_n_2014 <- 54370300 * 0.01
-KSD_patients_total_n_2014 <- as_tibble(KSD_patients_total_n_2014)
-colnames(KSD_patients_total_n_2014) <- "N"
-
-# Parameters
-total_patients <- KSD_patients_total_n_2014$N * 0.5  # Base cohort - presume that half of all patients with incident stones are stone free
+## 1. Define Inputs ####
+### 1.1 5 Years F/U as per EAU guidance ####
 follow_up_years <- 5
 
-# Simulate population distribution of ages & genders
-age <- rnorm(n = total_patients, mean = 40, sd = 10) # Presuming that mean age of first stone is 40 + normally distributed
-hist(age)
-
-gender <- sample(c("Male", "Female"), size = total_patients, replace = TRUE, prob = c(0.5, 0.5)) # assume 1:1 male:female ratio
-
-population <- data.frame(
-  ID = 1:total_patients,
-  Gender = gender,
-  Age = age
-) %>% as_tibble()
-
-# Death rates - as per ONS per 1000 population in UK in 2021 by gender
-
-death_rates <- cbind(
-  Age_range = c(
-    "<1",
-    "1-4",
-    "5-9",
-    "10-14",
-    "15-19",
-    "20-24",
-    "25-29",
-    "30-34",
-    "35-39",
-    "40-44",
-    "45-49",
-    "50-54",
-    "55-59",
-    "60-64",
-    "65-69",
-    "70-74",
-    "75-79",
-    "80-84",
-    "85-90",
-    ">90"
-  ),
-  Male_death_rate = c(
-    4.3,
-    0.1,
-    0.1,
-    0.1,
-    0.3,
-    0.5,
-    0.6,
-    0.9,
-    1.3,
-    2,
-    3.1,
-    4.5,
-    6.6,
-    10.3,
-    15.7,
-    24,
-    40.1,
-    70.7,
-    121.9,
-    231.6
-  ),
-  Female_death_rate = c(
-    3.4,
-    0.1,
-    0.1,
-    0.1,
-    0.2,
-    0.2,
-    0.3,
-    0.5,
-    0.8,
-    1.2,
-    1.9,
-    2.8,
-    4.2,
-    6.5,
-    10.1,
-    16,
-    27.5,
-    51.2,
-    94.9,
-    209.9
-  )
-) %>% as_tibble() 
-
-death_rates$Male_death_rate <- as.numeric(death_rates$Male_death_rate)
-death_rates$Female_death_rate <- as.numeric(death_rates$Female_death_rate)
-death_rates <- death_rates %>% mutate(Male_death_rate = Male_death_rate / 10,
-                             # divide by 10 to get death rate per 100
-                             Female_death_rate = Female_death_rate / 10)
-
-
+### 1.2 Define Recurrence metrics ####
 # Risk Status Parameters
-risk_status_proportion_low <- 0.5
+risk_status_proportion_low <- 0.5 # as per data from UKB / AoU
 risk_status_proportion_high <- 0.5
 
-# Recurrence Rates - presumed 50% over 5 years
-recurrence_rate_low <- 0.2 # 20% recurrence for low-risk patients
-recurrence_rate_high <- 0.6  # 60% recurrence for high-risk patients
+# Recurrence Rates
+recurrence_rate_low <- 0.2 # 20% recurrence for low-risk patients over 5 years
+annual_recurrence_rate_low <- 0.2 / 5
+recurrence_rate_high <- 0.6  # 60% recurrence for high-risk patients over 5 years
+annual_recurrence_rate_high <- 0.6 / 5
 
-# Costs derived from NHS tariff 2022-23
-# Clinic costs
-initial_consultation_cost <- 145  # First appointment
-clinic_review_cost <- 71  # Follow-up appointment
-imaging_cost <- 40  # Added imaging cost
+### 1.3 Population and Incidence Data ####
+ons_population_estimates <- fread("~/Desktop/Sayer/Economics/population_estimates_ons.csv") %>% as_tibble() %>% janitor::clean_names()
+ons_population_estimates <- ons_population_estimates %>% subset(laname23 == "ENGLAND") %>% subset(select = -c(ladcode23, laname23, country))
+ons_population_estimates <- ons_population_estimates %>%
+  mutate(across(
+    .cols = matches("^population_\\d{4}$"),
+    .fns = ~ as.numeric(gsub(",", "", .))
+  ))
 
-# Intervention Costs 
-eswl_cost <- 445 * 2  # assume 2 ESWL treatments (LB36Z)
-urs_cost <- 2386  # median cost for URS (LB65D)
-pcnl_cost <- 4548  # cost for CC 0-2 (LB75B)
-
-# Calculate patients in each risk category
-total_patients_low_risk <- total_patients * risk_status_proportion_low
-total_patients_high_risk <- total_patients * risk_status_proportion_high
-
-# Recurrence Calculations
-patients_with_recurrence_low <- total_patients_low_risk * recurrence_rate_low
-patients_with_recurrence_high <- total_patients_high_risk * recurrence_rate_high
-
-# Combine total recurrence
-patients_with_recurrence <- patients_with_recurrence_low + patients_with_recurrence_high
-
-# Symptomatic vs Asymptomatic Breakdown
-asymptomatic_patients_low <- patients_with_recurrence_low * 0.7
-symptomatic_patients_low <- patients_with_recurrence_low * 0.3
-
-asymptomatic_patients_high <- patients_with_recurrence_high * 0.7
-symptomatic_patients_high <- patients_with_recurrence_high * 0.3
-
-# Combine symptomatic and asymptomatic patients
-asymptomatic_patients <- asymptomatic_patients_low + asymptomatic_patients_high
-symptomatic_patients <- symptomatic_patients_low + symptomatic_patients_high
-
-# Intervention Types Distribution
-eswl_proportion <- 0.5
-urs_proportion <- 0.3
-pcnl_proportion <- 0.2
-
-# Calculate Intervention Patients
-intervention_patients <- symptomatic_patients
-eswl_patients <- intervention_patients * eswl_proportion
-urs_patients <- intervention_patients * urs_proportion
-pcnl_patients <- intervention_patients * pcnl_proportion
-
-# Intervention Outcomes
-eswl_stone_free <- eswl_patients * 0.5
-eswl_residual_stones <- eswl_patients * 0.5
-
-# Residual Stone Outcomes
-eswl_residual_asymptomatic <- eswl_residual_stones * 0.5
-eswl_residual_symptomatic <- eswl_residual_stones * 0.5
-
-urs_stone_free <- urs_patients * 0.8
-urs_residual_stones <- urs_patients * 0.2
-urs_residual_asymptomatic <- urs_residual_stones * 0.5
-urs_residual_symptomatic <- urs_residual_stones * 0.5
-
-pcnl_stone_free <- pcnl_patients * 0.95
-pcnl_residual_stones <- pcnl_patients * 0.05
-pcnl_residual_asymptomatic <- pcnl_residual_stones * 0.5
-pcnl_residual_symptomatic <- pcnl_residual_stones * 0.5
-
-
-# Total Cost Calculation Function
-calculate_total_cost <- function(total_patients) {
-  # Initial Costs
-  initial_costs <- total_patients * (initial_consultation_cost + 2 * (clinic_review_cost + imaging_cost))
-  
-  # Follow-up Costs for Years 3-5
-  annual_follow_up_costs <- total_patients * 3 * (clinic_review_cost + imaging_cost)
-  
-  # Intervention Costs
-  intervention_costs <- (
-    eswl_patients * eswl_cost +
-      urs_patients * urs_cost +
-      pcnl_patients * pcnl_cost
-  )
-  
-  # Additional Intervention for Residual Stones
-  residual_stone_intervention_patients <- total_patients * 0.1
-  
-  eswl_reintervention_patients <- residual_stone_intervention_patients * eswl_proportion
-  urs_reintervention_patients <- residual_stone_intervention_patients * urs_proportion
-  pcnl_reintervention_patients <- residual_stone_intervention_patients * pcnl_proportion
-  
-  residual_stone_intervention_costs <- (
-    eswl_reintervention_patients * eswl_cost +
-      urs_reintervention_patients * urs_cost +
-      pcnl_reintervention_patients * pcnl_cost
-  )
-  
-  # Total Costs
-  total_cost <- initial_costs + annual_follow_up_costs + intervention_costs + residual_stone_intervention_costs
-  return(total_cost)
-}
-
-
-# Calculate Total Cost
-total_model_cost <- calculate_total_cost(total_patients)
-
-# Build function to get death rate over 5 years
-assign_5yr_death_rate <- function(age, gender) {
-  survival_probability <- 1 # Start with 100% survival probability
-  
-  for (year in 1:5) {
-    # Determine the age range for the current year
-    age_band <- case_when(
-      age < 1 ~ "<1",
-      age >= 1 & age <= 4 ~ "1-4",
-      age >= 5 & age <= 9 ~ "5-9",
-      age >= 10 & age <= 14 ~ "10-14",
-      age >= 15 & age <= 19 ~ "15-19",
-      age >= 20 & age <= 24 ~ "20-24",
-      age >= 25 & age <= 29 ~ "25-29",
-      age >= 30 & age <= 34 ~ "30-34",
-      age >= 35 & age <= 39 ~ "35-39",
-      age >= 40 & age <= 44 ~ "40-44",
-      age >= 45 & age <= 49 ~ "45-49",
-      age >= 50 & age <= 54 ~ "50-54",
-      age >= 55 & age <= 59 ~ "55-59",
-      age >= 60 & age <= 64 ~ "60-64",
-      age >= 65 & age <= 69 ~ "65-69",
-      age >= 70 & age <= 74 ~ "70-74",
-      age >= 75 & age <= 79 ~ "75-79",
-      age >= 80 & age <= 84 ~ "80-84",
-      age >= 85 & age <= 90 ~ "85-90",
-      age > 90 ~ ">90"
-    )
-    
-    # Get the annual death rate for the current age band and gender
-    annual_death_rate <- ifelse(
-      gender == "Male",
-      death_rates %>% filter(Age_range == age_band) %>% pull(Male_death_rate),
-      death_rates %>% filter(Age_range == age_band) %>% pull(Female_death_rate)
-    )
-    
-    # Update survival probability for this year
-    survival_probability <- survival_probability * (1 - annual_death_rate)
-    
-    # Increment age for the next year
-    age <- age + 1
-  }
-  
-  # Convert survival probability to cumulative 5-year death rate
-  death_rate_5yr <- 1 - survival_probability
-  
-  return(death_rate_5yr)
-}
-
-
-# Assign Death Rates to Simulated Population
-population$mortality_rate <- mapply(assign_5yr_death_rate, population$Age, population$Gender)
-
-# Simulate Population
-simulate_population <- function(population) {
-  # Remove deceased individuals based on 5-year mortality rates
-  survival <- runif(nrow(population)) > population$mortality_rate
-  population <- population[survival, ]
-  
-  # Age the population by 5 years
-  population$Age <- population$Age + 5
-  
-  return(population)
-}
-
-
-# Adjust Population and Recalculate Costs
-adjusted_population <- simulate_population(population)
-
-# Total patients after simulation
-total_patients <- nrow(adjusted_population)
-
-# Reuse the cost calculation function from earlier
-adjusted_total_cost <- calculate_total_cost(total_patients)
-
-# Output the result
-cat("Total Cost After Simulation: ", adjusted_total_cost, "\n")
-
-# Visualise the Model
-grViz("
-digraph MarkovModel {
-  graph [layout = dot, rankdir = LR]
-  
-  # Nodes for model states
-  StoneFree [shape = oval, label = 'Stone Free']
-  LowRisk [shape = rectangle, label = 'Low Risk (50%)']
-  HighRisk [shape = rectangle, label = 'High Risk (50%)']
-  LowRecurrence [shape = rectangle, label = 'Low Recurrence (20%)']
-  HighRecurrence [shape = rectangle, label = 'High Recurrence (60%)']
-  NoRecurrence [shape = rectangle, label = 'No Recurrence']
-  Symptomatic [shape = rectangle, label = 'Symptomatic']
-  Asymptomatic [shape = rectangle, label = 'Asymptomatic']
-  ESWL [shape = rectangle, label = 'ESWL Intervention (50%)']
-  URS [shape = rectangle, label = 'URS Intervention (30%)']
-  PCNL [shape = rectangle, label = 'PCNL Intervention (20%)']
-  FollowUp [shape = oval, label = '5 Years Follow-up']
-  Death [shape = hexagon, label = 'Death', rank = same]
-
-  # Transitions and probabilities
-  StoneFree -> LowRisk [label = '50%']
-  StoneFree -> HighRisk [label = '50%']
-  LowRisk -> LowRecurrence [label = '20% Recurrence']
-  HighRisk -> HighRecurrence [label = '60% Recurrence']
-  LowRisk -> NoRecurrence [label = '80% No Recurrence']
-  HighRisk -> NoRecurrence [label = '40% No Recurrence']
-  LowRecurrence -> Symptomatic [label = '30% Symptomatic']
-  LowRecurrence -> Asymptomatic [label = '70% Asymptomatic']
-  HighRecurrence -> Symptomatic [label = '30% Symptomatic']
-  HighRecurrence -> Asymptomatic [label = '70% Asymptomatic']
-  Symptomatic -> ESWL [label = '50% ESWL']
-  Symptomatic -> URS [label = '30% URS']
-  Symptomatic -> PCNL [label = '20% PCNL']
-  ESWL -> FollowUp [label = '50% Stone Free']
-  URS -> FollowUp [label = '80% Stone Free']
-  PCNL -> FollowUp [label = '95% Stone Free']
-  ESWL -> Symptomatic [label = '50% Residual']
-  URS -> Symptomatic [label = '20% Residual']
-  PCNL -> Symptomatic [label = '5% Residual']
-  Asymptomatic -> FollowUp [label = 'Continue Follow-Up']
-  NoRecurrence -> FollowUp [label = 'Continue Follow-Up']
-
-  # Death state transitions (excluding StoneFree and FollowUp)
-  LowRisk -> Death [label = 'Death Rate']
-  HighRisk -> Death [label = 'Death Rate']
-  LowRecurrence -> Death [label = 'Death Rate']
-  HighRecurrence -> Death [label = 'Death Rate']
-  Symptomatic -> Death [label = 'Death Rate']
-  ESWL -> Death [label = 'Death Rate']
-  URS -> Death [label = 'Death Rate']
-  PCNL -> Death [label = 'Death Rate']
-  Asymptomatic -> Death [label = 'Death Rate']
-  NoRecurrence -> Death [label = 'Death Rate']
-}
-")
-
-
-# Per Patient Cost Calculation
-per_patient_cost <- total_model_cost / total_patients
-
-# Create a data frame with the cost breakdown
-cost_breakdown <- data.frame(
-  Cost_Category = c(
-    "Initial Consultation and First-Year Costs",
-    "Annual Follow-up Costs (Years 3-5)",
-    "Initial Intervention Costs",
-    "Residual Stone Intervention Costs",
-    "Total 5-Year Follow-up Cost",
-    "Mean Cost per Patient"
-  ),
-  Cost = c(
-    round(total_patients * (initial_consultation_cost + 2 * (clinic_review_cost + imaging_cost)), 2),
-    round(total_patients * 3 * (clinic_review_cost + imaging_cost), 2),
-    round((eswl_patients * eswl_cost + urs_patients * urs_cost + pcnl_patients * pcnl_cost), 2),
-    round((eswl_residual_symptomatic + urs_residual_symptomatic + pcnl_residual_symptomatic) * eswl_cost, 2),
-    round(total_model_cost, 2),
-    round(per_patient_cost, 2)
+total_population <- ons_population_estimates %>% mutate(
+  total_pop_2011 = sum(population_2011),
+  total_pop_2012 = sum(population_2012),
+  total_pop_2013 = sum(population_2013),
+  total_pop_2014 = sum(population_2014),
+  total_pop_2015 = sum(population_2015),
+  total_pop_2016 = sum(population_2016),
+  total_pop_2017 = sum(population_2017),
+  total_pop_2018 = sum(population_2018),
+  total_pop_2019 = sum(population_2019),
+  total_pop_2020 = sum(population_2020),
+  total_pop_2021 = sum(population_2021),
+  total_pop_2022 = sum(population_2022)
+) %>% slice_head(n = 1) %>% subset(
+  select = c(
+    total_pop_2011,
+    total_pop_2012,
+    total_pop_2013,
+    total_pop_2014,
+    total_pop_2015,
+    total_pop_2016,
+    total_pop_2017,
+    total_pop_2018,
+    total_pop_2019,
+    total_pop_2020,
+    total_pop_2021,
+    total_pop_2022
   )
 )
 
-# Create GT table for cost breakdown
-gt_table <- cost_breakdown %>%
-  gt() %>%
-  tab_header(
-    title = "Economic Model: Stone Free Patients Follow-up Costs",
-    subtitle = "5-Year Cost Analysis for Estimated Stone Free Patients from 2014 Population of England"
-  ) %>%
-  fmt_currency(
-    columns = Cost,
-    currency = "GBP"
-  ) %>%
-  cols_label(
-    Cost_Category = "Cost Category",
-    Cost = "Amount (£)"
-  ) %>%
-  tab_style(
-    style = cell_text(weight = "bold"),
-    locations = cells_body(columns = Cost_Category, rows = 5:6)
-  ) %>%
-  opt_stylize(style = 1) %>% tab_style(
-    style = cell_borders(sides = "all", color = "black", weight = px(2)),
-    locations = cells_body()
+total_population <- total_population %>%
+  mutate(row_id = row_number()) %>%
+  pivot_longer(-row_id, names_to = "column", values_to = "value") %>% separate(column, into = c("total", "pop", "year")) %>% subset(select = c(year, value)) %>% rbind(c(2023, 68265200))
+
+ons_english_population_estimates <- fread("~/Desktop/Sayer/Economics/england_pop_mid_year_estimates_ons.csv") %>% as_tibble() %>% janitor::clean_names()
+ons_english_population_estimates <- ons_english_population_estimates[-1:-7, ]
+colnames(ons_english_population_estimates) <- c("year", "england_mye_population_estimate")
+ons_english_population_estimates$england_mye_population_estimate <- as.numeric(ons_english_population_estimates$england_mye_population_estimate)
+ons_english_population_estimates$year <- as.integer(ons_english_population_estimates$year)
+
+KSD_patients_total_n <- ons_english_population_estimates %>% subset(year > 2010) %>% mutate(
+  total_patients = england_mye_population_estimate * 0.01) # Use lower estimate of 1% incidence)
+  
+  ### 1.4 Numbers undergoing intervention as per HES data from AD ####
+  ## Read in Data
+  hes_data_elective <- fread(
+    "~/Desktop/Sayer/Economics/intervention_hes_data_elective.csv"
+  ) %>% as_tibble() %>% janitor::clean_names() %>% subset(select = c(finy, urs, pcnl, eswl))
+  hes_data_elective_emergency <- fread(
+    "~/Desktop/Sayer/Economics/intervention_hes_data_elective_and_emergency.csv"
+  ) %>% as_tibble() %>% janitor::clean_names() %>% subset(select = c(finy, urs, pcnl, eswl)) %>% slice_head(n =
+                                                                                                              13)
+  
+  
+  hes_data_elective_emergency <- hes_data_elective_emergency %>% separate(finy, into =
+                                                                            c("year", "extra")) %>% subset(select = -extra) %>% mutate(total_treatment_n = urs + pcnl + eswl, .keep = "all")
+  
+  hes_data_elective_emergency$year <- as.integer(hes_data_elective_emergency$year)
+  
+  hes_data_elective_emergency <- hes_data_elective_emergency %>% left_join(KSD_patients_total_n, by = c("year" = "year")) %>% select(
+    year,
+    england_mye_population_estimate,
+    total_patients,
+    everything()
   )
-
-# Create Risk Status Breakdown
-risk_breakdown <- data.frame(
-  Risk_Status = c("Low Risk", "High Risk", "Total"),
-  Patients = c(
-    total_patients_low_risk, 
-    total_patients_high_risk, 
-    total_patients
-  ),
-  Recurrence_Rate = c(
-    recurrence_rate_low * 100, 
-    recurrence_rate_high * 100, 
-    "(Weighted)"
-  ),
-  Recurrence_Patients = c(
-    patients_with_recurrence_low, 
-    patients_with_recurrence_high, 
-    patients_with_recurrence
-  ),
-  Cost_per_Patient = c(
-    round(per_patient_cost * risk_status_proportion_low, 2),
-    round(per_patient_cost * risk_status_proportion_high, 2),
-    round(per_patient_cost, 2)
+  
+  
+  # Intervention Types Distribution
+  hes_data_elective_emergency <- hes_data_elective_emergency %>% mutate(
+    eswl_proportion = eswl / total_treatment_n,
+    urs_proportion = urs / total_treatment_n,
+    pcnl_proportion = pcnl / total_treatment_n,
+    .keep = "all"
   )
-) 
-
-# Create GT table for risk status breakdown
-risk_status_gt_table <- risk_breakdown %>%
-  gt() %>%
-  tab_header(
-    title = "Risk Status Impact on Stone Recurrence",
-    subtitle = "Comparison of Low and High-Risk Patient Groups"
-  ) %>%
-  fmt_percent(
-    columns = Recurrence_Rate,
-    scale_values = FALSE
-  ) %>%
-  fmt_currency(
-    columns = Cost_per_Patient,
-    currency = "GBP"
-  ) %>%
-  cols_label(
-    Risk_Status = "Risk Status",
-    Patients = "Number of Patients",
-    Recurrence_Rate = "Recurrence Rate (%)",
-    Recurrence_Patients = "Patients with Recurrence",
-    Cost_per_Patient = "Cost per Patient (£)"
-  ) %>%
-  tab_style(
-    style = cell_text(weight = "bold"),
-    locations = cells_body(columns = Risk_Status, rows = 3)
-  ) %>%
-  opt_stylize(style = 1) %>% tab_style(
-    style = cell_borders(sides = "all", color = "black", weight = px(2)),
-    locations = cells_body()
+  
+  # Intervention Outcomes
+  hes_data_elective_emergency <- hes_data_elective_emergency %>% mutate(
+    eswl_stone_free = eswl * 0.5,
+    eswl_residual_stones = eswl * 0.5,
+    .keep = "all"
   )
+  
+  # Residual Stone Outcomes
+  hes_data_elective_emergency <- hes_data_elective_emergency %>% mutate(
+    eswl_residual_asymptomatic = eswl_residual_stones * 0.5,
+    eswl_residual_symptomatic = eswl_residual_stones * 0.5,
+    urs_stone_free = urs_patients * 0.6,
+    urs_residual_stones = urs_patients * 0.4,
+    urs_residual_asymptomatic = urs_residual_stones * 0.5,
+    urs_residual_symptomatic = urs_residual_stones * 0.5,
+    pcnl_stone_free = pcnl_patients * 0.74,
+    pcnl_residual_stones = pcnl_patients * 0.26,
+    pcnl_residual_asymptomatic = pcnl_residual_stones * 0.5,
+    pcnl_residual_symptomatic = pcnl_residual_stones * 0.5,
+    .keep = "all"
+  )
+  
+  
+  # Spontaneous passage numbers - assume 50% of those with spontaneous passage are SF after
+  hes_data_elective_emergency <- hes_data_elective_emergency %>% mutate(
+    spontaneous_passage_n = total_patients - total_treatment_n,
+    spontaneous_passage_stone_free = spontaneous_passage_n * 0.74,
+    total_sf_patients = spontaneous_passage_stone_free + pcnl_stone_free + urs_stone_free + eswl_stone_free,
+    .keep = "all"
+  )
+  
+  # Calculate patients in each risk category
+  hes_data_elective_emergency <- hes_data_elective_emergency %>% mutate(
+    total_patients_low_risk = total_patients * risk_status_proportion_low,
+    total_patients_high_risk = total_patients * risk_status_proportion_high,
+    .keep = "all"
+  )
+  
+  # Recurrence Calculations
+  hes_data_elective_emergency <- hes_data_elective_emergency %>% mutate(
+    patients_with_recurrence_low = total_patients_low_risk * recurrence_rate_low,
+    patients_with_recurrence_high = total_patients_high_risk * recurrence_rate_high,
+    .keep = "all"
+  )
+  
+  # Combine total recurrence
+  hes_data_elective_emergency <- hes_data_elective_emergency %>% mutate(
+    patients_with_recurrence = patients_with_recurrence_low + patients_with_recurrence_high,
+    .keep = "all"
+  )
+  
+  # Symptomatic vs Asymptomatic Breakdown
+  hes_data_elective_emergency <- hes_data_elective_emergency %>% mutate(
+    asymptomatic_patients_low = patients_with_recurrence_low * 0.7,
+    symptomatic_patients_low = patients_with_recurrence_low * 0.3,
+    asymptomatic_patients_high = patients_with_recurrence_high * 0.7,
+    symptomatic_patients_high = patients_with_recurrence_high * 0.3,
+    .keep = "all"
+  )
+  
+  
+  
+  # Combine symptomatic and asymptomatic patients
+  hes_data_elective_emergency <- hes_data_elective_emergency %>% mutate(
+    asymptomatic_patients = asymptomatic_patients_low + asymptomatic_patients_high,
+    symptomatic_patients = symptomatic_patients_low + symptomatic_patients_high,
+    .keep = "all"
+  )
+  
+  ### 1.5 Simulate population distribution of ages & genders ####
+  simulate_population_distribution <- function(total_patients) {
+  
+  n_lr_f <- total_patients * 0.3 * 0.33
+  n_lr_m <- total_patients * 0.7 * 0.37
+  n_hr_f <- total_patients * 0.3 * 0.63
+  n_hr_m <- total_patients * 0.7 * 0.67
+    
+  age_lr_f <- pmax(rnorm(n = n_lr_f, mean = 39.3, sd = 18.1), 1) # assume minimum age at presentation = 1
+  age_lr_m <- pmax(rnorm(n = n_lr_m, mean = 38.1, sd = 18), 1)
+  age_hr_f <- pmax(rnorm(n = n_hr_f, mean = 40.1, sd = 18.1), 1)
+  age_hr_m <- pmax(rnorm(n = n_hr_m, mean = 38.8, sd = 17), 1)
+  
+  population <- rbind(
+    cbind(sex = "female", "age" = age_lr_f, "risk_status" = "low"),
+    cbind(sex = "male", "age" = age_lr_m, "risk_status" = "low"),
+    cbind(sex = "female", "age" = age_hr_f, "risk_status" = "high"),
+    cbind(sex = "male", "age" = age_hr_m, "risk_status" = "high")
+  ) %>% as_tibble()
+  
+  population$sex <- as.factor(population$sex)
+  population$age <- as.numeric(population$age)
+  population$age <- round(population$age, digits = 0)
+  population$risk_status <- as.factor(population$risk_status)
+  
+  return(population)
+  }
+  
+  ### 1.6 Death rates - as per ONS by sex for all cause mortality for 2013-2023 ####
+  # Currently in percentage format
+  death_rates_ons <- fread("~/Desktop/Sayer/Economics/death_rates_ons.csv") %>% as_tibble() %>% janitor::clean_names()
+  
+  death_rates_ons <- death_rates_ons %>% cbind(
+    Age_range = c(
+      "<1",
+      "1-4",
+      "5-9",
+      "10-14",
+      "15-19",
+      "20-24",
+      "25-29",
+      "30-34",
+      "35-39",
+      "40-44",
+      "45-49",
+      "50-54",
+      "55-59",
+      "60-64",
+      "65-69",
+      "70-74",
+      "75-79",
+      "80-84",
+      "85-90",
+      ">90"
+    )
+  ) %>% select(Age_range, sex, everything()) %>% subset(
+    select = -c(
+      age,
+      x2013,
+      x2014,
+      x2015,
+      x2016,
+      x2017,
+      x2018,
+      x2019,
+      x2020,
+      x2021,
+      x2022,
+      x2023
+    )
+  )
+  
+  colnames(death_rates_ons) <- c(
+    "Age_range",
+    "sex",
+    "thirteen",
+    "fourteen",
+    "fifteen",
+    "sixteen",
+    "seventeen",
+    "eighteen",
+    "nineteen",
+    "twenty",
+    "twentyone",
+    "twentytwo",
+    "twentythree"
+  )
+  
+  death_rates_ons <- death_rates_ons %>% mutate(
+    "thirteen" = thirteen / 100,
+    "fourteen" = fourteen / 100,
+    "fifteen" = fifteen / 100,
+    "sixteen" = sixteen / 100,
+    "seventeen" = seventeen / 100,
+    "eighteen" = eighteen / 100,
+    "nineteen" =  nineteen / 100,
+    "twenty" = twenty / 100,
+    "twentyone" = twentyone / 100,
+    "twentytwo" = twentytwo / 100,
+    "twentythree" = twentythree / 100
+  )
+  
+  death_rates_ons <- death_rates_ons %>% subset(Age_range != "<1")
+  
+  death_rates_ons$Age_range <- factor(death_rates_ons$Age_range,
+                     levels = c("1-4",
+                                "5-9",
+                                "10-14",
+                                "15-19",
+                                "20-24",
+                                "25-29",
+                                "30-34",
+                                "35-39",
+                                "40-44",
+                                "45-49",
+                                "50-54",
+                                "55-59",
+                                "60-64",
+                                "65-69",
+                                "70-74",
+                                "75-79",
+                                "80-84",
+                                "85-90",
+                                ">90"),
+                     ordered = TRUE)  
+  
+  death_rates_ons$sex <- as.factor(death_rates_ons$sex)
+  
+  
+  
+  ### 1.7 Renal colic presentations without intervention ####
+  # HES data from Jour et al. 2022 - PMID: 35306719
+  # Data on those NOT undergoing intervention from Schoenfeld et al. 2019 - PMID: 31790565
+  
+  hes_colic_data <- cbind(
+    year = c(2016, 2017, 2018, 2019, 2020),
+    colic_n = c(39941, #N20.1 Calculus of ureter + N20.2 Calculus of kidney and ureter + N23.X Unspecified renal colic
+                40702, #Presume that those NOT undergoing emergency procedures are managed conservatively
+                40524, 41936, 41556),
+    emergency_procedures_n = c(1897, 2118, 2274, 2334, 2659),
+    elective_procedures_n = c(40403, 40898, 40985, 40857, 41199)
+  ) %>% as_tibble() %>% mutate(
+    conservative_mx_n = colic_n - emergency_procedures_n,
+    conservative_mx_prop = conservative_mx_n / colic_n,
+    .keep = "all"
+  )
+  
+  hes_data_elective_emergency <- hes_data_elective_emergency %>% left_join(hes_colic_data, by = c("year" = "year"))
+  
+  
+  ### 1.7 Costs derived from NHS National tariff 2022-23 Annex A unless otherwise specified ####
+  # Clinic costs
+  initial_consultation_cost <- 145  # First appointment
+  clinic_review_cost <- 71  # Follow-up appointment
+  imaging_cost <- 27  # Direct access plain film X-ray (as per 22-23 non mandatory guide prices)
+  us_cost <- 43 # Ultrasound Scan with duration of less than 20 minutes, without Contrast (RD40Z)
+  ct_cost <-  69 # Computerised Tomography Scan of One Area, without Contrast, 19 years and over (RD20A)
+  urine_24_hr_cost <- 190.5
+  
+  # Intervention Costs
+  eswl_cost <- 445 * 2  # assume 2 ESWL treatments (LB36Z)
+  urs_cost <- 2386  # median cost for URS (LB65D)
+  pcnl_cost <- 4548  # cost for CC 0-2 (LB75B)
+  stent_cost <- 822 # intermediate endoscopic bladder procedures (LB14Z)
+  
+  # Acute presentation costs
+  ed_presentation_cost <- 288 #  Category 3 Investigation with Category 1-3 Treatment
+  
+  # Costs associated with low risk disease
+  year_1_lr_sf_fu_cost <- 2 * (clinic_review_cost + imaging_cost)
+  year_3_5_lr_sf_fu_cost <- 1 * (clinic_review_cost + imaging_cost)
+  
+  # Costs associated with high risk disease
+  year_1_hr_sf_fu_cost_current <- 2 * (clinic_review_cost + imaging_cost) + urine_24_hr_cost
+  year_1_hr_sf_fu_cost_eau <- 2 * (clinic_review_cost + imaging_cost + urine_24_hr_cost)
 
-# Print both tables
-print("Cost Breakdown:")
-gt_table
+  year_2_lr_sf_fu_cost_current <- 2 * (clinic_review_cost + imaging_cost + urine_24_hr_cost)
+  year_2_lr_sf_fu_cost_eau <- 2 * (clinic_review_cost + imaging_cost)
+  
+  year_3_onwards_lr_sf_fu_cost_current <- 2 * (clinic_review_cost + imaging_cost + urine_24_hr_cost)
+  year_3_onwards_lr_sf_fu_cost_eau <- 2 * (clinic_review_cost + imaging_cost + urine_24_hr_cost)
+  
+  
+## 2. Total Cost Calculation for SF patients Functions ####
+  ### 2.1 Calculate total cost function - XR / US F/U ####
+  calculate_total_sf_cost_xr_fu <- function(data) {
+    # Initial Costs
+    data <- data %>% mutate(initial_costs = (total_sf_patients * (
+      initial_consultation_cost + 2 * (clinic_review_cost + imaging_cost) + (total_sf_patients * 0.5 * urine_24_hr_cost)
+    )),
+    .keep = "all")
+    
+    # Follow-up Costs
+    data <- data %>% mutate(
+      lr_annual_follow_up_costs = (total_sf_patients * 0.5) * (clinic_review_cost + imaging_cost),
+      #low risk patients
+      hr_annual_follow_up_costs = (total_sf_patients *
+                                     0.5) * (clinic_review_cost + imaging_cost + urine_24_hr_cost),
+      # high risk patients
+      .keep = "all"
+    )
+    
+    # Additional Intervention for Residual Stones
+    data <- data %>% mutate(
+      residual_stone_intervention_patients = eswl_residual_symptomatic + urs_residual_symptomatic + pcnl_residual_symptomatic,
+      eswl_reintervention_patients = residual_stone_intervention_patients * eswl_proportion,
+      urs_reintervention_patients = residual_stone_intervention_patients * urs_proportion,
+      pcnl_reintervention_patients = residual_stone_intervention_patients * pcnl_proportion,
+      residual_stone_intervention_costs = eswl_reintervention_patients * eswl_cost +
+        urs_reintervention_patients * urs_cost +
+        pcnl_reintervention_patients * pcnl_cost,
+      .keep = "all"
+    )
+    
+    # Total Costs
+    total_cost <- data %>% mutate(
+      total_cost = initial_costs + (3 * lr_annual_follow_up_costs) + (4 * hr_annual_follow_up_costs) + residual_stone_intervention_costs
+    )
+    return(total_cost)
+  }
+  
+  ### 2.2 Total Cost Calculation Function - CT F/U ####
+  calculate_total_sf_cost_ct_fu <- function(data) {
+    # Initial Costs
+    data <- data %>% mutate(initial_costs = (total_sf_patients * (
+      initial_consultation_cost + 2 * (clinic_review_cost + ct_cost) + (total_sf_patients * 0.5 * urine_24_hr_cost)
+    )),
+    .keep = "all")
+    
+    # Follow-up Costs
+    data <- data %>% mutate(
+      lr_annual_follow_up_costs = (total_sf_patients * 0.5) * (clinic_review_cost + ct_cost),
+      #low risk patients
+      hr_annual_follow_up_costs = (total_sf_patients *
+                                     0.5) * (clinic_review_cost + ct_cost + urine_24_hr_cost),
+      # high risk patients
+      .keep = "all"
+    )
+    
+    
+    # Additional Intervention for Residual Stones
+    data <- data %>% mutate(
+      residual_stone_intervention_patients = eswl_residual_symptomatic + urs_residual_symptomatic + pcnl_residual_symptomatic,
+      eswl_reintervention_patients = residual_stone_intervention_patients * eswl_proportion,
+      urs_reintervention_patients = residual_stone_intervention_patients * urs_proportion,
+      pcnl_reintervention_patients = residual_stone_intervention_patients * pcnl_proportion,
+      residual_stone_intervention_costs = eswl_reintervention_patients * eswl_cost +
+        urs_reintervention_patients * urs_cost +
+        pcnl_reintervention_patients * pcnl_cost,
+      .keep = "all"
+    )
+    
+    # Total Costs
+    total_cost <- data %>% mutate(
+      total_cost = initial_costs + (3 * lr_annual_follow_up_costs) + (4 * hr_annual_follow_up_costs) + residual_stone_intervention_costs
+    )
+    return(total_cost)
+  }
+  
+  ### 2.3 Total Cost Calculation Function - CT for those having had an intervention otherwise XR ####
+  calculate_total_sf_cost_ct_xr_fu <- function(data) {
+    # Initial Costs
+    data <- data %>% mutate(initial_costs = (((elective_procedures_n + emergency_procedures_n) * (
+      initial_consultation_cost + (clinic_review_cost + ct_cost) + (clinic_review_cost + imaging_cost)
+    )
+    ) + (
+      total_sf_patients - (elective_procedures_n + emergency_procedures_n)
+    ) * (initial_consultation_cost + 2 * (clinic_review_cost + ct_cost)) + (total_sf_patients * 0.5 * urine_24_hr_cost)
+    ), .keep = "all")
+    
+    # Follow-up Costs
+    data <- data %>% mutate(
+      lr_annual_follow_up_costs = (total_sf_patients * 0.5) * (clinic_review_cost + ct_cost),
+      #low risk patients
+      hr_annual_follow_up_costs = (total_sf_patients *
+                                     0.5) * (clinic_review_cost + ct_cost + urine_24_hr_cost),
+      # high risk patients
+      .keep = "all"
+    )
+    
+    
+    # Additional Intervention for Residual Stones
+    data <- data %>% mutate(
+      residual_stone_intervention_patients = eswl_residual_symptomatic + urs_residual_symptomatic + pcnl_residual_symptomatic,
+      eswl_reintervention_patients = residual_stone_intervention_patients * eswl_proportion,
+      urs_reintervention_patients = residual_stone_intervention_patients * urs_proportion,
+      pcnl_reintervention_patients = residual_stone_intervention_patients * pcnl_proportion,
+      residual_stone_intervention_costs = eswl_reintervention_patients * eswl_cost +
+        urs_reintervention_patients * urs_cost +
+        pcnl_reintervention_patients * pcnl_cost,
+      .keep = "all"
+    )
+    
+    # Total Costs
+    total_cost <- data %>% mutate(
+      total_cost = initial_costs + (3 * lr_annual_follow_up_costs) + (4 * hr_annual_follow_up_costs) + residual_stone_intervention_costs
+    )
+    return(total_cost)
+  }
+  
+## 3. Population estimations ####
+  ### 3.1 Death / Recurrence rate ####
+  assign_death_rate_over_time <- function(data, years = 5, death_rates_ons, base_year) {
+    survival_probability <- 1  # Start with 100% survival
+    yearly_survivors <- tibble()  # Initialize result storage
+    
+    for (year in 1:years) {
+      # Determine the current age band
+      data1 <- data %>% mutate(
+      age_band = case_when(
+        age >= 1 & age <= 4 ~ "1-4",
+        age >= 5 & age <= 9 ~ "5-9",
+        age >= 10 & age <= 14 ~ "10-14",
+        age >= 15 & age <= 19 ~ "15-19",
+        age >= 20 & age <= 24 ~ "20-24",
+        age >= 25 & age <= 29 ~ "25-29",
+        age >= 30 & age <= 34 ~ "30-34",
+        age >= 35 & age <= 39 ~ "35-39",
+        age >= 40 & age <= 44 ~ "40-44",
+        age >= 45 & age <= 49 ~ "45-49",
+        age >= 50 & age <= 54 ~ "50-54",
+        age >= 55 & age <= 59 ~ "55-59",
+        age >= 60 & age <= 64 ~ "60-64",
+        age >= 65 & age <= 69 ~ "65-69",
+        age >= 70 & age <= 74 ~ "70-74",
+        age >= 75 & age <= 79 ~ "75-79",
+        age >= 80 & age <= 84 ~ "80-84",
+        age >= 85 & age <= 90 ~ "85-90",
+        age > 90 ~ ">90"
+      ),
+      .keep = "all")
+      
+      data1$age_band <- factor(data1$age_band, levels = c(
+        "1-4", "5-9", "10-14", "15-19", "20-24",
+        "25-29", "30-34", "35-39", "40-44", "45-49",
+        "50-54", "55-59", "60-64", "65-69", "70-74",
+        "75-79", "80-84", "85-90", ">90"
+      ), ordered = TRUE)
+      
+      data1 <- data1 %>%
+        group_by(age_band, sex, risk_status) %>%
+        summarise(n = n(), .groups = "drop")
+      
+      male_data <- data1 %>% subset(sex == "male")
+      female_data <- data1 %>% subset(sex == "female")
+      
+      # Filter and pull the appropriate death rate
+      male_annual_death_rate <- death_rates_ons[, 1:2] %>%
+        cbind("Male_death_rate" = death_rates_ons[, base_year]) %>%
+        filter(sex == "Male")
+      
+      female_annual_death_rate <- death_rates_ons[, 1:2] %>%
+        cbind("Female_death_rate" = death_rates_ons[, base_year]) %>%
+        filter(sex == "Female")
+      
+      death_rate <- male_annual_death_rate %>%
+        left_join(female_annual_death_rate, by = c("Age_range" = "Age_range")) %>%
+        mutate(gender = sex.x, .keep = "all") %>%
+        subset(select = -c(sex.x, sex.y))
+      
+      data_with_death_rates <- data1 %>%
+        mutate(
+          survivors = ifelse(sex == "male",
+          n * (1 - death_rate$Male_death_rate),
+          n * (1 - death_rate$Female_death_rate)
+          )
+        )
+      
+      data_with_death_rates <- data_with_death_rates %>% mutate(
+        recurrence = (ifelse(risk_status == "low",
+                      survivors * annual_recurrence_rate_low * year,
+                      survivors * annual_recurrence_rate_high * year)
+      ))
+      
+      data_with_death_rates$survivors <- as.integer(data_with_death_rates$survivors)
+      
+      yearly_result <- data_with_death_rates %>%
+        group_by(sex, risk_status) %>%
+        summarise(survivors = sum(survivors),
+                  recurrence = sum(recurrence),
+                  .groups = "drop") %>%
+        mutate(year = 2010 + base_year,
+               years_fu = years,
+               recurrence_free_survivors = survivors - recurrence)
+      
+      yearly_survivors <- bind_rows(yearly_survivors, yearly_result)
+      
+      # Increment for next iteration
+      set.seed(1234)
+      data <- update_dataset_with_death_rates(data, data_with_death_rates)
+      base_year <- base_year + 1
+    }
+    
+    return(yearly_survivors)
+  }
+  
+  
+  # Function to update dataset based on death rates
+  update_dataset_with_death_rates <- function(data, data_with_death_rates) {
+    
+    # First, create age_band in your main data to match the death rates tibble
+    data <- data %>%
+      mutate(age_band = case_when(
+        age >= 1 & age <= 4 ~ "1-4",
+        age >= 5 & age <= 9 ~ "5-9", 
+        age >= 10 & age <= 14 ~ "10-14",
+        age >= 15 & age <= 19 ~ "15-19",
+        age >= 20 & age <= 24 ~ "20-24",
+        age >= 25 & age <= 29 ~ "25-29",
+        age >= 30 & age <= 34 ~ "30-34",
+        age >= 35 & age <= 39 ~ "35-39",
+        age >= 40 & age <= 44 ~ "40-44",
+        age >= 45 & age <= 49 ~ "45-49",
+        age >= 50 & age <= 54 ~ "50-54",
+        age >= 55 & age <= 59 ~ "55-59",
+        age >= 60 & age <= 64 ~ "60-64",
+        age >= 65 & age <= 69 ~ "65-69",
+        age >= 70 & age <= 74 ~ "70-74",
+        age >= 75 & age <= 79 ~ "75-79",
+        age >= 80 & age <= 84 ~ "80-84",
+        age >= 85 & age <= 90 ~ "85-90",
+        age > 90 ~ ">90"
+      ))
+    
+    # Calculate survival probabilities for each group
+    survival_probs <- data_with_death_rates %>%
+      mutate(survival_rate = survivors / n)
+    
+    # Join survival rates to your main data
+    data_updated <- data %>%
+      left_join(survival_probs %>% select(age_band, sex, risk_status, survival_rate),
+                by = c("age_band", "sex", "risk_status")) %>%
+      # Generate random numbers and keep survivors
+      mutate(random_draw = runif(n())) %>%
+      filter(random_draw <= survival_rate) %>%
+      select(-random_draw, -survival_rate, -age_band)
+    
+    return(data_updated)
+  }
 
-print("Risk Status Breakdown:")
-risk_status_gt_table
+  
+  ### 3.2 Simulate Population ####
+  simulate_population <- function(population) {
+    # Remove deceased individuals based on 5-year mortality rates
+    survival <- runif(nrow(population)) > population$mortality_rate
+    population <- population[survival, ]
+    
+    # Age the population by 1 year
+    population$age <- population$age + 1
+    
+    return(population)
+  }
+  
+  ## 4. Calculate Costs ####
+  ### 4.1 Visualise the Model ####
+  grViz(
+    "
+digraph MarkovModel {
+  graph [layout = dot, rankdir = LR, bgcolor = 'white']
+
+  # Nodes for model states with colors
+  StoneFree [shape = oval, label = 'Stone Free',
+             style = filled, fillcolor = 'lightblue', color = 'darkblue']
+
+  LowRisk [shape = rectangle, label = 'Low Risk',
+           style = filled, fillcolor = 'chartreuse3', color = 'darkgreen']
+
+  HighRisk [shape = rectangle, label = 'High Risk',
+            style = filled, fillcolor = 'orange', color = 'darkorange']
+
+  NoRecurrence [shape = rectangle, label = 'No Recurrence',
+                style = filled, fillcolor = 'chartreuse3', color = 'darkgreen']
+
+  Recurrence [shape = diamond, label = 'Recurrence',
+              style = filled, fillcolor = 'salmon', color = 'red']
+
+  FollowUp [shape = oval, label = 'No Stone Events\\nover Follow-up',
+            style = filled, fillcolor = 'lightcyan', color = 'teal']
+
+  Death [shape = hexagon, label = 'Death', rank = same,
+         style = filled, fillcolor = 'black', color = 'black', fontcolor = 'white']
+
+  Intervention [shape = diamond, label = 'Potential\\nIntervention', rank = same,
+                style = filled, fillcolor = 'gold', color = 'orange']
+
+  # Transitions and probabilities with colored edges
+  StoneFree -> LowRisk [label = '36%', color = 'green', fontcolor = 'darkgreen']
+  StoneFree -> HighRisk [label = '64%', color = 'orange', fontcolor = 'darkorange']
+
+  LowRisk -> Recurrence [label = '20% Recurrence', color = 'red', fontcolor = 'red']
+  HighRisk -> Recurrence [label = '60% Recurrence', color = 'red', fontcolor = 'red']
+
+  LowRisk -> NoRecurrence [label = '80% No Recurrence', color = 'darkgreen', fontcolor = 'darkgreen']
+  HighRisk -> NoRecurrence [label = '40% No Recurrence', color = 'darkgreen', fontcolor = 'darkgreen']
+
+  NoRecurrence -> FollowUp [label = 'Continue Follow-Up', color = 'teal', fontcolor = 'teal']
+  Recurrence -> Intervention [label = 'Potential Intervention', color = 'gold', fontcolor = 'orange']
+
+  # Death state transitions with consistent styling
+  HighRisk -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
+  LowRisk -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
+  Recurrence -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
+  NoRecurrence -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
+  Intervention -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
+}
+")
+  
+  ### 4.2 Calculate cost for treatment / colic episodes as per HES ####
+  initial_presentation_only_cost <- hes_data_elective_emergency %>% subset(
+    select = c(
+      year,
+      urs,
+      pcnl,
+      eswl,
+      colic_n,
+      emergency_procedures_n
+    )
+  ) %>% mutate(
+    cost_for_initial_presentation = 
+      (urs * urs_cost) +
+      (pcnl * pcnl_cost) +
+      (eswl * eswl_cost * 2) +
+      (colic_n * ed_presentation_cost) +
+      (emergency_procedures_n * stent_cost)
+  )
+  
+  initial_presentation_only_cost %>% select(year,
+                                            cost_for_initial_presentation) %>% drop_na(
+                                              cost_for_initial_presentation) %>% gt()
+  
+  ### 4.3 Estimate Cost for 2020 - XR FU - Full 1% incidence ####
+  #### 4.3.1 Simulate populations over years 2016 -> 2020 ####
+  pop_2016 <- simulate_population_distribution(400892)
+  pop_2017 <- simulate_population_distribution(402715)
+  pop_2018 <- simulate_population_distribution(404367)
+  pop_2019 <- simulate_population_distribution(406778)
+  pop_2020 <- simulate_population_distribution(413791)
+  
+  #### 4.3.2 Simulate Death rates in above ####
+  pop_2016_death_rates <- assign_death_rate_over_time(pop_2016, years = 5, death_rates_ons, base_year = 6)
+  pop_2017_death_rates <- assign_death_rate_over_time(pop_2017, years = 4, death_rates_ons, base_year = 7)
+  pop_2018_death_rates <- assign_death_rate_over_time(pop_2018, years = 3, death_rates_ons, base_year = 8)
+  pop_2019_death_rates <- assign_death_rate_over_time(pop_2019, years = 2, death_rates_ons, base_year = 9)
+  pop_2020_death_rates <- assign_death_rate_over_time(pop_2020, years = 1, death_rates_ons, base_year = 10)
+  
+  overall_death_rates <- rbind(pop_2016_death_rates,
+                               pop_2017_death_rates,
+                               pop_2018_death_rates,
+                               pop_2019_death_rates,
+                               pop_2020_death_rates) %>% as_tibble()
+  
+  overall_death_rates$years_fu <- as.factor(overall_death_rates$years_fu)
+  
+  rates_death_recurrence1 <- overall_death_rates %>% subset(select = -c(recurrence,
+                                                                        recurrence_free_survivors)) %>% mutate(
+                                                                          n = survivors,
+                                                                          outcome = "Survivors",
+                                                                          .keep = "unused"
+                                                                        )
+  rates_death_recurrence2 <- overall_death_rates %>% subset(select = -c(survivors,
+                                                                        recurrence_free_survivors)) %>% mutate(
+                                                                          n = recurrence,
+                                                                          outcome = "Recurrence",
+                                                                          .keep = "unused"
+                                                                        )
+  rates_death_recurrence3 <- overall_death_rates %>% subset(select = -c(recurrence,
+                                                                        survivors)) %>% mutate(
+                                                                          n = recurrence_free_survivors,
+                                                                          outcome = "Recurrence Free Survivors",
+                                                                          .keep = "unused"
+                                                                        )
+  
+  rates_death_recurrence <- rbind(rates_death_recurrence1,
+                                  rates_death_recurrence2,
+                                  rates_death_recurrence3)
+  
+  rates_death_recurrence$outcome <- as.factor(rates_death_recurrence$outcome)
+
+  rates_death_recurrence %>%
+    group_by(risk_status, year, years_fu, outcome) %>%
+    summarise(n = sum(n), .groups = "drop") %>%
+    ggplot(aes(y = n, x = year, color = outcome)) + 
+    geom_line() +
+    facet_grid(years_fu ~ risk_status) +
+    labs(title = "Survivors / Recurrences by Year of Follow-up", 
+         x = "Year", 
+         y = "N",
+         color = "Outcome")
+  
+  #### 4.3.3 Get patients still alive/recurrence free in 2020 ####
+  recurrence_free_at_2020 <- rates_death_recurrence3 %>% subset(year == "2020") %>%
+  group_by(risk_status, years_fu) %>%
+    summarise(n = sum(n), .groups = "drop")
+  
+  #### 4.8.4 Calculate costs for patients still alive in 2020 - XR only ####
+  costs_2020 <- recurrence_free_at_2020 %>% 
+    mutate(
+      cost_current = case_when(
+        years_fu == 1 & risk_status == "low" ~ n * year_1_lr_sf_fu_cost,
+        years_fu == 2 & risk_status == "low" ~ n * year_3_5_lr_sf_fu_cost,
+        years_fu %in% c(3, 4, 5) & risk_status == "low" ~ n * 0,
+        years_fu == 1 & risk_status == "high" ~ n * year_1_hr_sf_fu_cost_current,
+        years_fu == 2 & risk_status == "high" ~ n * year_2_lr_sf_fu_cost_current,
+        years_fu %in% c(3, 4) & risk_status == "high" ~ n * year_3_onwards_lr_sf_fu_cost_current,
+        years_fu == 5 & risk_status == "high" ~ n * 0,
+        TRUE ~ 0
+      ),
+      cost_eau_3 = case_when(
+        years_fu == 1 & risk_status == "low" ~ n * year_1_lr_sf_fu_cost,
+        years_fu == 2 & risk_status == "low" ~ n * 0,
+        years_fu == 3 & risk_status == "low" ~ n * year_3_5_lr_sf_fu_cost,
+        years_fu %in% c(4, 5) & risk_status == "low" ~ n * 0,
+        years_fu == 1 & risk_status == "high" ~ n * year_1_hr_sf_fu_cost_eau,
+        years_fu == 2 & risk_status == "high" ~ n * year_2_lr_sf_fu_cost_eau,
+        years_fu %in% c(3, 4, 5) & risk_status == "high" ~ n * year_3_onwards_lr_sf_fu_cost_eau,
+        TRUE ~ 0
+      ),
+      cost_eau_5 = case_when(
+        years_fu == 1 & risk_status == "low" ~ n * year_1_lr_sf_fu_cost,
+        years_fu == 2 & risk_status == "low" ~ n * 0,
+        years_fu %in% c(3, 4, 5) & risk_status == "low" ~ n * year_3_5_lr_sf_fu_cost,
+        years_fu == 1 & risk_status == "high" ~ n * year_1_hr_sf_fu_cost_eau,
+        years_fu == 2 & risk_status == "high" ~ n * year_2_lr_sf_fu_cost_eau,
+        years_fu %in% c(3, 4, 5) & risk_status == "high" ~ n * year_3_onwards_lr_sf_fu_cost_eau,
+        TRUE ~ 0
+      )
+    )
+  
+  cost_totals <- costs_2020 %>%
+    summarise(
+      total_cost_current = sum(cost_current, na.rm = TRUE),
+      total_cost_eau_3 = sum(cost_eau_3, na.rm = TRUE),
+      total_cost_eau_5 = sum(cost_eau_5, na.rm = TRUE)
+    )
+  
+  cost_totals %>% gt()
+  
+  
+  ### 4.4 Estimate Cost for 2020 - XR FU - Only those represented in HES data ####
+  #### 4.3.1 Simulate populations over years 2016 -> 2020 ####
+  
+  hes_patients <- hes_data_elective_emergency %>% subset(select = c(
+    year,
+    urs_stone_free,
+    eswl_stone_free,
+    pcnl_stone_free,
+    conservative_mx_n
+  )) %>% mutate(
+    n = urs_stone_free + eswl_stone_free + pcnl_stone_free + (conservative_mx_n * 0.74)
+  )  
+  
+  hes_patients %>% subset(year == c("2016",
+                                    "2017",
+                                    "2018",
+                                    "2019",
+                                    "2020")) %>% subset(select = c(year,
+                                                                   n)) %>% gt()
+
+  pop_2016_hes <- simulate_population_distribution(51460)
+  pop_2017_hes <- simulate_population_distribution(51502)
+  pop_2018_hes <- simulate_population_distribution(50721)
+  pop_2019_hes <- simulate_population_distribution(52218)
+  pop_2020_hes <- simulate_population_distribution(48218)
+  
+  #### 4.3.2 Simulate Death rates in above ####
+  pop_2016_death_rates_hes <- assign_death_rate_over_time(pop_2016_hes, years = 5, death_rates_ons, base_year = 6)
+  pop_2017_death_rates_hes <- assign_death_rate_over_time(pop_2017_hes, years = 4, death_rates_ons, base_year = 7)
+  pop_2018_death_rates_hes <- assign_death_rate_over_time(pop_2018_hes, years = 3, death_rates_ons, base_year = 8)
+  pop_2019_death_rates_hes <- assign_death_rate_over_time(pop_2019_hes, years = 2, death_rates_ons, base_year = 9)
+  pop_2020_death_rates_hes <- assign_death_rate_over_time(pop_2020_hes, years = 1, death_rates_ons, base_year = 10)
+  
+  overall_death_rates_hes <- rbind(pop_2016_death_rates_hes,
+                               pop_2017_death_rates_hes,
+                               pop_2018_death_rates_hes,
+                               pop_2019_death_rates_hes,
+                               pop_2020_death_rates_hes) %>% as_tibble()
+  
+  overall_death_rates_hes$years_fu <- as.factor(overall_death_rates_hes$years_fu)
+  
+  rates_death_recurrence1_hes <- overall_death_rates_hes %>% subset(select = -c(recurrence,
+                                                                        recurrence_free_survivors)) %>% mutate(
+                                                                          n = survivors,
+                                                                          outcome = "Survivors",
+                                                                          .keep = "unused"
+                                                                        )
+  rates_death_recurrence2_hes <- overall_death_rates_hes %>% subset(select = -c(survivors,
+                                                                        recurrence_free_survivors)) %>% mutate(
+                                                                          n = recurrence,
+                                                                          outcome = "Recurrence",
+                                                                          .keep = "unused"
+                                                                        )
+  rates_death_recurrence3_hes <- overall_death_rates_hes %>% subset(select = -c(recurrence,
+                                                                        survivors)) %>% mutate(
+                                                                          n = recurrence_free_survivors,
+                                                                          outcome = "Recurrence Free Survivors",
+                                                                          .keep = "unused"
+                                                                        )
+  
+  rates_death_recurrence_hes <- rbind(rates_death_recurrence1_hes,
+                                  rates_death_recurrence2_hes,
+                                  rates_death_recurrence3_hes)
+  
+  rates_death_recurrence_hes$outcome <- as.factor(rates_death_recurrence_hes$outcome)
+  
+  rates_death_recurrence_hes %>%
+    group_by(risk_status, year, years_fu, outcome) %>%
+    summarise(n = sum(n), .groups = "drop") %>%
+    ggplot(aes(y = n, x = year, color = outcome)) + 
+    geom_line() +
+    facet_grid(years_fu ~ risk_status) +
+    labs(title = "Survivors / Recurrences by Year of Follow-up", 
+         x = "Year", 
+         y = "N",
+         color = "Outcome")
+  
+  #### 4.3.3 Get patients still alive/recurrence free in 2020 ####
+  recurrence_free_at_2020_hes <- rates_death_recurrence3_hes %>% subset(year == "2020") %>%
+    group_by(risk_status, years_fu) %>%
+    summarise(n = sum(n), .groups = "drop")
+  
+  #### 4.8.4 Calculate costs for patients still alive in 2020 - XR only ####
+  costs_2020_hes <- recurrence_free_at_2020_hes %>% 
+    mutate(
+      cost_current = case_when(
+        years_fu == 1 & risk_status == "low" ~ n * year_1_lr_sf_fu_cost,
+        years_fu == 2 & risk_status == "low" ~ n * year_3_5_lr_sf_fu_cost,
+        years_fu %in% c(3, 4, 5) & risk_status == "low" ~ n * 0,
+        years_fu == 1 & risk_status == "high" ~ n * year_1_hr_sf_fu_cost_current,
+        years_fu == 2 & risk_status == "high" ~ n * year_2_lr_sf_fu_cost_current,
+        years_fu %in% c(3, 4) & risk_status == "high" ~ n * year_3_onwards_lr_sf_fu_cost_current,
+        years_fu == 5 & risk_status == "high" ~ n * 0,
+        TRUE ~ 0
+      ),
+      cost_eau_3 = case_when(
+        years_fu == 1 & risk_status == "low" ~ n * year_1_lr_sf_fu_cost,
+        years_fu == 2 & risk_status == "low" ~ n * 0,
+        years_fu == 3 & risk_status == "low" ~ n * year_3_5_lr_sf_fu_cost,
+        years_fu %in% c(4, 5) & risk_status == "low" ~ n * 0,
+        years_fu == 1 & risk_status == "high" ~ n * year_1_hr_sf_fu_cost_eau,
+        years_fu == 2 & risk_status == "high" ~ n * year_2_lr_sf_fu_cost_eau,
+        years_fu %in% c(3, 4, 5) & risk_status == "high" ~ n * year_3_onwards_lr_sf_fu_cost_eau,
+        TRUE ~ 0
+      ),
+      cost_eau_5 = case_when(
+        years_fu == 1 & risk_status == "low" ~ n * year_1_lr_sf_fu_cost,
+        years_fu == 2 & risk_status == "low" ~ n * 0,
+        years_fu %in% c(3, 4, 5) & risk_status == "low" ~ n * year_3_5_lr_sf_fu_cost,
+        years_fu == 1 & risk_status == "high" ~ n * year_1_hr_sf_fu_cost_eau,
+        years_fu == 2 & risk_status == "high" ~ n * year_2_lr_sf_fu_cost_eau,
+        years_fu %in% c(3, 4, 5) & risk_status == "high" ~ n * year_3_onwards_lr_sf_fu_cost_eau,
+        TRUE ~ 0
+      )
+    )
+  
+  cost_totals_hes <- costs_2020_hes %>%
+    summarise(
+      total_cost_current = sum(cost_current, na.rm = TRUE),
+      total_cost_eau_3 = sum(cost_eau_3, na.rm = TRUE),
+      total_cost_eau_5 = sum(cost_eau_5, na.rm = TRUE)
+    )
+  
+  cost_totals_hes %>% gt()
+  
