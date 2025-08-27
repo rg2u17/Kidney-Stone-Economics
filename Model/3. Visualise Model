@@ -1,0 +1,107 @@
+## 3. Visualise Model ####
+### 3.1 Visualise Model ####
+grViz(
+  "
+digraph MarkovModel {
+  graph [layout = dot, rankdir = LR, bgcolor = 'white']
+
+  # Nodes for model states with colors
+  StoneFree [shape = oval, label = 'Stone Free',
+             style = filled, fillcolor = 'lightblue', color = 'darkblue']
+
+  less_4mm [shape = oval, label = '<4mm Fragments',
+             style = filled, fillcolor = 'lightblue', color = 'darkblue']
+
+  more_4mm [shape = oval, label = '>/=4mm Fragments',
+             style = filled, fillcolor = 'lightblue', color = 'darkblue']
+
+  LowRiskSF [shape = rectangle, label = 'Low Risk',
+           style = filled, fillcolor = 'chartreuse3', color = 'darkgreen']
+
+  HighRiskSF [shape = rectangle, label = 'High Risk',
+            style = filled, fillcolor = 'orange', color = 'darkorange']
+
+  LowRiskNSF [shape = rectangle, label = 'Low Risk',
+           style = filled, fillcolor = 'chartreuse3', color = 'darkgreen']
+
+  HighRiskNSF [shape = rectangle, label = 'High Risk',
+            style = filled, fillcolor = 'orange', color = 'darkorange']
+
+  NoRecurrence [shape = rectangle, label = 'No Stone Events',
+                style = filled, fillcolor = 'chartreuse3', color = 'darkgreen']
+
+  Recurrence [shape = diamond, label = 'Stone Event',
+              style = filled, fillcolor = 'salmon', color = 'red']
+
+  FollowUp [shape = oval, label = 'No Stone Events\\nover Follow-up',
+            style = filled, fillcolor = 'lightcyan', color = 'teal']
+
+  Death [shape = hexagon, label = 'Death', rank = same,
+         style = filled, fillcolor = 'black', color = 'black', fontcolor = 'white']
+
+  ESWL [shape = diamond, label = 'ESWL', rank = same,
+                style = filled, fillcolor = 'gold', color = 'orange']
+
+  PCNL [shape = diamond, label = 'PCNL', rank = same,
+                style = filled, fillcolor = 'gold', color = 'orange']
+
+  URS [shape = diamond, label = 'URS', rank = same,
+                style = filled, fillcolor = 'gold', color = 'orange']
+
+  Observation [shape = diamond, label = 'Observation', rank = same,
+                style = filled, fillcolor = 'gold', color = 'orange']
+
+  # Transitions and probabilities with colored edges
+  StoneFree -> LowRiskSF [color = 'green', fontcolor = 'darkgreen']
+  StoneFree -> HighRiskSF [color = 'orange', fontcolor = 'darkorange']
+
+  less_4mm -> LowRiskNSF [color = 'green', fontcolor = 'darkgreen']
+  less_4mm -> HighRiskNSF [color = 'orange', fontcolor = 'darkorange']
+  more_4mm -> LowRiskNSF [color = 'green', fontcolor = 'darkgreen']
+  more_4mm -> HighRiskNSF [color = 'orange', fontcolor = 'darkorange']
+
+  LowRiskSF -> Recurrence [color = 'red', fontcolor = 'red']
+  HighRiskSF -> Recurrence [color = 'red', fontcolor = 'red']
+  LowRiskNSF -> Recurrence [color = 'red', fontcolor = 'red']
+  HighRiskNSF -> Recurrence [color = 'red', fontcolor = 'red']
+
+  LowRiskSF -> NoRecurrence [color = 'darkgreen', fontcolor = 'darkgreen']
+  HighRiskSF -> NoRecurrence [color = 'darkgreen', fontcolor = 'darkgreen']
+  LowRiskNSF -> NoRecurrence [color = 'darkgreen', fontcolor = 'darkgreen']
+  HighRiskNSF -> NoRecurrence [color = 'darkgreen', fontcolor = 'darkgreen']
+
+  NoRecurrence -> FollowUp [label = 'Continue Follow-Up', color = 'teal', fontcolor = 'teal']
+  Recurrence -> ESWL [label = 'ESWL (39%)', color = 'gold', fontcolor = 'orange']
+  Recurrence -> PCNL [label = 'PCNL (16%)', color = 'gold', fontcolor = 'orange']
+  Recurrence -> URS [label = 'URS (25%)', color = 'gold', fontcolor = 'orange']
+  Recurrence -> Observation [label = 'Observation (20%)', color = 'gold', fontcolor = 'orange']
+
+  Observation -> StoneFree [label = 'Stone Free (10%)', color = 'gold', fontcolor = 'orange']
+  Observation -> less_4mm [label = 'Not Stone Free (80%)', color = 'blue', fontcolor = 'blue']
+  Observation -> more_4mm [label = 'Not Stone Free (20%)', color = 'blue', fontcolor = 'blue']
+
+  ESWL -> StoneFree [label = 'Stone Free (50%)', color = 'gold', fontcolor = 'orange']
+  ESWL -> less_4mm [label = 'Not Stone Free (40%)', color = 'blue', fontcolor = 'blue']
+  ESWL -> more_4mm [label = 'Not Stone Free (10%)', color = 'blue', fontcolor = 'blue']
+
+  PCNL -> StoneFree [label = 'Stone Free (74%)', color = 'gold', fontcolor = 'orange']
+  PCNL -> less_4mm [label = 'Not Stone Free (18%)', color = 'blue', fontcolor = 'blue']
+  PCNL -> more_4mm [label = 'Not Stone Free (8%)', color = 'blue', fontcolor = 'blue']
+
+  URS -> StoneFree [label = 'Stone Free (60%)', color = 'gold', fontcolor = 'orange']
+  URS -> less_4mm [label = 'Not Stone Free (30%)', color = 'blue', fontcolor = 'blue']
+  URS -> more_4mm [label = 'Not Stone Free (10%)', color = 'blue', fontcolor = 'blue']
+
+  # Death state transitions with consistent styling
+  HighRiskSF -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
+  LowRiskSF -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
+  HighRiskNSF -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
+  LowRiskNSF -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
+  Recurrence -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
+  NoRecurrence -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
+  ESWL -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
+  URS -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
+  PCNL -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
+  Observation -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
+}
+")
