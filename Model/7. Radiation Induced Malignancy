@@ -1,0 +1,1161 @@
+# Overall Excess Absolute Risk Model (EAR) for Solid cancers associated with ionising radiation ####
+# RadRAT: A Radiation Risk Assessment Tool for Lifetime Cancer Risk Projection
+# Berrington de Gonzalez A, Iulian Apostoaei A, Veiga LH, Rajaraman P, Thomas BA, Owen Hoffman F, Gilbert E, Land C. RadRAT: a radiation risk assessment tool for lifetime cancer risk projection. J Radiol Prot. 2012 Sep;32(3):205-22. doi: 10.1088/0952-4746/32/3/205. Epub 2012 Jul 19. PMID: 22810503; PMCID: PMC3816370.
+
+# Equation:
+# βS D exp [γ e*] (a*)η
+
+# βS = site-specific risk coefficient
+# D = dose in Gy
+# γ = age at exposure parameter
+# e = age at exposure in years
+# e* = (e-30)/10 for e <30
+# e* = 0 for e ≥ 30
+# η = attained age parameter
+# a*=(a/60)
+# a = attained age in years
+
+
+
+# 1. Setup #####
+## 1.1 Load libraries ####
+library(gt)
+library(gtExtras)
+library(tidyverse)
+library(DiagrammeR)
+library(data.table)
+library(janitor)
+library(DataExplorer)
+library(pROC)
+library(ggplot2)
+library(pracma)
+library(glue)
+library(cutpointr)
+library(caret)
+library(cowplot)
+library(cutpointr)
+library(ggsignif)
+library(ggpubr)
+
+## 1.2 Define inputs ####
+kidney_inputs <- cbind(
+  beta_male = 0.31,
+  beta_female = 0.31,
+  gamma = -0.41,
+  attained_age_parameter = 2.8,
+  malignancy = "kidney"
+) %>% as_tibble()
+
+bladder_inputs <- cbind(
+  beta_male = 1.2,
+  beta_female = 0.75,
+  gamma = -0.41,
+  attained_age_parameter = 6,
+  malignancy = "bladder"
+) %>% as_tibble()
+
+colon_inputs <- cbind(
+  beta_male = 3.2,
+  beta_female = 1.6,
+  gamma = -0.41,
+  attained_age_parameter = 2.8,
+  malignancy = "colon"
+) %>% as_tibble()
+
+prostate_inputs <- cbind(
+  beta_male = 0.11,
+  beta_female = NA,
+  gamma = -0.41,
+  attained_age_parameter = 2.8,
+  malignancy = "prostate"
+) %>% as_tibble()
+
+ovary_inputs <- cbind(
+  beta_male = NA,
+  beta_female = 0.7,
+  gamma = -0.41,
+  attained_age_parameter = 2.8,
+  malignancy = "ovary"
+) %>% as_tibble()
+
+rectum_inputs <- cbind(
+  beta_male = 0.34,
+  beta_female = 0.34,
+  gamma = -0.41,
+  attained_age_parameter = 2.8,
+  malignancy = "rectum"
+) %>% as_tibble()
+
+stomach_inputs <- cbind(
+  beta_male = 4.9,
+  beta_female = 4.9,
+  gamma = -0.41,
+  attained_age_parameter = 2.8,
+  malignancy = "stomach"
+) %>% as_tibble()
+
+liver_inputs <- cbind(
+  beta_male = 2.2,
+  beta_female = 1,
+  gamma = -0.41,
+  attained_age_parameter = 4.1,
+  malignancy = "liver"
+) %>% as_tibble()
+
+uterus_inputs <- cbind(
+  beta_male = NA,
+  beta_female = 1.2,
+  gamma = -0.41,
+  attained_age_parameter = 2.8,
+  malignancy = "uterus"
+) %>% as_tibble()
+
+pancreas_inputs <- cbind(
+  beta_male = 0.49,
+  beta_female = 0.49,
+  gamma = -0.41,
+  attained_age_parameter = 2.8,
+  malignancy = "pancreas"
+) %>% as_tibble()
+
+ear_inputs <- rbind(
+  bladder_inputs,
+  kidney_inputs,
+  prostate_inputs,
+  colon_inputs,
+  ovary_inputs,
+  uterus_inputs,
+  pancreas_inputs,
+  liver_inputs,
+  stomach_inputs,
+  rectum_inputs
+)
+
+ear_inputs$beta_male <- as.numeric(ear_inputs$beta_male)
+ear_inputs$beta_female <- as.numeric(ear_inputs$beta_female)
+ear_inputs$gamma <- as.numeric(ear_inputs$gamma)
+ear_inputs$attained_age_parameter <- as.numeric(ear_inputs$attained_age_parameter)
+
+# 2. Create dataset to use for calculation ####
+## 2.1 Aggregate Radiation Cohorts ####
+aggregate_radiation_cohorts <- function(auc_target = c(1, 2, 3, 4, 5, 6, 7, 8, 9)) {
+  all_cohorts <- list()
+  
+  for (i in auc_target) {
+    key <- as.integer(i)
+    message("Processing AUC = ", key)
+    
+    message("  Loading 2016 data...")
+    cohort_2016_min_xr <- rad_doses_2016_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i,
+                                                                         year = 2016)
+    cohort_2016_min_ct <- rad_doses_2016_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i,
+                                                                         year = 2016)
+    cohort_2016_max_xr <- rad_doses_2016_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i,
+                                                                         year = 2016)
+    cohort_2016_max_ct <- rad_doses_2016_cohort_max_ct[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i,
+                                                                         year = 2016)
+    
+    message("  Loading 2017 data...")
+    cohort_2017_min_xr <- rad_doses_2017_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i,
+                                                                         year = 2017)
+    cohort_2017_min_ct <- rad_doses_2017_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i,
+                                                                         year = 2017)
+    cohort_2017_max_xr <- rad_doses_2017_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i,
+                                                                         year = 2017)
+    cohort_2017_max_ct <- rad_doses_2017_cohort_max_ct[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i,
+                                                                         year = 2017)
+    
+    message("  Loading 2018 data...")
+    cohort_2018_min_xr <- rad_doses_2018_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i,
+                                                                         year = 2018)
+    cohort_2018_min_ct <- rad_doses_2018_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i,
+                                                                         year = 2018)
+    cohort_2018_max_xr <- rad_doses_2018_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i,
+                                                                         year = 2018)
+    cohort_2018_max_ct <- rad_doses_2018_cohort_max_ct[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i,
+                                                                         year = 2018)
+    
+    message("  Loading 2019 data...")
+    cohort_2019_min_xr <- rad_doses_2019_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i,
+                                                                         year = 2019)
+    cohort_2019_min_ct <- rad_doses_2019_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i,
+                                                                         year = 2019)
+    cohort_2019_max_xr <- rad_doses_2019_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i,
+                                                                         year = 2019)
+    cohort_2019_max_ct <- rad_doses_2019_cohort_max_ct[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i,
+                                                                         year = 2019)
+    
+    message("  Loading 2020 data...")
+    cohort_2020_min_xr <- rad_doses_2020_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i,
+                                                                         year = 2020)
+    cohort_2020_min_ct <- rad_doses_2020_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i,
+                                                                         year = 2020)
+    cohort_2020_max_xr <- rad_doses_2020_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i,
+                                                                         year = 2020)
+    cohort_2020_max_ct <- rad_doses_2020_cohort_max_ct[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i,
+                                                                         year = 2020)
+    
+    message("  Combining cohorts for AUC = ", key)
+    overall_cohort <- dplyr::bind_rows(
+      cohort_2016_min_xr,
+      cohort_2016_min_ct,
+      cohort_2016_max_xr,
+      cohort_2016_max_ct,
+      cohort_2017_min_xr,
+      cohort_2017_min_ct,
+      cohort_2017_max_xr,
+      cohort_2017_max_ct,
+      cohort_2018_min_xr,
+      cohort_2018_min_ct,
+      cohort_2018_max_xr,
+      cohort_2018_max_ct,
+      cohort_2019_min_xr,
+      cohort_2019_min_ct,
+      cohort_2019_max_xr,
+      cohort_2019_max_ct,
+      cohort_2020_min_xr,
+      cohort_2020_min_ct,
+      cohort_2020_max_xr,
+      cohort_2020_max_ct
+    )
+    
+    all_cohorts[[key]] <- overall_cohort
+    message("✅ Done with AUC = ", key, "\n")
+  }
+  
+  message("🔗 Binding all AUC cohorts together...")
+  final_df <- dplyr::bind_rows(all_cohorts)
+  message("✅ All done.")
+  
+  return(final_df)
+}
+
+
+# AUC 0.55
+auc_0.55 <- aggregate_radiation_cohorts(auc_target = 1) %>% subset(
+  select = c(
+    id,
+    year,
+    age,
+    sex,
+    auc_target,
+    stone_free_status,
+    risk_status,
+    cohort_type,
+    death_year_5,
+    rad_dose_year_0,
+    rad_dose_year_1,
+    rad_dose_year_2,
+    rad_dose_year_3,
+    rad_dose_year_4,
+    rad_dose_year_5
+  )
+)
+
+# AUC 0.6
+auc_0.6 <- aggregate_radiation_cohorts(auc_target = 2) %>% subset(
+  select = c(
+    id,
+    year,
+    age,
+    sex,
+    auc_target,
+    stone_free_status,
+    risk_status,
+    cohort_type,
+    death_year_5,
+    rad_dose_year_0,
+    rad_dose_year_1,
+    rad_dose_year_2,
+    rad_dose_year_3,
+    rad_dose_year_4,
+    rad_dose_year_5
+  )
+)
+
+# AUC 0.65
+auc_0.65 <- aggregate_radiation_cohorts(auc_target = 3) %>% subset(
+  select = c(
+    id,
+    year,
+    age,
+    sex,
+    auc_target,
+    stone_free_status,
+    risk_status,
+    cohort_type,
+    death_year_5,
+    rad_dose_year_0,
+    rad_dose_year_1,
+    rad_dose_year_2,
+    rad_dose_year_3,
+    rad_dose_year_4,
+    rad_dose_year_5
+  )
+)
+
+# AUC 0.7
+auc_0.7 <- aggregate_radiation_cohorts(auc_target = 4) %>% subset(
+  select = c(
+    id,
+    year,
+    age,
+    sex,
+    auc_target,
+    stone_free_status,
+    risk_status,
+    cohort_type,
+    death_year_5,
+    rad_dose_year_0,
+    rad_dose_year_1,
+    rad_dose_year_2,
+    rad_dose_year_3,
+    rad_dose_year_4,
+    rad_dose_year_5
+  )
+)
+
+# AUC 0.75
+auc_0.75 <- aggregate_radiation_cohorts(auc_target = 5) %>% subset(
+  select = c(
+    id,
+    year,
+    age,
+    sex,
+    auc_target,
+    stone_free_status,
+    risk_status,
+    cohort_type,
+    death_year_5,
+    rad_dose_year_0,
+    rad_dose_year_1,
+    rad_dose_year_2,
+    rad_dose_year_3,
+    rad_dose_year_4,
+    rad_dose_year_5
+  )
+)
+
+# AUC 0.8
+auc_0.8 <- aggregate_radiation_cohorts(auc_target = 6) %>% subset(
+  select = c(
+    id,
+    year,
+    age,
+    sex,
+    auc_target,
+    stone_free_status,
+    risk_status,
+    cohort_type,
+    death_year_5,
+    rad_dose_year_0,
+    rad_dose_year_1,
+    rad_dose_year_2,
+    rad_dose_year_3,
+    rad_dose_year_4,
+    rad_dose_year_5
+  )
+)
+
+# AUC 0.85
+auc_0.85 <- aggregate_radiation_cohorts(auc_target = 7) %>% subset(
+  select = c(
+    id,
+    year,
+    age,
+    sex,
+    auc_target,
+    stone_free_status,
+    risk_status,
+    cohort_type,
+    death_year_5,
+    rad_dose_year_0,
+    rad_dose_year_1,
+    rad_dose_year_2,
+    rad_dose_year_3,
+    rad_dose_year_4,
+    rad_dose_year_5
+  )
+)
+
+# AUC 0.9
+auc_0.9 <- aggregate_radiation_cohorts(auc_target = 8) %>% subset(
+  select = c(
+    id,
+    year,
+    age,
+    sex,
+    auc_target,
+    stone_free_status,
+    risk_status,
+    cohort_type,
+    death_year_5,
+    rad_dose_year_0,
+    rad_dose_year_1,
+    rad_dose_year_2,
+    rad_dose_year_3,
+    rad_dose_year_4,
+    rad_dose_year_5
+  )
+)
+
+# AUC 0.95
+auc_0.95 <- aggregate_radiation_cohorts(auc_target = 9) %>% subset(
+  select = c(
+    id,
+    year,
+    age,
+    sex,
+    auc_target,
+    stone_free_status,
+    risk_status,
+    cohort_type,
+    death_year_5,
+    rad_dose_year_0,
+    rad_dose_year_1,
+    rad_dose_year_2,
+    rad_dose_year_3,
+    rad_dose_year_4,
+    rad_dose_year_5
+  )
+)
+
+## 2.2 Combine AUC datasets ####
+combine_auc_data <- function(data, auc_label) {
+  data %>%
+    mutate(
+      auc_label = auc_label,
+      risk_status = ifelse(risk_status == "LR", "Low Risk", "High Risk"),
+      cumulative_rad_dose = rowSums(across(starts_with("rad_dose_year_")), na.rm = TRUE),
+      .keep = "all"
+    ) %>%
+    select(auc_label, 
+           id,
+           year,
+           age,
+           sex,
+           auc_target,
+           stone_free_status,
+           risk_status,
+           cohort_type,
+           death_year_5,
+           rad_dose_year_0,
+           rad_dose_year_1,
+           rad_dose_year_2,
+           rad_dose_year_3,
+           rad_dose_year_4,
+           rad_dose_year_5)
+}
+
+# Combine all AUC datasets and filter cohort_types
+rad_data <- bind_rows(
+  combine_auc_data(auc_0.55, 0.55),
+  combine_auc_data(auc_0.6,  0.6),
+  combine_auc_data(auc_0.65, 0.65),
+  combine_auc_data(auc_0.7,  0.7),
+  combine_auc_data(auc_0.75, 0.75),
+  combine_auc_data(auc_0.8,  0.8),
+  combine_auc_data(auc_0.85, 0.85),
+  combine_auc_data(auc_0.9,  0.9),
+  combine_auc_data(auc_0.95, 0.95)
+) 
+
+rad_data$auc_label <- as.factor(rad_data$auc_label)
+rad_data$cohort_type <- as.factor(rad_data$cohort_type)
+rad_data$risk_status <- as.factor(rad_data$risk_status)
+
+# 3. Function to calculate EAR ####
+## 3.1 Individual risk function ####
+# Define target lists
+auc_targets <- c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95)
+malignancy_list <- c("bladder", "kidney", "prostate", "colon", "ovary", "uterus",
+                     "pancreas", "liver", "stomach", "rectum")
+
+# Function to calculate e* (age at exposure parameter)
+calculate_e_star <- function(age_at_exposure) {
+  ifelse(age_at_exposure < 30, 
+         (age_at_exposure - 30) / 10, 
+         0)
+}
+
+# Corrected function to calculate excess cancer cases for a single exposure
+calculate_excess_cases <- function(dose_mgy, sex, age_at_exposure, attained_age, 
+                                   beta_male, beta_female, gamma, eta) {
+  # Convert dose from mGy to Gy
+  dose_gy <- dose_mgy / 1000
+  
+  # Select appropriate beta coefficient, handling NA values for sex-specific cancers
+  if (sex == "male") {
+    beta_s <- beta_male
+    if (is.na(beta_s)) return(0)  # Return 0 risk if male beta is NA (e.g., ovary, uterus)
+  } else {
+    beta_s <- beta_female
+    if (is.na(beta_s)) return(0)  # Return 0 risk if female beta is NA (e.g., prostate)
+  }
+  
+  # Calculate e* 
+  e_star <- calculate_e_star(age_at_exposure)
+  
+  # Calculate a* (normalized attained age)
+  a_star <- attained_age / 60
+  
+  # Apply the equation: βS * D * exp[γ * e*] * (a*)^η
+  excess_cases <- beta_s * dose_gy * exp(gamma * e_star) * (a_star^eta)
+  
+  return(excess_cases)
+}
+
+# Main function to iterate over AUC values and organs
+ear_solid_malignancy <- function(rad_data,
+                                 ear_inputs_1 = ear_inputs,
+                                 auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+                                 years_fu = c(5, 10, 15, 20, 25, 30),
+                                 max_age_limit = 90) {
+  
+  
+  results_list <- list()
+  
+  # Get malignancy list from the ear_inputs data
+  malignancy_list <- ear_inputs_1$malignancy
+  
+  # Function to calculate risk for a specific follow-up period
+  calculate_followup_risk <- function(age, sex, dose_year_1, dose_year_2, dose_year_3, 
+                                      dose_year_4, dose_year_5, followup_years, ear_input_row) {
+    
+    # Only calculate if attained age is below limit
+    if ((age + followup_years) >= max_age_limit) {
+      return(NA_real_)
+    }
+    
+    # Calculate risk contribution from each exposure year
+    risk_total <- 0
+    doses <- c(dose_year_1, dose_year_2, dose_year_3, dose_year_4, dose_year_5)
+    
+    for (exp_year in 1:5) {
+      if (!is.na(doses[exp_year]) && doses[exp_year] > 0) {
+        age_at_exposure <- age + exp_year
+        attained_age <- age + followup_years + exp_year
+        
+        risk_contribution <- calculate_excess_cases(
+          dose_mgy = doses[exp_year],
+          sex = sex,
+          age_at_exposure = age_at_exposure,
+          attained_age = attained_age,
+          beta_male = ear_input_row$beta_male,
+          beta_female = ear_input_row$beta_female,
+          gamma = ear_input_row$gamma,
+          eta = ear_input_row$attained_age_parameter
+        )
+        
+        risk_total <- risk_total + risk_contribution
+      }
+    }
+    
+    return(risk_total)
+  }
+  
+  # Iterate over each AUC target and organ combination
+  for (auc in auc_targets) {
+    for (organ in malignancy_list) {
+      message("Calculating radiation associated ", organ, " malignancy risk for AUC: ", auc)
+      
+      # Get organ-specific parameters (single row)
+      ear_input <- ear_inputs_1 %>% 
+        filter(malignancy == organ)
+      
+      if (nrow(ear_input) == 0) {
+        warning("No parameters found for organ: ", organ, ". Skipping.")
+        next
+      }
+      
+      # Filter data for this AUC and alive patients
+      target_data <- rad_data %>%
+        filter(auc_label == auc & death_year_5 == "No") %>%
+        select(age, sex, rad_dose_year_1, rad_dose_year_2, rad_dose_year_3, 
+               rad_dose_year_4, rad_dose_year_5) 
+      
+      if (nrow(target_data) == 0) {
+        warning("No data found for AUC: ", auc, ". Skipping.")
+        next
+      }
+      
+      # Calculate risks for all follow-up periods
+      target_data <- target_data %>%
+        rowwise() %>%
+        mutate(
+          five_year_risk = calculate_followup_risk(
+            age, sex, rad_dose_year_1, rad_dose_year_2, rad_dose_year_3,
+            rad_dose_year_4, rad_dose_year_5, 5, ear_input
+          ),
+          ten_year_risk = calculate_followup_risk(
+            age, sex, rad_dose_year_1, rad_dose_year_2, rad_dose_year_3,
+            rad_dose_year_4, rad_dose_year_5, 10, ear_input
+          ),
+          fifteen_year_risk = calculate_followup_risk(
+            age, sex, rad_dose_year_1, rad_dose_year_2, rad_dose_year_3,
+            rad_dose_year_4, rad_dose_year_5, 15, ear_input
+          ),
+          twenty_year_risk = calculate_followup_risk(
+            age, sex, rad_dose_year_1, rad_dose_year_2, rad_dose_year_3,
+            rad_dose_year_4, rad_dose_year_5, 20, ear_input
+          ),
+          twenty_five_year_risk = calculate_followup_risk(
+            age, sex, rad_dose_year_1, rad_dose_year_2, rad_dose_year_3,
+            rad_dose_year_4, rad_dose_year_5, 25, ear_input
+          ),
+          thirty_year_risk = calculate_followup_risk(
+            age, sex, rad_dose_year_1, rad_dose_year_2, rad_dose_year_3,
+            rad_dose_year_4, rad_dose_year_5, 30, ear_input
+          ),
+          organ = organ,
+          auc = auc
+        ) %>%
+        ungroup() %>%
+        select(id, sex, five_year_risk, ten_year_risk, fifteen_year_risk,
+               twenty_year_risk, twenty_five_year_risk, thirty_year_risk,
+               organ, auc, cohort_type, stone_free_status)
+      
+      # Store results
+      results_list[[paste(organ, auc, sep = "_")]] <- target_data
+    }
+  }
+  
+  # Combine all results
+  final_results <- bind_rows(results_list)
+  
+  return(final_results)
+}
+
+## 3.2 Grouped function ####
+ear_solid_malignancy_grouped <- function(rad_data,
+                                         ear_inputs_1 = ear_inputs,
+                                         auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+                                         years_fu = c(5, 10, 15, 20, 25, 30),
+                                         max_age_limit = 90) {
+  results_list <- list()
+  
+  # Get malignancy list from the ear_inputs data
+  malignancy_list <- ear_inputs_1$malignancy
+  
+  # Function to calculate risk for a follow-up period for a given group
+  calculate_followup_risk <- function(age, sex, doses, followup_years, ear_input_row) {
+    # Skip if attained age limit exceeded
+    if ((age + followup_years) >= max_age_limit) return(0)
+    
+    risk_total <- 0
+    for (exp_year in 1:5) {
+      if (!is.na(doses[exp_year]) && doses[exp_year] > 0) {
+        age_at_exposure <- age + exp_year
+        attained_age <- age + followup_years + exp_year
+        risk_total <- risk_total +
+          calculate_excess_cases(
+            dose_mgy = doses[exp_year],
+            sex = sex,
+            age_at_exposure = age_at_exposure,
+            attained_age = attained_age,
+            beta_male = ear_input_row$beta_male,
+            beta_female = ear_input_row$beta_female,
+            gamma = ear_input_row$gamma,
+            eta = ear_input_row$attained_age_parameter
+          )
+      }
+    }
+    return(risk_total)
+  }
+  
+  for (auc in auc_targets) {
+    for (organ in malignancy_list) {
+      message("Calculating grouped ", organ, " malignancy risk for AUC: ", auc)
+      
+      ear_input <- ear_inputs_1 %>% filter(malignancy == organ)
+      if (nrow(ear_input) == 0) next
+      
+      # Group by the final grouping variables first
+      target_data <- rad_data %>%
+        filter(auc_label == auc, death_year_5 == "No") %>%
+        group_by(sex, 
+                 cohort_type, 
+                 age, 
+                 auc_label, 
+                 risk_status, 
+                 rad_dose_year_1, 
+                 rad_dose_year_2, 
+                 rad_dose_year_3,
+                 rad_dose_year_4,
+                 rad_dose_year_5) %>%
+        summarise(n_patients = n(), .groups = "drop")
+      
+      if (nrow(target_data) == 0) next
+      
+      # Calculate average doses for each group from the original data
+      dose_data <- rad_data %>%
+        filter(auc_label == auc, death_year_5 == "No") %>%
+        group_by(sex, 
+                 cohort_type, 
+                 age, 
+                 auc_label, 
+                 risk_status, 
+                 rad_dose_year_1, 
+                 rad_dose_year_2, 
+                 rad_dose_year_3,
+                 rad_dose_year_4,
+                 rad_dose_year_5) %>%
+        summarise(
+          avg_rad_dose_year_1 = mean(rad_dose_year_1, na.rm = TRUE),
+          avg_rad_dose_year_2 = mean(rad_dose_year_2, na.rm = TRUE),
+          avg_rad_dose_year_3 = mean(rad_dose_year_3, na.rm = TRUE),
+          avg_rad_dose_year_4 = mean(rad_dose_year_4, na.rm = TRUE),
+          avg_rad_dose_year_5 = mean(rad_dose_year_5, na.rm = TRUE),
+          .groups = "drop"
+        )
+      
+      # Combine patient counts with dose data
+      combined_data <- target_data %>%
+        left_join(dose_data, by = c("sex", 
+                                    "cohort_type", 
+                                    "age", 
+                                    "auc_label", 
+                                    "risk_status",
+                                    "rad_dose_year_1", 
+                                    "rad_dose_year_2", 
+                                    "rad_dose_year_3",
+                                    "rad_dose_year_4",
+                                    "rad_dose_year_5"))
+      
+      # Calculate risk for each follow-up period using average doses
+      result_data <- combined_data %>%
+        rowwise() %>%
+        mutate(
+          five_year_risk       = calculate_followup_risk(
+            age = age,
+            sex = sex,
+            doses = c(
+              avg_rad_dose_year_1,
+              avg_rad_dose_year_2,
+              avg_rad_dose_year_3,
+              avg_rad_dose_year_4,
+              avg_rad_dose_year_5
+            ),
+            followup_years = 5,
+            ear_input_row = ear_input
+          ) * n_patients,
+          ten_year_risk        = calculate_followup_risk(
+            age = age,
+            sex = sex,
+            doses = c(
+              avg_rad_dose_year_1,
+              avg_rad_dose_year_2,
+              avg_rad_dose_year_3,
+              avg_rad_dose_year_4,
+              avg_rad_dose_year_5
+            ),
+            followup_years = 10,
+            ear_input_row = ear_input
+          ) * n_patients,
+          fifteen_year_risk    = calculate_followup_risk(
+            age = age,
+            sex = sex,
+            doses = c(
+              avg_rad_dose_year_1,
+              avg_rad_dose_year_2,
+              avg_rad_dose_year_3,
+              avg_rad_dose_year_4,
+              avg_rad_dose_year_5
+            ),
+            followup_years = 15,
+            ear_input_row = ear_input
+          ) * n_patients,
+          twenty_year_risk     = calculate_followup_risk(
+            age = age,
+            sex = sex,
+            doses = c(
+              avg_rad_dose_year_1,
+              avg_rad_dose_year_2,
+              avg_rad_dose_year_3,
+              avg_rad_dose_year_4,
+              avg_rad_dose_year_5
+            ),
+            followup_years = 20,
+            ear_input_row = ear_input
+          ) * n_patients,
+          twenty_five_year_risk = calculate_followup_risk(
+            age = age,
+            sex = sex,
+            doses = c(
+              avg_rad_dose_year_1,
+              avg_rad_dose_year_2,
+              avg_rad_dose_year_3,
+              avg_rad_dose_year_4,
+              avg_rad_dose_year_5
+            ),
+            followup_years = 25,
+            ear_input_row = ear_input
+          ) * n_patients,
+          thirty_year_risk     = calculate_followup_risk(
+            age = age,
+            sex = sex,
+            doses = c(
+              avg_rad_dose_year_1,
+              avg_rad_dose_year_2,
+              avg_rad_dose_year_3,
+              avg_rad_dose_year_4,
+              avg_rad_dose_year_5
+            ),
+            followup_years = 30,
+            ear_input_row = ear_input
+          ) * n_patients,
+          five_year_n       = five_year_risk * n_patients,
+          ten_year_n        = ten_year_risk * n_patients,
+          fifteen_year_n    = fifteen_year_risk * n_patients,
+          twenty_year_n     = twenty_year_risk * n_patients,
+          twenty_five_year_n = twenty_five_year_risk * n_patients,
+          thirty_year_n     = thirty_year_risk * n_patients,
+          organ = organ,
+          auc = auc
+        ) %>%
+        ungroup() %>%
+        select(-starts_with("avg_rad_dose_"), -auc_label)
+      
+      results_list[[paste(organ, auc, sep = "_")]] <- result_data
+    }
+  }
+  
+  bind_rows(results_list)
+}
+
+
+# 4. Run Function ####
+malignancy_data_grouped <- ear_solid_malignancy_grouped(rad_data)
+
+overall_ear_per_person <- malignancy_data_grouped %>%
+  group_by(auc, cohort_type, risk_status) %>%
+  summarise(
+    overall_five_year_ear      = mean(five_year_risk, na.rm = TRUE),
+    overall_five_year_ear_se = sd(five_year_risk, na.rm = TRUE) / sqrt(sum(!is.na(five_year_risk))),
+    overall_ten_year_ear       = mean(ten_year_risk, na.rm = TRUE),
+    overall_ten_year_ear_se = sd(ten_year_risk, na.rm = TRUE) / sqrt(sum(!is.na(ten_year_risk))),
+    overall_fifteen_year_ear   = mean(fifteen_year_risk, na.rm = TRUE),
+    overall_fifteen_year_ear_se   = sd(fifteen_year_risk, na.rm = TRUE) / sqrt(sum(!is.na(fifteen_year_risk))),
+    overall_twenty_year_ear    = mean(twenty_year_risk, na.rm = TRUE),
+    overall_twenty_year_se    = sd(twenty_year_risk, na.rm = TRUE) / sqrt(sum(!is.na(twenty_year_risk))),
+    overall_twentyfive_year_ear = mean(twenty_five_year_risk, na.rm = TRUE),
+    overall_twentyfive_year_ear_se = sd(twenty_five_year_risk, na.rm = TRUE) / sqrt(sum(!is.na(twenty_five_year_risk))),
+    overall_thirty_year_ear    = mean(thirty_year_risk, na.rm = TRUE),
+    overall_thirty_year_ear_se    = sd(thirty_year_risk, na.rm = TRUE) / sqrt(sum(!is.na(thirty_year_risk))),
+    overall_five_year_ear_n      = mean(five_year_n, na.rm = TRUE),
+    overall_ten_year_ear_n       = mean(ten_year_n, na.rm = TRUE),
+    overall_fifteen_year_ear_n   = mean(fifteen_year_n, na.rm = TRUE),
+    overall_twenty_year_ear_n    = mean(twenty_year_n, na.rm = TRUE),
+    overall_twentyfive_year_ear_n = mean(twenty_five_year_n, na.rm = TRUE),
+    overall_thirty_year_ear_n    = mean(thirty_year_n, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# 5. Plot results ####
+## 5.1 Overall plot ####
+overall_ear_means <- overall_ear_per_person %>%
+  pivot_longer(
+    cols = c(
+      overall_five_year_ear,
+      overall_ten_year_ear,
+      overall_fifteen_year_ear,
+      overall_twenty_year_ear,
+      overall_twentyfive_year_ear,
+      overall_thirty_year_ear
+    ),
+    names_to = "follow_up",
+    values_to = "ear"
+  )
+
+overall_ear_se <- overall_ear_per_person %>%
+  pivot_longer(
+    cols = c(
+      overall_five_year_ear_se,
+      overall_ten_year_ear_se,
+      overall_fifteen_year_ear_se,
+      overall_twenty_year_se,
+      overall_twentyfive_year_ear_se,
+      overall_thirty_year_ear_se
+    ),
+    names_to = "follow_up_se",
+    values_to = "ear_se"
+  ) %>%
+  mutate(
+    follow_up = recode(follow_up_se,
+                       "overall_five_year_ear_se"        = "overall_five_year_ear",
+                       "overall_ten_year_ear_se"         = "overall_ten_year_ear",
+                       "overall_fifteen_year_ear_se"     = "overall_fifteen_year_ear",
+                       "overall_twenty_year_se"          = "overall_twenty_year_ear",
+                       "overall_twentyfive_year_ear_se"  = "overall_twentyfive_year_ear",
+                       "overall_thirty_year_ear_se"      = "overall_thirty_year_ear"
+    )
+  ) %>%
+  select(-follow_up_se)
+
+overall_ear_long <- overall_ear_means %>%
+  left_join(overall_ear_se, by = c("auc", "cohort_type", "risk_status", "follow_up")) %>%
+  mutate(
+    ear_per_1000 = ear * 1000,
+    ear_se_per_1000 = ear_se * 1000,
+    yrs_after_first_scan = recode(follow_up,
+                                  "overall_five_year_ear"        = "5 years",
+                                  "overall_ten_year_ear"         = "10 years",
+                                  "overall_fifteen_year_ear"     = "15 years",
+                                  "overall_twenty_year_ear"      = "20 years",
+                                  "overall_twentyfive_year_ear"  = "25 years",
+                                  "overall_thirty_year_ear"      = "30 years"
+    ),
+    yrs_after_first_scan = factor(yrs_after_first_scan, levels = c("5 years", "10 years", "15 years",
+                                                                   "20 years", "25 years", "30 years"))
+  )
+
+overall_ear_long$auc <- as.factor(overall_ear_long$auc)
+
+overall_ear_long_all <- overall_ear_long %>%
+  group_by(auc, cohort_type, follow_up, yrs_after_first_scan) %>%
+  summarise(
+    ear = mean(ear, na.rm = TRUE),
+    ear_se = sqrt(mean(ear_se^2, na.rm = TRUE)),  # Conservative approach using RMS of SEs
+    risk_status = "All",
+    .groups = "drop"
+  ) %>%
+  mutate(
+    ear_per_1000 = ear * 1000,
+    ear_se_per_1000 = ear_se * 1000
+  ) %>%
+  bind_rows(overall_ear_long) %>%
+  mutate(
+    risk_status = factor(risk_status, 
+                         levels = c("High Risk", "Low Risk", "All"))
+  )
+bind_rows(overall_ear_long) %>%
+  mutate(
+    risk_status = factor(risk_status, 
+                         levels = c("High Risk", "Low Risk", "All"))
+  )
+
+# Plot with error bars
+overall_ear_long_all %>% 
+  group_by(auc, cohort_type) %>%
+  ggplot(aes(x = yrs_after_first_scan, y = ear_per_1000, fill = risk_status)) +
+  geom_col(position = position_dodge(width = 0.8)) +
+  geom_errorbar(
+    aes(ymin = ear_per_1000 - ear_se_per_1000, ymax = ear_per_1000 + ear_se_per_1000),
+    position = position_dodge(width = 0.8),
+    width = 0.2,
+    color = "black"
+  ) +
+  facet_grid(auc ~ cohort_type, scales = "free_y") +
+  labs(
+    title = "Overall Estimated Excess Absolute Solid Cancer Incidence",
+    x = "Time from 1st Imaging",
+    y = "Estimated Excess Absolute Solid Cancer Incidence per 100,000, n"
+  ) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(size = 10)
+  ) + ylim (0,1600)
+
+overall_ear_long_all %>% 
+  group_by(auc, cohort_type) %>%
+  ggplot(aes(x = yrs_after_first_scan, y = ear, fill = risk_status)) +
+  geom_col(position = position_dodge(width = 0.8)) +
+  geom_errorbar(
+    aes(ymin = ear - ear_se, ymax = ear + ear_se),
+    position = position_dodge(width = 0.8),
+    width = 0.2,
+    color = "black"
+  ) +
+  facet_grid(cohort_type ~ auc, scales = "free_y") +
+  labs(
+    title = "Overall Estimated Excess Absolute Solid Cancer Incidence",
+    x = "Time from 1st Imaging",
+    y = "Estimated Excess Absolute Solid Cancer Incidence per 100,000, n"
+  ) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(size = 10)
+  )
+
+## 5.2 Organ specific plot ####
+malignancy_data_grouped$auc <- as.factor(malignancy_data_grouped$auc)
+
+organ_specific_ear_per_person <- malignancy_data_grouped %>%
+  group_by(auc, cohort_type, risk_status, organ) %>%
+  summarise(
+    five_year_ear      = sum(five_year_risk, na.rm = TRUE),
+    five_year_ear_se   = sd(five_year_risk, na.rm = TRUE) / sqrt(sum(!is.na(five_year_risk))),
+    ten_year_ear       = sum(ten_year_risk, na.rm = TRUE),
+    ten_year_ear_se    = sd(ten_year_risk, na.rm = TRUE) / sqrt(sum(!is.na(ten_year_risk))),
+    fifteen_year_ear   = sum(fifteen_year_risk, na.rm = TRUE),
+    fifteen_year_ear_se = sd(fifteen_year_risk, na.rm = TRUE) / sqrt(sum(!is.na(fifteen_year_risk))),
+    twenty_year_ear    = sum(twenty_year_risk, na.rm = TRUE),
+    twenty_year_ear_se = sd(twenty_year_risk, na.rm = TRUE) / sqrt(sum(!is.na(twenty_year_risk))),
+    twentyfive_year_ear = sum(twenty_five_year_risk, na.rm = TRUE),
+    twentyfive_year_ear_se = sd(twenty_five_year_risk, na.rm = TRUE) / sqrt(sum(!is.na(twenty_five_year_risk))),
+    thirty_year_ear    = sum(thirty_year_risk, na.rm = TRUE),
+    thirty_year_ear_se = sd(thirty_year_risk, na.rm = TRUE) / sqrt(sum(!is.na(thirty_year_risk))),
+    .groups = "drop"
+  )
+
+organ_specific_ear_per_person$organ <- as.factor(organ_specific_ear_per_person$organ)
+
+# First, reshape the mean values
+organ_ear_means <- organ_specific_ear_per_person %>%
+  pivot_longer(
+    cols = c(
+      five_year_ear,
+      ten_year_ear,
+      fifteen_year_ear,
+      twenty_year_ear,
+      twentyfive_year_ear,
+      thirty_year_ear
+    ),
+    names_to = "follow_up",
+    values_to = "ear"
+  )
+
+# Then, reshape the SE values
+organ_ear_se <- organ_specific_ear_per_person %>%
+  pivot_longer(
+    cols = c(
+      five_year_ear_se,
+      ten_year_ear_se,
+      fifteen_year_ear_se,
+      twenty_year_ear_se,
+      twentyfive_year_ear_se,
+      thirty_year_ear_se
+    ),
+    names_to = "follow_up_se",
+    values_to = "ear_se"
+  ) %>%
+  # Standardize the column names to match
+  mutate(
+    follow_up = recode(follow_up_se,
+                       "five_year_ear_se"        = "five_year_ear",
+                       "ten_year_ear_se"         = "ten_year_ear",
+                       "fifteen_year_ear_se"     = "fifteen_year_ear",
+                       "twenty_year_ear_se"      = "twenty_year_ear",
+                       "twentyfive_year_ear_se"  = "twentyfive_year_ear",
+                       "thirty_year_ear_se"      = "thirty_year_ear"
+    )
+  ) %>%
+  select(-follow_up_se)
+
+# Join them together
+organ_specific_ear_per_person_long <- organ_ear_means %>%
+  left_join(organ_ear_se, by = c("auc", "cohort_type", "risk_status", "organ", "follow_up")) %>%
+  group_by(organ) %>%
+  mutate(
+    ear_per_1000 = ear /1000,
+    ear_se_per_1000 = ear_se / 1000,
+    follow_up = recode(
+      follow_up,
+      "five_year_ear"        = "5",
+      "ten_year_ear"         = "10",
+      "fifteen_year_ear"     = "15",
+      "twenty_year_ear"      = "20",
+      "twentyfive_year_ear"  = "25",
+      "thirty_year_ear"      = "30"
+    ),
+    yrs_after_first_scan = factor(follow_up, levels = c("5", "10", "15", "20", "25", "30")),
+    organ = recode(
+      organ,
+      "bladder" = "Bladder",
+      "colon" = "Colon",
+      "kidney" = "Kidney",
+      "liver" = "Liver",
+      "ovary" = "Ovary",
+      "pancreas" = "Pancreas",
+      "prostate" = "Prostate",
+      "rectum" = "Rectum",
+      "stomach" = "Stomach",
+      "uterus" = "Uterus"
+    ),
+    organ = factor(
+      organ,
+      levels = c(
+        "Stomach",
+        "Bladder",
+        "Liver",
+        "Colon",
+        "Uterus",
+        "Ovary",
+        "Pancreas",
+        "Rectum",
+        "Kidney",
+        "Prostate"
+      )
+    )
+  )
+
+# Combine the High / Low Risk stratification with the total excess cancer incidence
+organ_specific_ear_long_all <- organ_specific_ear_per_person_long %>%
+  group_by(auc, cohort_type, organ, follow_up, yrs_after_first_scan) %>%
+  summarise(
+    ear = mean(ear, na.rm = TRUE),
+    ear_se = sqrt(mean(ear_se^2, na.rm = TRUE)),  # RMS of SEs
+    ear_per_1000 = mean(ear_per_1000, na.rm = TRUE),
+    ear_se_per_1000 = sqrt(mean(ear_se_per_1000^2, na.rm = TRUE)),
+    risk_status = "All",
+    .groups = "drop"
+  ) %>%
+  bind_rows(organ_specific_ear_per_person_long) %>%
+  mutate(
+    risk_status = factor(risk_status, 
+                         levels = c("High Risk", "Low Risk", "All"))
+  )
+
+# Plot with error bars
+ggplot(
+  organ_specific_ear_long_all,
+  aes(x = yrs_after_first_scan, y = ear, fill = auc)
+) +
+  geom_col(position = position_dodge(width = 0.8)) +
+  geom_errorbar(
+    aes(ymin = ear - ear_se, ymax = ear + ear_se),
+    position = position_dodge(width = 0.8),
+    width = 0.2,
+    color = "black"
+  ) +
+  facet_grid(cohort_type ~ organ, scales = "free_y") +
+  labs(title = "Estimated Excess Absolute Solid Cancer Incidence by Individual Exposed Organ", 
+       x = "Time from 1st Imaging (years)", 
+       y = "Estimated Excess Absolute Solid Cancer Incidence, n per 100,000") +
+  theme_bw() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title = element_text(face = "bold"),
+    legend.position = "right",
+    strip.text = element_text(face = "bold")
+  ) 
+
+# 6. Calculate Lifetime Attributable Risk ####
+## 6.1 Function to get risk ####
+calculate_lifetime_risk <- function(age, sex, doses, ear_input_row, start_year) {
+  
+  lifetime_risk <- 0
+  for (exp_year in 1:5) {
+    if (!is.na(doses[exp_year]) && doses[exp_year] > 0) {
+      age_at_exposure <- age + exp_year
+      attained_age <- age + exp_year + (life_expectancy_ons %>%  # use average life expectancy for age in particular year
+                                          filter(sex == !!sex & age == !!age & year == start_year) %>%
+                                          select(ex))
+      
+      lifetime_risk <- lifetime_risk +
+        calculate_excess_cases(
+          dose_mgy = doses[exp_year],
+          sex = sex,
+          age_at_exposure = age_at_exposure,
+          attained_age = attained_age$ex,
+          beta_male = ear_input_row$beta_male,
+          beta_female = ear_input_row$beta_female,
+          gamma = ear_input_row$gamma,
+          eta = ear_input_row$attained_age_parameter
+        )
+    }
+  }
+  return(lifetime_risk)
+}
