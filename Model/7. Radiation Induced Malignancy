@@ -37,10 +37,19 @@ library(cutpointr)
 library(ggsignif)
 library(ggpubr)
 
+calculate_sd_from_ci <- function(ci_lower, ci_upper) {
+  se <- (ci_upper - ci_lower) / (2 * 1.96)
+  return(
+    standard_error = se
+  )
+}
+
 ## 1.2 Define inputs ####
 kidney_inputs <- cbind(
   beta_male = 0.31,
+  beta_male_se = calculate_sd_from_ci(0.08, 0.68),
   beta_female = 0.31,
+  beta_female_se = calculate_sd_from_ci(0.08, 0.68),
   gamma = -0.41,
   attained_age_parameter = 2.8,
   malignancy = "kidney"
@@ -48,7 +57,9 @@ kidney_inputs <- cbind(
 
 bladder_inputs <- cbind(
   beta_male = 1.2,
+  beta_male_se = calculate_sd_from_ci(0.4, 3.7),
   beta_female = 0.75,
+  beta_female_se = calculate_sd_from_ci(0.3, 1.7),
   gamma = -0.41,
   attained_age_parameter = 6,
   malignancy = "bladder"
@@ -56,7 +67,9 @@ bladder_inputs <- cbind(
 
 colon_inputs <- cbind(
   beta_male = 3.2,
+  beta_male_se = calculate_sd_from_ci(1.8, 5.6),
   beta_female = 1.6,
+  beta_female_se = calculate_sd_from_ci(0.8, 3.2),
   gamma = -0.41,
   attained_age_parameter = 2.8,
   malignancy = "colon"
@@ -64,15 +77,19 @@ colon_inputs <- cbind(
 
 prostate_inputs <- cbind(
   beta_male = 0.11,
-  beta_female = NA,
+  beta_male_se = calculate_sd_from_ci(0, 1),
+  beta_female = 0,
+  beta_female_se = 0,
   gamma = -0.41,
   attained_age_parameter = 2.8,
   malignancy = "prostate"
 ) %>% as_tibble()
 
 ovary_inputs <- cbind(
-  beta_male = NA,
+  beta_male = 0,
+  beta_male_se = 0,
   beta_female = 0.7,
+  beta_female_se = calculate_sd_from_ci(0.2,2.1),
   gamma = -0.41,
   attained_age_parameter = 2.8,
   malignancy = "ovary"
@@ -80,7 +97,9 @@ ovary_inputs <- cbind(
 
 rectum_inputs <- cbind(
   beta_male = 0.34,
+  beta_male_se = calculate_sd_from_ci(0.09, 1.1),
   beta_female = 0.34,
+  beta_female_se = calculate_sd_from_ci(0.09,1.1),
   gamma = -0.41,
   attained_age_parameter = 2.8,
   malignancy = "rectum"
@@ -88,7 +107,9 @@ rectum_inputs <- cbind(
 
 stomach_inputs <- cbind(
   beta_male = 4.9,
+  beta_male_se = calculate_sd_from_ci(2.7, 8.9),
   beta_female = 4.9,
+  beta_female_se = calculate_sd_from_ci(3.2,7.3),
   gamma = -0.41,
   attained_age_parameter = 2.8,
   malignancy = "stomach"
@@ -96,15 +117,19 @@ stomach_inputs <- cbind(
 
 liver_inputs <- cbind(
   beta_male = 2.2,
+  beta_male_se = calculate_sd_from_ci(0.9, 5.3),
   beta_female = 1,
+  beta_female_se = calculate_sd_from_ci(0.4,2.5),
   gamma = -0.41,
   attained_age_parameter = 4.1,
   malignancy = "liver"
 ) %>% as_tibble()
 
 uterus_inputs <- cbind(
-  beta_male = NA,
+  beta_male = 0,
+  beta_male_se = 0,
   beta_female = 1.2,
+  beta_female_se = calculate_sd_from_ci(0,2.6),
   gamma = -0.41,
   attained_age_parameter = 2.8,
   malignancy = "uterus"
@@ -112,7 +137,9 @@ uterus_inputs <- cbind(
 
 pancreas_inputs <- cbind(
   beta_male = 0.49,
+  beta_male_se = calculate_sd_from_ci(0.09, 1.1),
   beta_female = 0.49,
+  beta_female_se = calculate_sd_from_ci(0.09, 1.1),
   gamma = -0.41,
   attained_age_parameter = 2.8,
   malignancy = "pancreas"
@@ -132,7 +159,9 @@ ear_inputs <- rbind(
 )
 
 ear_inputs$beta_male <- as.numeric(ear_inputs$beta_male)
+ear_inputs$beta_male_se <- as.numeric(ear_inputs$beta_male_se)
 ear_inputs$beta_female <- as.numeric(ear_inputs$beta_female)
+ear_inputs$beta_female_se <- as.numeric(ear_inputs$beta_female_se)
 ear_inputs$gamma <- as.numeric(ear_inputs$gamma)
 ear_inputs$attained_age_parameter <- as.numeric(ear_inputs$attained_age_parameter)
 
@@ -248,7 +277,8 @@ auc_0.55 <- aggregate_radiation_cohorts(auc_target = 1) %>% subset(
     rad_dose_year_2,
     rad_dose_year_3,
     rad_dose_year_4,
-    rad_dose_year_5
+    rad_dose_year_5,
+    true_rec_5yr
   )
 )
 
@@ -269,7 +299,8 @@ auc_0.6 <- aggregate_radiation_cohorts(auc_target = 2) %>% subset(
     rad_dose_year_2,
     rad_dose_year_3,
     rad_dose_year_4,
-    rad_dose_year_5
+    rad_dose_year_5,
+    true_rec_5yr
   )
 )
 
@@ -290,7 +321,8 @@ auc_0.65 <- aggregate_radiation_cohorts(auc_target = 3) %>% subset(
     rad_dose_year_2,
     rad_dose_year_3,
     rad_dose_year_4,
-    rad_dose_year_5
+    rad_dose_year_5,
+    true_rec_5yr
   )
 )
 
@@ -311,7 +343,8 @@ auc_0.7 <- aggregate_radiation_cohorts(auc_target = 4) %>% subset(
     rad_dose_year_2,
     rad_dose_year_3,
     rad_dose_year_4,
-    rad_dose_year_5
+    rad_dose_year_5,
+    true_rec_5yr
   )
 )
 
@@ -332,7 +365,8 @@ auc_0.75 <- aggregate_radiation_cohorts(auc_target = 5) %>% subset(
     rad_dose_year_2,
     rad_dose_year_3,
     rad_dose_year_4,
-    rad_dose_year_5
+    rad_dose_year_5,
+    true_rec_5yr
   )
 )
 
@@ -353,7 +387,8 @@ auc_0.8 <- aggregate_radiation_cohorts(auc_target = 6) %>% subset(
     rad_dose_year_2,
     rad_dose_year_3,
     rad_dose_year_4,
-    rad_dose_year_5
+    rad_dose_year_5,
+    true_rec_5yr
   )
 )
 
@@ -374,7 +409,8 @@ auc_0.85 <- aggregate_radiation_cohorts(auc_target = 7) %>% subset(
     rad_dose_year_2,
     rad_dose_year_3,
     rad_dose_year_4,
-    rad_dose_year_5
+    rad_dose_year_5,
+    true_rec_5yr
   )
 )
 
@@ -395,7 +431,8 @@ auc_0.9 <- aggregate_radiation_cohorts(auc_target = 8) %>% subset(
     rad_dose_year_2,
     rad_dose_year_3,
     rad_dose_year_4,
-    rad_dose_year_5
+    rad_dose_year_5,
+    true_rec_5yr
   )
 )
 
@@ -416,7 +453,8 @@ auc_0.95 <- aggregate_radiation_cohorts(auc_target = 9) %>% subset(
     rad_dose_year_2,
     rad_dose_year_3,
     rad_dose_year_4,
-    rad_dose_year_5
+    rad_dose_year_5,
+    true_rec_5yr
   )
 )
 
@@ -427,6 +465,8 @@ combine_auc_data <- function(data, auc_label) {
       auc_label = auc_label,
       risk_status = ifelse(risk_status == "LR", "Low Risk", "High Risk"),
       cumulative_rad_dose = rowSums(across(starts_with("rad_dose_year_")), na.rm = TRUE),
+      recurrence = case_when(true_rec_5yr == "Yes" ~ "Yes",
+                            true_rec_5yr == "No" ~ "No"),
       .keep = "all"
     ) %>%
     select(auc_label, 
@@ -444,7 +484,8 @@ combine_auc_data <- function(data, auc_label) {
            rad_dose_year_2,
            rad_dose_year_3,
            rad_dose_year_4,
-           rad_dose_year_5)
+           rad_dose_year_5,
+           recurrence)
 }
 
 # Combine all AUC datasets and filter cohort_types
@@ -463,6 +504,8 @@ rad_data <- bind_rows(
 rad_data$auc_label <- as.factor(rad_data$auc_label)
 rad_data$cohort_type <- as.factor(rad_data$cohort_type)
 rad_data$risk_status <- as.factor(rad_data$risk_status)
+rad_data$recurrence <- as.factor(rad_data$recurrence)
+
 
 # 3. Function to calculate EAR ####
 ## 3.1 Individual risk function ####
@@ -480,7 +523,7 @@ calculate_e_star <- function(age_at_exposure) {
 
 # Corrected function to calculate excess cancer cases for a single exposure
 calculate_excess_cases <- function(dose_mgy, sex, age_at_exposure, attained_age, 
-                                   beta_male, beta_female, gamma, eta) {
+                                   beta_male, beta_male_se, beta_female, beta_female_se, gamma, eta) {
   # Convert dose from mGy to Gy
   dose_gy <- dose_mgy / 1000
   
@@ -682,7 +725,8 @@ ear_solid_malignancy_grouped <- function(rad_data,
                  rad_dose_year_2, 
                  rad_dose_year_3,
                  rad_dose_year_4,
-                 rad_dose_year_5) %>%
+                 rad_dose_year_5,
+                 recurrence) %>%
         summarise(n_patients = n(), .groups = "drop")
       
       if (nrow(target_data) == 0) next
@@ -699,7 +743,8 @@ ear_solid_malignancy_grouped <- function(rad_data,
                  rad_dose_year_2, 
                  rad_dose_year_3,
                  rad_dose_year_4,
-                 rad_dose_year_5) %>%
+                 rad_dose_year_5,
+                 recurrence) %>%
         summarise(
           avg_rad_dose_year_1 = mean(rad_dose_year_1, na.rm = TRUE),
           avg_rad_dose_year_2 = mean(rad_dose_year_2, na.rm = TRUE),
@@ -720,7 +765,8 @@ ear_solid_malignancy_grouped <- function(rad_data,
                                     "rad_dose_year_2", 
                                     "rad_dose_year_3",
                                     "rad_dose_year_4",
-                                    "rad_dose_year_5"))
+                                    "rad_dose_year_5",
+                                    "recurrence"))
       
       # Calculate risk for each follow-up period using average doses
       result_data <- combined_data %>%
@@ -828,7 +874,7 @@ ear_solid_malignancy_grouped <- function(rad_data,
 malignancy_data_grouped <- ear_solid_malignancy_grouped(rad_data)
 
 overall_ear_per_person <- malignancy_data_grouped %>%
-  group_by(auc, cohort_type, risk_status) %>%
+  group_by(auc, sex, age, cohort_type, risk_status, recurrence) %>%
   summarise(
     overall_five_year_ear      = mean(five_year_risk, na.rm = TRUE),
     overall_five_year_ear_se = sd(five_year_risk, na.rm = TRUE) / sqrt(sum(!is.na(five_year_risk))),
@@ -1002,7 +1048,7 @@ organ_specific_ear_per_person <- malignancy_data_grouped %>%
 
 organ_specific_ear_per_person$organ <- as.factor(organ_specific_ear_per_person$organ)
 
-# First, reshape the mean values
+# reshape the mean values
 organ_ear_means <- organ_specific_ear_per_person %>%
   pivot_longer(
     cols = c(
@@ -1017,7 +1063,7 @@ organ_ear_means <- organ_specific_ear_per_person %>%
     values_to = "ear"
   )
 
-# Then, reshape the SE values
+# reshape the SE values
 organ_ear_se <- organ_specific_ear_per_person %>%
   pivot_longer(
     cols = c(
@@ -1134,28 +1180,394 @@ ggplot(
 
 # 6. Calculate Lifetime Attributable Risk ####
 ## 6.1 Function to get risk ####
-calculate_lifetime_risk <- function(age, sex, doses, ear_input_row, start_year) {
+malignancy_list <- ear_inputs$malignancy
+
+monte_carlo_lifetime_risk <- function(age, sex, doses, start_year, 
+                                      auc_target, n_simulations = 1000, seed = NULL) {
   
-  lifetime_risk <- 0
-  for (exp_year in 1:5) {
-    if (!is.na(doses[exp_year]) && doses[exp_year] > 0) {
-      age_at_exposure <- age + exp_year
-      attained_age <- age + exp_year + (life_expectancy_ons %>%  # use average life expectancy for age in particular year
-                                          filter(sex == !!sex & age == !!age & year == start_year) %>%
-                                          select(ex))
-      
-      lifetime_risk <- lifetime_risk +
-        calculate_excess_cases(
-          dose_mgy = doses[exp_year],
-          sex = sex,
-          age_at_exposure = age_at_exposure,
-          attained_age = attained_age$ex,
-          beta_male = ear_input_row$beta_male,
-          beta_female = ear_input_row$beta_female,
-          gamma = ear_input_row$gamma,
-          eta = ear_input_row$attained_age_parameter
-        )
-    }
+  if (!is.null(seed)) set.seed(seed)
+  
+  # Pre-allocate results vector
+  simulated_risks <- numeric(n_simulations)
+  
+  # Malignancy list
+  malignancy_list <- ear_inputs$malignancy
+  
+  # Life expectancy lookup
+  expected <- life_expectancy_ons %>%
+    filter(sex == !!sex, age == !!age, year == start_year) %>%
+    pull(ex)
+  
+  # If no life expectancy found, return safe defaults
+  if (length(expected) == 0 || is.na(expected)) {
+    return(list(
+      mean_risk = 0,
+      ci_lower = 0,
+      ci_upper = 0
+    ))
   }
-  return(lifetime_risk)
+  
+  attained_age <- age + expected
+  
+  # Monte Carlo simulation
+  for (sim in seq_len(n_simulations)) {
+    total_lifetime_risk <- 0
+    
+    for (i in seq_along(malignancy_list)) {
+      current_malignancy <- malignancy_list[i]
+      ear_input_row <- ear_inputs %>% filter(malignancy == current_malignancy)
+      
+      # Skip if no valid beta coefficients for this sex
+      if ((sex == "male" && (is.na(ear_input_row$beta_male) | is.na(ear_input_row$beta_male_se))) ||
+          (sex == "female" && (is.na(ear_input_row$beta_female) | is.na(ear_input_row$beta_female_se)))) {
+        next
+      }
+      
+      # Sample betas
+      beta_male_sim <- NA
+      beta_female_sim <- NA
+      
+      if (sex == "male") {
+        beta_sample <- rnorm(1, mean = ear_input_row$beta_male, sd = ear_input_row$beta_male_se)
+        beta_male_sim <- beta_sample * auc_target
+      } else {
+        beta_sample <- rnorm(1, mean = ear_input_row$beta_female, sd = ear_input_row$beta_female_se)
+        beta_female_sim <- beta_sample * auc_target
+      }
+      
+      # Calculate organ-specific risk
+      organ_lifetime_risk <- 0
+      for (exp_year in 1:5) {
+        if (!is.na(doses[exp_year]) && doses[exp_year] > 0) {
+          age_at_exposure <- age + exp_year
+          
+          excess_cases <- calculate_excess_cases(
+            dose_mgy = doses[exp_year],
+            sex = sex,
+            age_at_exposure = age_at_exposure,
+            attained_age = attained_age,
+            beta_male = beta_male_sim,
+            beta_female = beta_female_sim,
+            gamma = ear_input_row$gamma,
+            eta = ear_input_row$attained_age_parameter
+          )
+          
+          organ_lifetime_risk <- organ_lifetime_risk + excess_cases
+        }
+      }
+      
+      total_lifetime_risk <- total_lifetime_risk + as.numeric(organ_lifetime_risk)
+    }
+    
+    simulated_risks[sim] <- total_lifetime_risk
+  }
+  
+  # Always return the same structure
+  return(list(
+    mean_risk = mean(simulated_risks, na.rm = TRUE),
+    ci_lower = quantile(simulated_risks, 0.025, names = FALSE, na.rm = TRUE),
+    ci_upper = quantile(simulated_risks, 0.975, names = FALSE, na.rm = TRUE)
+  ))
 }
+
+
+## 6.2 Run function ####
+### 6.2.1 All patients ####
+risk_all <- rad_data %>%
+  group_by(age, sex, cohort_type, auc_target) %>%
+  summarise(
+    mean_dose_year_1 = mean(rad_dose_year_1, na.rm = TRUE),
+    mean_dose_year_2 = mean(rad_dose_year_2, na.rm = TRUE),
+    mean_dose_year_3 = mean(rad_dose_year_3, na.rm = TRUE),
+    mean_dose_year_4 = mean(rad_dose_year_4, na.rm = TRUE),
+    mean_dose_year_5 = mean(rad_dose_year_5, na.rm = TRUE),
+    start_year = first(year),
+    n_patients = n(),
+    .groups = "drop"
+  ) %>%
+  rowwise() %>%
+  mutate(
+    risk_status = "All",  
+    mc_results = list(monte_carlo_lifetime_risk(
+      age = age,
+      sex = sex,
+      doses = c(mean_dose_year_1, mean_dose_year_2, mean_dose_year_3,
+                mean_dose_year_4, mean_dose_year_5),
+      start_year = start_year,
+      auc_target = auc_target,
+      n_simulations = 100
+    ))
+  ) %>%
+  ungroup() %>%
+  mutate(
+    cumulative_lifetime_risk = map_dbl(mc_results, "mean_risk"),
+    ci_lower_95 = map_dbl(mc_results, "ci_lower"),
+    ci_upper_95 = map_dbl(mc_results, "ci_upper")
+  )
+
+### 6.2.2 Subdivided by Risk status ####
+risk_summary_monte_carlo_final <- rad_data %>%
+  group_by(age, sex, risk_status, cohort_type, auc_target) %>%
+  summarise(
+    mean_dose_year_1 = mean(rad_dose_year_1, na.rm = TRUE),
+    mean_dose_year_2 = mean(rad_dose_year_2, na.rm = TRUE),
+    mean_dose_year_3 = mean(rad_dose_year_3, na.rm = TRUE),
+    mean_dose_year_4 = mean(rad_dose_year_4, na.rm = TRUE),
+    mean_dose_year_5 = mean(rad_dose_year_5, na.rm = TRUE),
+    start_year = first(year),
+    n_patients = n(),
+    .groups = "drop"
+  ) %>%
+  rowwise() %>%
+  mutate(
+    mc_results = list(monte_carlo_lifetime_risk(
+      age = age,
+      sex = sex,
+      doses = c(mean_dose_year_1, mean_dose_year_2, mean_dose_year_3, 
+                mean_dose_year_4, mean_dose_year_5),
+      start_year = start_year,
+      auc_target = auc_target,
+      n_simulations = 100
+    ))
+  ) %>%
+  ungroup() %>%
+  mutate(
+    cumulative_lifetime_risk = map_dbl(mc_results, "mean_risk"),
+    ci_lower_95 = map_dbl(mc_results, "ci_lower"),
+    ci_upper_95 = map_dbl(mc_results, "ci_upper")
+  )
+
+risk_combined <- bind_rows(risk_summary_monte_carlo_final, risk_all)
+
+
+## 6.3 Plot ####
+risk_smoothed <- risk_combined %>%
+  select(age, risk_status, cohort_type, auc_target, cumulative_lifetime_risk, ci_lower_95, ci_upper_95) %>%
+  group_by(risk_status, cohort_type, auc_target) %>%
+  arrange(age) %>%
+  summarise(
+    y = loess(cumulative_lifetime_risk ~ age, data = cur_data(), span = 0.6)$fitted,
+    ymin = loess(ci_lower_95 ~ age, data = cur_data(), span = 0.6)$fitted,
+    ymax = loess(ci_upper_95 ~ age, data = cur_data(), span = 0.6)$fitted,
+    age = age,
+    .groups = "drop"
+  )
+
+malignancy_risk_plot <- ggplot(risk_smoothed, aes(x = age, y = y, color = risk_status, fill = risk_status)) +
+  geom_ribbon(aes(ymin = ymin, ymax = ymax), alpha = 0.2, color = NA) +
+  geom_line(size = 0.8) +
+  facet_grid(
+    cohort_type ~ auc_target,
+    labeller = labeller(
+      auc_target = auc_target,
+      cohort_type = label_wrap_gen(10)
+    )
+  ) +
+  scale_color_manual(values = c("All" = "#d32f2f", "High Risk" = "#1976d2", "Low Risk" = "#2e7d32")) +
+  scale_fill_manual(values = c("All" = "#d32f2f", "High Risk" = "#1976d2", "Low Risk" = "#2e7d32")) +
+  labs(
+    x = "Age at First Imaging (years)",
+    y = "Excess Additional Lifetime Risk of Malignancy",
+    color = "Risk Status",
+    fill = "Risk Status",
+    title = "Lifetime Malignancy Risk"
+  ) +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 9),
+    legend.position = "bottom",
+    panel.spacing = unit(0.5, "lines"),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8),   # facet panel box
+    strip.background = element_rect(color = "black", fill = "#f0f0f0", linewidth = 0.8) # strip box
+  ) +
+  xlim(10, 85) + ylim(0, 1.5)
+
+print(malignancy_risk_plot)
+
+## 6.4 Run function subdivided by Recurrence status ####
+### 6.4.1 All patients ####
+risk_all_with_sf_status_sf <- rad_data %>%
+  mutate(cohort_type_recurrence = paste0(cohort_type,"_recurrence_",recurrence)) %>%
+  group_by(age, sex, risk_status, auc_target, cohort_type_recurrence) %>%
+  summarise(
+    mean_dose_year_1 = mean(rad_dose_year_1, na.rm = TRUE),
+    mean_dose_year_2 = mean(rad_dose_year_2, na.rm = TRUE),
+    mean_dose_year_3 = mean(rad_dose_year_3, na.rm = TRUE),
+    mean_dose_year_4 = mean(rad_dose_year_4, na.rm = TRUE),
+    mean_dose_year_5 = mean(rad_dose_year_5, na.rm = TRUE),
+    start_year = first(year),
+    n_patients = n(),
+    .groups = "drop"
+  ) %>%
+  rowwise() %>%
+  mutate(
+    risk_status = "All",  
+    mc_results = list(monte_carlo_lifetime_risk(
+      age = age,
+      sex = sex,
+      doses = c(mean_dose_year_1, mean_dose_year_2, mean_dose_year_3,
+                mean_dose_year_4, mean_dose_year_5),
+      start_year = start_year,
+      auc_target = auc_target,
+      n_simulations = 100
+    ))
+  ) %>%
+  ungroup() %>%
+  mutate(
+    cumulative_lifetime_risk = map_dbl(mc_results, "mean_risk"),
+    ci_lower_95 = map_dbl(mc_results, "ci_lower"),
+    ci_upper_95 = map_dbl(mc_results, "ci_upper")
+  )
+
+### 6.2.2 Subdivided by Risk status ####
+risk_summary_monte_carlo_final_with_sf_status_sf <- rad_data %>%
+  mutate(cohort_type_recurrence = paste0(cohort_type,"_recurrence_",recurrence)) %>%
+  group_by(age, sex, risk_status, auc_target, cohort_type_recurrence) %>%
+  summarise(
+    mean_dose_year_1 = mean(rad_dose_year_1, na.rm = TRUE),
+    mean_dose_year_2 = mean(rad_dose_year_2, na.rm = TRUE),
+    mean_dose_year_3 = mean(rad_dose_year_3, na.rm = TRUE),
+    mean_dose_year_4 = mean(rad_dose_year_4, na.rm = TRUE),
+    mean_dose_year_5 = mean(rad_dose_year_5, na.rm = TRUE),
+    start_year = first(year),
+    n_patients = n(),
+    .groups = "drop"
+  ) %>%
+  rowwise() %>%
+  mutate(
+    mc_results = list(monte_carlo_lifetime_risk(
+      age = age,
+      sex = sex,
+      doses = c(mean_dose_year_1, mean_dose_year_2, mean_dose_year_3, 
+                mean_dose_year_4, mean_dose_year_5),
+      start_year = start_year,
+      auc_target = auc_target,
+      n_simulations = 100
+    ))
+  ) %>%
+  ungroup() %>%
+  mutate(
+    cumulative_lifetime_risk = map_dbl(mc_results, "mean_risk"),
+    ci_lower_95 = map_dbl(mc_results, "ci_lower"),
+    ci_upper_95 = map_dbl(mc_results, "ci_upper")
+  )
+
+risk_combined_with_sf_status_sf <- bind_rows(risk_summary_monte_carlo_final_with_sf_status_sf, risk_all_with_sf_status_sf)
+
+
+## 6.5 Plot ####
+risk_smoothed_sf <- risk_combined_with_sf_status_sf %>%
+  select(age, risk_status, cohort_type_recurrence, auc_target, cumulative_lifetime_risk, ci_lower_95, ci_upper_95) %>%
+  group_by(risk_status, cohort_type_recurrence, auc_target) %>%
+  arrange(age) %>%
+  summarise(
+    y = loess(cumulative_lifetime_risk ~ age, data = cur_data(), span = 0.6)$fitted,
+    ymin = loess(ci_lower_95 ~ age, data = cur_data(), span = 0.6)$fitted,
+    ymax = loess(ci_upper_95 ~ age, data = cur_data(), span = 0.6)$fitted,
+    age = age,
+    .groups = "drop"
+  )
+
+malignancy_risk_plot_sf <- ggplot(risk_smoothed_sf, aes(x = age, y = y, color = risk_status, fill = risk_status)) +
+  geom_ribbon(aes(ymin = ymin, ymax = ymax), alpha = 0.2, color = NA) +
+  geom_line(size = 0.8) +
+  facet_grid(
+    cohort_type_recurrence ~ auc_target,
+    labeller = labeller(
+      auc_target = auc_target,
+      cohort_type_recurrence = label_wrap_gen(10)
+    )
+  ) +
+  scale_color_manual(values = c("All" = "#d32f2f", "High Risk" = "#1976d2", "Low Risk" = "#2e7d32")) +
+  scale_fill_manual(values = c("All" = "#d32f2f", "High Risk" = "#1976d2", "Low Risk" = "#2e7d32")) +
+  labs(
+    x = "Age at First Imaging (years)",
+    y = "Excess Additional Lifetime Risk of Malignancy",
+    color = "Risk Status",
+    fill = "Risk Status",
+    title = "Lifetime Malignancy Risk"
+  ) +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 9),
+    legend.position = "bottom",
+    panel.spacing = unit(0.5, "lines"),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8),   # facet panel box
+    strip.background = element_rect(color = "black", fill = "#f0f0f0", linewidth = 0.8) # strip box
+  ) +
+  xlim(10, 85) + ylim(0, 1.5)
+
+print(malignancy_risk_plot_sf)
+
+# 7. Get Index Patients for Comparison ####
+risk_combined_with_sf_status_sf %>% 
+  filter(age %in% c(15, 25, 45, 60)) %>% 
+  mutate(age = factor(age, levels = c(15, 25, 45, 60))) %>%
+  subset(select = c(age, sex, auc_target, risk_status, cohort_type_recurrence, cumulative_lifetime_risk,
+                    ci_lower_95, ci_upper_95)) %>%
+  mutate(
+    cohort_type_recurrence = case_when(
+      cohort_type_recurrence == "Maximum FU, CT_recurrence_No" ~  "Max CT, Rec No",
+      cohort_type_recurrence == "Maximum FU, CT_recurrence_Yes" ~  "Max CT, Rec Yes",
+      cohort_type_recurrence == "Maximum FU, XR_recurrence_No" ~  "Max XR, Rec No",
+      cohort_type_recurrence == "Maximum FU, XR_recurrence_Yes" ~  "Max XR, Rec Yes",
+      cohort_type_recurrence == "Minimum FU, CT_recurrence_No" ~  "Min CT, Rec No",
+      cohort_type_recurrence == "Minimum FU, CT_recurrence_Yes" ~ "Min CT, Rec Yes",
+      cohort_type_recurrence == "Minimum FU, XR_recurrence_No" ~ "Min XR, Rec No",
+      cohort_type_recurrence == "Minimum FU, XR_recurrence_Yes" ~ "Min XR, Rec Yes"
+    )
+  ) %>%
+  group_by(age, sex, risk_status, cohort_type_recurrence, auc_target) %>%
+  summarise(
+    cumulative_lifetime_risk = round(mean(cumulative_lifetime_risk), digits = 2),
+    ci_lower_95 = round(mean(ci_lower_95), digits = 2),
+    ci_upper_95 = round(mean(ci_upper_95), digits = 2)
+  ) %>%
+  ggplot(aes(x = age, 
+             y = cumulative_lifetime_risk, 
+             color = risk_status, 
+             fill = risk_status)) + 
+  geom_col(position = position_dodge(width = 0.8), width = 0.7) +
+  geom_errorbar(aes(ymin = ci_lower_95, ymax = ci_upper_95), 
+                position = position_dodge(width = 0.8), 
+                width = 0.2, linewidth = 0.6) +
+  facet_grid(
+    cohort_type_recurrence ~ auc_target,
+    labeller = labeller(
+      auc_target = auc_target,
+      cohort_type_recurrence = label_wrap_gen(10)
+    )
+  ) +
+  scale_color_manual(values = c("All" = "#d32f2f", "High Risk" = "#1976d2", "Low Risk" = "#2e7d32")) +
+  scale_fill_manual(values = c("All" = "#d32f2f", "High Risk" = "#1976d2", "Low Risk" = "#2e7d32")) +
+  labs(
+    x = "Age at First Imaging (years)",
+    y = "Excess Additional Absolute Lifetime Risk of Malignancy",
+    color = "Risk Status",
+    fill = "Risk Status",
+    title = "Lifetime Malignancy Risk for Index Patients"
+  ) +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 9),
+    legend.position = "bottom",
+    panel.spacing = unit(0.5, "lines"),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8),   # facet panel box
+    strip.background = element_rect(color = "black", fill = "#f0f0f0", linewidth = 0.8) # strip box
+  ) +
+  ylim(0, 2) 
+
+
+risk_combined_with_sf_status_sf %>% 
+  filter(age %in% c(15, 25, 45, 60)) %>% 
+  mutate(age = factor(age, levels = c(15, 25, 45, 60))) %>% 
+  subset(select = c(age, sex, auc_target, risk_status, cohort_type_recurrence, cumulative_lifetime_risk,
+                    ci_lower_95, ci_upper_95)) %>%
+  group_by(age, sex, risk_status, cohort_type_recurrence, auc_target) %>%
+  summarise(
+    cumulative_lifetime_risk = round(mean(cumulative_lifetime_risk), digits = 2),
+    ci_lower_95 = round(mean(ci_lower_95), digits = 2),
+    ci_upper_95 = round(mean(ci_upper_95), digits = 2)
+  ) %>%
+  gt() %>% 
+  gt_theme_espn()
