@@ -5,7 +5,7 @@ grViz(
 digraph MarkovModel {
   graph [layout = dot, rankdir = LR, bgcolor = 'white']
 
-  # Nodes for model states with colors
+  # Nodes for model states
   StoneFree [shape = oval, label = 'Stone Free',
              style = filled, fillcolor = 'lightblue', color = 'darkblue']
 
@@ -51,7 +51,7 @@ digraph MarkovModel {
   Observation [shape = diamond, label = 'Observation', rank = same,
                 style = filled, fillcolor = 'gold', color = 'orange']
 
-  # Transitions and probabilities with colored edges
+  # Transitions
   StoneFree -> LowRiskSF [color = 'green', fontcolor = 'darkgreen']
   StoneFree -> HighRiskSF [color = 'orange', fontcolor = 'darkorange']
 
@@ -92,7 +92,7 @@ digraph MarkovModel {
   URS -> less_4mm [label = 'Not Stone Free (30%)', color = 'blue', fontcolor = 'blue']
   URS -> more_4mm [label = 'Not Stone Free (10%)', color = 'blue', fontcolor = 'blue']
 
-  # Death state transitions with consistent styling
+  # Death state transitions
   HighRiskSF -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
   LowRiskSF -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
   HighRiskNSF -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
@@ -103,5 +103,6 @@ digraph MarkovModel {
   URS -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
   PCNL -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
   Observation -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
+  Death -> Death [color = 'black', fontcolor = 'black', style = 'dashed']
 }
 ")
