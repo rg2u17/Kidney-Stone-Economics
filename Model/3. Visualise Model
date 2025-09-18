@@ -5,7 +5,17 @@ grViz(
 digraph MarkovModel {
   graph [layout = dot, rankdir = LR, bgcolor = 'white']
 
-  # Nodes for model states
+  # Nodes for model states with colors
+  { rank = same; StoneFree; less_4mm; more_4mm }
+   StoneFree -> less_4mm -> more_4mm [style=invis]
+  { rank = same; HighRisk; LowRisk }
+  LowRisk -> HighRisk [style=invis]
+  { rank = same; NoRecurrence; Recurrence }
+  NoRecurrence -> Recurrence [style=invis]
+  
+  { rank = same; FollowUp; Death }
+  FollowUp -> Death [style=invis]
+  
   StoneFree [shape = oval, label = 'Stone Free',
              style = filled, fillcolor = 'lightblue', color = 'darkblue']
 
@@ -15,16 +25,10 @@ digraph MarkovModel {
   more_4mm [shape = oval, label = '>/=4mm Fragments',
              style = filled, fillcolor = 'lightblue', color = 'darkblue']
 
-  LowRiskSF [shape = rectangle, label = 'Low Risk',
+  LowRisk [shape = rectangle, label = 'Low Risk',
            style = filled, fillcolor = 'chartreuse3', color = 'darkgreen']
 
-  HighRiskSF [shape = rectangle, label = 'High Risk',
-            style = filled, fillcolor = 'orange', color = 'darkorange']
-
-  LowRiskNSF [shape = rectangle, label = 'Low Risk',
-           style = filled, fillcolor = 'chartreuse3', color = 'darkgreen']
-
-  HighRiskNSF [shape = rectangle, label = 'High Risk',
+  HighRisk [shape = rectangle, label = 'High Risk',
             style = filled, fillcolor = 'orange', color = 'darkorange']
 
   NoRecurrence [shape = rectangle, label = 'No Stone Events',
@@ -33,7 +37,7 @@ digraph MarkovModel {
   Recurrence [shape = diamond, label = 'Stone Event',
               style = filled, fillcolor = 'salmon', color = 'red']
 
-  FollowUp [shape = oval, label = 'No Stone Events\\nover Follow-up',
+  FollowUp [shape = oval, label = 'No Further Stone Events\\nover Follow-up',
             style = filled, fillcolor = 'lightcyan', color = 'teal']
 
   Death [shape = hexagon, label = 'Death', rank = same,
@@ -51,24 +55,19 @@ digraph MarkovModel {
   Observation [shape = diamond, label = 'Observation', rank = same,
                 style = filled, fillcolor = 'gold', color = 'orange']
 
-  # Transitions
-  StoneFree -> LowRiskSF [color = 'green', fontcolor = 'darkgreen']
-  StoneFree -> HighRiskSF [color = 'orange', fontcolor = 'darkorange']
+  # Transitions and probabilities with colored edges
+  StoneFree -> LowRisk [color = 'green', fontcolor = 'darkgreen']
+  StoneFree -> HighRisk [color = 'orange', fontcolor = 'darkorange']
 
-  less_4mm -> LowRiskNSF [color = 'green', fontcolor = 'darkgreen']
-  less_4mm -> HighRiskNSF [color = 'orange', fontcolor = 'darkorange']
-  more_4mm -> LowRiskNSF [color = 'green', fontcolor = 'darkgreen']
-  more_4mm -> HighRiskNSF [color = 'orange', fontcolor = 'darkorange']
+  less_4mm -> LowRisk [color = 'green', fontcolor = 'darkgreen']
+  less_4mm -> HighRisk [color = 'orange', fontcolor = 'darkorange']
+  more_4mm -> LowRisk [color = 'green', fontcolor = 'darkgreen']
+  more_4mm -> HighRisk [color = 'orange', fontcolor = 'darkorange']
 
-  LowRiskSF -> Recurrence [color = 'red', fontcolor = 'red']
-  HighRiskSF -> Recurrence [color = 'red', fontcolor = 'red']
-  LowRiskNSF -> Recurrence [color = 'red', fontcolor = 'red']
-  HighRiskNSF -> Recurrence [color = 'red', fontcolor = 'red']
-
-  LowRiskSF -> NoRecurrence [color = 'darkgreen', fontcolor = 'darkgreen']
-  HighRiskSF -> NoRecurrence [color = 'darkgreen', fontcolor = 'darkgreen']
-  LowRiskNSF -> NoRecurrence [color = 'darkgreen', fontcolor = 'darkgreen']
-  HighRiskNSF -> NoRecurrence [color = 'darkgreen', fontcolor = 'darkgreen']
+  LowRisk -> Recurrence [color = 'red', fontcolor = 'red']
+  HighRisk -> Recurrence [color = 'red', fontcolor = 'red']
+  LowRisk -> NoRecurrence [color = 'darkgreen', fontcolor = 'darkgreen']
+  HighRisk -> NoRecurrence [color = 'darkgreen', fontcolor = 'darkgreen']
 
   NoRecurrence -> FollowUp [label = 'Continue Follow-Up', color = 'teal', fontcolor = 'teal']
   Recurrence -> ESWL [label = 'ESWL (39%)', color = 'gold', fontcolor = 'orange']
@@ -92,11 +91,9 @@ digraph MarkovModel {
   URS -> less_4mm [label = 'Not Stone Free (30%)', color = 'blue', fontcolor = 'blue']
   URS -> more_4mm [label = 'Not Stone Free (10%)', color = 'blue', fontcolor = 'blue']
 
-  # Death state transitions
-  HighRiskSF -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
-  LowRiskSF -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
-  HighRiskNSF -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
-  LowRiskNSF -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
+  # Death state transitions with consistent styling
+  HighRisk -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
+  LowRisk -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
   Recurrence -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
   NoRecurrence -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
   ESWL -> Death [label = 'Mortality Rate', color = 'black', fontcolor = 'black', style = 'dashed']
