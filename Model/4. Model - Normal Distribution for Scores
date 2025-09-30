@@ -2,11 +2,10 @@
 ### 4.1 Display Estimated 5 year event rate ####
 global_rec_rate
 
-
 ### 4.2 Test Score simulation + ROC #### 
 simulate_and_plot_roc <- function(auc_targets, 
                                   noise_sds,  
-                                  event_rate = global_rec_rate, # Estimated Global 5 year event rate calculated from Tzelves et al. 2023 Eur Urol Focus
+                                  event_rate = global_rec_rate,
                                   bins = 100, 
                                   year,
                                   total_or_clinically_significant = c("clinically_significant", "total"),
@@ -27,50 +26,40 @@ simulate_and_plot_roc <- function(auc_targets,
       
       if (total_or_clinically_significant == "clinically_significant") {
         n <- year_rates$clinically_significant_n
-        total_sf_patients <- round(year_rates$total_sf_clin_signif,
-                                   digits = 0)
-      }
-      else
-      {
+        total_sf_patients <- round(year_rates$total_sf_clin_signif, digits = 0)
+      } else {
         n <- year_rates$total_patients
         total_sf_patients <- round(year_rates$total_sf_patients, digits = 0)
       }
       
-     
       n_events <- round(n * event_rate)
       n_nonevents <- n - n_events
       
       # Simulate stone free status
-        # Calculate group sizes
       sf_patients <- round(total_sf_patients, digits = 0)
       nsf_patients <- n - sf_patients
       more4_patients <- round(nsf_patients * 0.1)
       less4_patients <- nsf_patients - more4_patients
       
-        # Calculate event rates
-        n_events_sf <- round(sf_patients * sf_5yr_event_rate,
-                             digits = 0)
-        n_events_less4 <- round(less4_patients * less4_5yr_event_rate,
-                                digits = 0)
-        n_events_more4 <- round(more4_patients * more4_5yr_event_rate,
-                                digits = 0)
-        
-        n_events_recalculated <- round((n_events_sf + n_events_less4 + n_events_more4),
-                                       digits = 0
-                                       )
-        
-        # Calculate non event rates
-        non_events_sf <- sf_patients - n_events_sf
-        non_events_less4 <- less4_patients - n_events_less4
-        non_events_more4 <- more4_patients - n_events_more4
-        
-        n_nonevents_recalculated <- non_events_sf + non_events_less4 + non_events_more4
-        
-      # Simulate prediction scores
-        scores_event <- rnorm(n_events_recalculated, mean = delta_mu / 2, sd = noise_sd)
-        scores_nonevent <- rnorm(n_nonevents_recalculated, mean = -delta_mu / 2, sd = noise_sd)
+      # Calculate event rates
+      n_events_sf <- round(sf_patients * sf_5yr_event_rate, digits = 0)
+      n_events_less4 <- round(less4_patients * less4_5yr_event_rate, digits = 0)
+      n_events_more4 <- round(more4_patients * more4_5yr_event_rate, digits = 0)
       
-       # Combine and rescale scores
+      n_events_recalculated <- round((n_events_sf + n_events_less4 + n_events_more4), digits = 0)
+      
+      # Calculate non event rates
+      non_events_sf <- sf_patients - n_events_sf
+      non_events_less4 <- less4_patients - n_events_less4
+      non_events_more4 <- more4_patients - n_events_more4
+      
+      n_nonevents_recalculated <- non_events_sf + non_events_less4 + non_events_more4
+      
+      # Simulate prediction scores
+      scores_event <- rnorm(n_events_recalculated, mean = delta_mu / 2, sd = noise_sd)
+      scores_nonevent <- rnorm(n_nonevents_recalculated, mean = -delta_mu / 2, sd = noise_sd)
+      
+      # Combine and rescale scores
       scores <- c(scores_event, scores_nonevent)
       stone_free_status <- c(rep("SF", n_events_sf),
                              rep("less4", n_events_less4),
@@ -94,8 +83,6 @@ simulate_and_plot_roc <- function(auc_targets,
                                    levels = c("SF", "less4", "more4"))
       ) 
       
-      
-      
       # Create ROC object
       roc_obj <- pROC::roc(response = data_for_roc$labels, predictor = data_for_roc$scores_rescaled)
       auc_actual <- round(as.numeric(roc_obj$auc), digits = 3) 
@@ -113,9 +100,7 @@ simulate_and_plot_roc <- function(auc_targets,
       
       # Get best threshold and confusion matrix
       best_thresh <- coords(roc_obj, "best", ret = "threshold", best.method = "youden") %>% slice_head(n=1)
-      data_for_roc <- data_for_roc %>% mutate(predictions = ifelse(scores_rescaled > best_thresh$threshold, 
-                                                                   1, 
-                                                                   0))
+      data_for_roc <- data_for_roc %>% mutate(predictions = ifelse(scores_rescaled > best_thresh$threshold, 1, 0))
       conf_matrix <- confusionMatrix(as.factor(data_for_roc$predictions), as.factor(data_for_roc$labels))
       
       cat("\n--- Simulation", i, "---\n")
@@ -137,9 +122,7 @@ simulate_and_plot_roc <- function(auc_targets,
         theme_minimal()
       
       results[[i]] <- list(
-        scores = (data_for_roc %>% cbind(
-          auc_target = auc_target
-        )),
+        scores = (data_for_roc %>% cbind(auc_target = auc_target)),
         auc_target = auc_target,
         noise_sd = noise_sd,
         roc_plot = p_roc,
@@ -151,7 +134,6 @@ simulate_and_plot_roc <- function(auc_targets,
       
       i <- i + 1
     }
-    
   }
   
   return(results)
@@ -189,22 +171,16 @@ simulate_complete_population_distribution <- function(total_patients,
       # Find under-18 cases
       under18_idx <- which(ages < 18)
       if (length(under18_idx) > 0) {
-        # Randomly select 50% of them
+        # Randomly select 60% of them
         n_to_adjust <- floor(length(under18_idx) * 0.6)
         adjust_idx <- sample(under18_idx, n_to_adjust)
         
         # Redistribute these ages around the mean
-        ages[adjust_idx] <- pmax(
-          round(rnorm(n_to_adjust, mean = mean, sd = sd)),
-          1
-        )
+        ages[adjust_idx] <- pmax(round(rnorm(n_to_adjust, mean = mean, sd = sd)), 1)
       }
       
       if (verbose) {
-        cat(sprintf(
-          "  Generating %d ages (mean = %.1f, sd = %.1f)...\n",
-          n, mean, sd
-        ))
+        cat(sprintf("  Generating %d ages (mean = %.1f, sd = %.1f)...\n", n, mean, sd))
       }
       
       return(ages)
@@ -212,7 +188,6 @@ simulate_complete_population_distribution <- function(total_patients,
       return(numeric(0))
     }
   }
-  
   
   age_values <- list(
     generate_age(counts$n_f_sf, 39.3, 18.1),
@@ -252,15 +227,15 @@ simulate_complete_population_distribution <- function(total_patients,
   return(population)
 }
 
-
-### 4.4 Complete Model Function ####
+### 4.4 Complete Model Function with Monte Carlo ####
 complete_fu_simulation_over_time <- function(original_data,
                                              score_data_auc,
                                              target_auc = c(0.55, 0.6, 0.65),
                                              years = 5,
                                              death_rates_ons,
-                                             base_year) {
-  set.seed(1234)  
+                                             base_year,
+                                             n_simulations = 100,
+                                             return_all_iterations = FALSE) {
   
   results_list <- list()
   
@@ -279,47 +254,54 @@ complete_fu_simulation_over_time <- function(original_data,
                                                                      ifelse(auc == 0.95, 9, NA)))))))))
     filtered_scores <- score_data_auc[[index]]$scores %>% as_tibble()
     filtered_scores$stone_free_status <- factor(filtered_scores$stone_free_status, 
-                                                levels = c("SF",
-                                                           "less4",
-                                                           "more4"))
+                                                levels = c("SF", "less4", "more4"))
     
-    # Combine original data with scores 
-    original_data_sorted <- original_data %>%
-      arrange(stone_free_status) %>% subset(select = -stone_free_status)
+    # Monte Carlo iterations
+    mc_results <- list()
     
-    filtered_scores_sorted <- filtered_scores %>%
-      arrange(stone_free_status)
-    
-    sim_data <- bind_cols(original_data_sorted, filtered_scores_sorted)
-    
-    sim_data <- sim_data %>%
-      mutate(
-        prediction = ifelse(predictions == 1,
-                            "Yes", "No"),
-        score = scores,
-        true_rec_5yr = ifelse(labels == 1,
-                              "Yes", "No"),
-        .keep = "unused"
-      ) %>%
-      mutate(
-        recurrence_year_0 = "No",
-        death_year_0 = "No"
-      )
-    
-    sim_data$true_rec_5yr <- as.factor(sim_data$true_rec_5yr)
-    
-    # Sort Recurrence rates as per SF status
-    # As per Tzelves et al. 2023, Eur Urol Focus - annual rates of recurrence:
-    # SF: 5% (CT SF)
-    # <4mm: 8.5% (Disease progression rate - lowest heterogeneity + highest no. studies)
-    # =/>4mm: 13.2% (Intervention rate - lowest heterogeneity + highest no. studies)
-
+    for (iter in 1:n_simulations) {
+      set.seed(1234 + iter)  # Different seed for each iteration
+      
+      if (iter %% 10 == 0) {
+        message("  Monte Carlo iteration: ", iter, "/", n_simulations)
+      }
+      
+      # Randomly shuffle and reassign scores within each stone_free_status group
+      filtered_scores_shuffled <- filtered_scores %>%
+        group_by(stone_free_status) %>%
+        slice_sample(prop = 1) %>%  # Shuffle within each group
+        ungroup()
+      
+      # Combine original data with shuffled scores 
+      original_data_sorted <- original_data %>%
+        arrange(stone_free_status) %>% 
+        select(-stone_free_status)
+      
+      filtered_scores_sorted <- filtered_scores_shuffled %>%
+        arrange(stone_free_status)
+      
+      sim_data <- bind_cols(original_data_sorted, filtered_scores_sorted)
+      
+      sim_data <- sim_data %>%
+        mutate(
+          prediction = ifelse(predictions == 1, "Yes", "No"),
+          score = scores,
+          true_rec_5yr = ifelse(labels == 1, "Yes", "No"),
+          .keep = "unused"
+        ) %>%
+        mutate(
+          recurrence_year_0 = "No",
+          death_year_0 = "No"
+        )
+      
+      sim_data$true_rec_5yr <- as.factor(sim_data$true_rec_5yr)
       
       # Define rows with "Yes" to recurrence
       total_n <- nrow(sim_data %>% filter(true_rec_5yr == "Yes"))
       
       # Subset those with no recurrence
-      sim_data_no_rec <- sim_data %>% filter(true_rec_5yr == "No") %>% 
+      sim_data_no_rec <- sim_data %>% 
+        filter(true_rec_5yr == "No") %>% 
         mutate(
           recurrence_year_5 = "No",
           recurrence_year_4 = "No",
@@ -328,175 +310,206 @@ complete_fu_simulation_over_time <- function(original_data,
           recurrence_year_1 = "No"
         )
       
-      # 5yr recurrence rate known - so assign 80% of those to 4yr recurrence
-      
-    sim_data_rec_4yr <- sim_data %>% filter(true_rec_5yr == "Yes") %>%
-      mutate(
-        recurrence_year_5 = "Yes",
-        recurrence_year_4 = {
-          n_yes <- round(total_n * 0.8)
-          n <- n()
-          yes_indices <- sample(n, n_yes)
-          rec <- rep("No", n)
-          rec[yes_indices] <- "Yes"
-          rec
-        },
-        recurrence_year_3 = NA
-      )
-    
-    # Now separate the 4yr recurrence data into rec + no rec
-    sim_data_no_rec_4yr <- sim_data_rec_4yr %>% filter(recurrence_year_4 == "No") %>% mutate(
-      recurrence_year_3 = "No"
-    )
-    
-    sim_data_rec_3yr <- sim_data_rec_4yr %>% filter(recurrence_year_4 == "Yes") %>% mutate(
-      recurrence_year_3 = {
-        n_yes <- round(total_n * 0.6)
-        n <- n()
-        yes_indices <- sample(n, n_yes)
-        rec <- rep("No", n)
-        rec[yes_indices] <- "Yes"
-        rec
-      }
-    ) 
-    
-    sim_data_3yr <- sim_data_rec_3yr %>% rbind(sim_data_no_rec_4yr)
-    
-    # Now separate the 3yr recurrence data into rec + no rec
-    sim_data_no_rec_3yr <- sim_data_3yr %>% filter(recurrence_year_3 == "No") %>% mutate(
-      recurrence_year_2 = "No"
-    )
-    
-    sim_data_rec_2yr <- sim_data_3yr %>% filter(recurrence_year_3 == "Yes") %>% mutate(
-      recurrence_year_2 = {
-        n_yes <- round(total_n * 0.4)
-        n <- n()
-        yes_indices <- sample(n, n_yes)
-        rec <- rep("No", n)
-        rec[yes_indices] <- "Yes"
-        rec
-      }
-    ) 
-    
-    sim_data_2yr <- sim_data_rec_2yr %>% rbind(sim_data_no_rec_3yr)
-    
-    # Now separate the 2yr recurrence data into rec + no rec
-    sim_data_no_rec_2yr <- sim_data_2yr %>% filter(recurrence_year_2 == "No") %>% mutate(
-      recurrence_year_1 = "No"
-    )
-    
-    sim_data_rec_1yr <- sim_data_2yr %>% filter(recurrence_year_2 == "Yes") %>% mutate(
-      recurrence_year_1 = {
-        n_yes <- round(total_n * 0.2)
-        n <- n()
-        yes_indices <- sample(n, n_yes)
-        rec <- rep("No", n)
-        rec[yes_indices] <- "Yes"
-        rec
-      }
-    ) 
-    sim_data_rec <- sim_data_rec_1yr %>% rbind(sim_data_no_rec_2yr)
-    
-    sim_data <- rbind(sim_data_rec,
-                        sim_data_no_rec)
-   
-    # Simulate year by year
-    for (year in 1:years) {
-      current_year <- 2010 + base_year + year - 1
-      message("  Year: ", current_year)
-      death_col <- paste0("death_year_", year)
-      
-      # Assign age bands
-      sim_data <- sim_data %>%
-        dplyr::mutate(age_band = dplyr::case_when(
-          age < 5 ~ "1-4",
-          age >= 5 & age < 10 ~ "5-9",
-          age >= 10 & age < 15 ~ "10-14",
-          age >= 15 & age < 20 ~ "15-19",
-          age >= 20 & age < 25 ~ "20-24",
-          age >= 25 & age < 30 ~ "25-29",
-          age >= 30 & age < 35 ~ "30-34",
-          age >= 35 & age < 40 ~ "35-39",
-          age >= 40 & age < 45 ~ "40-44",
-          age >= 45 & age < 50 ~ "45-49",
-          age >= 50 & age < 55 ~ "50-54",
-          age >= 55 & age < 60 ~ "55-59",
-          age >= 60 & age < 65 ~ "60-64",
-          age >= 65 & age < 70 ~ "65-69",
-          age >= 70 & age < 75 ~ "70-74",
-          age >= 75 & age < 80 ~ "75-79",
-          age >= 80 & age < 85 ~ "80-84",
-          age >= 85 & age <= 90 ~ "85-90",
-          age > 90 ~ ">90"
-        ))
-      
-      # Death rates
-      male_annual_death_rate <- death_rates_ons[, 1:2] %>%
-        cbind("Male_death_rate" = death_rates_ons[, base_year]) %>%
-        filter(sex == "Male")
-      
-      female_annual_death_rate <- death_rates_ons[, 1:2] %>%
-        cbind("Female_death_rate" = death_rates_ons[, base_year]) %>%
-        filter(sex == "Female")
-      
-      death_rate <- male_annual_death_rate %>%
-        left_join(female_annual_death_rate, by = c("Age_range" = "Age_range")) %>%
-        mutate(gender = sex.x, .keep = "all") %>%
-        subset(select = -c(sex.x, sex.y))
-      
-      sim_data <- simulate_death_for_year(sim_data, death_rate, year)
-
-      
-      # Age the population by 1 year
-      sim_data <- sim_data %>%
+      # 5yr recurrence rate known - assign temporal distribution
+      sim_data_rec_4yr <- sim_data %>% 
+        filter(true_rec_5yr == "Yes") %>%
         mutate(
-          age = age + 1
+          recurrence_year_5 = "Yes",
+          recurrence_year_4 = {
+            n_yes <- round(total_n * 0.8)
+            n <- n()
+            yes_indices <- sample(n, n_yes)
+            rec <- rep("No", n)
+            rec[yes_indices] <- "Yes"
+            rec
+          },
+          recurrence_year_3 = NA
+        )
+      
+      # Continue temporal distribution assignment
+      sim_data_no_rec_4yr <- sim_data_rec_4yr %>% 
+        filter(recurrence_year_4 == "No") %>% 
+        mutate(recurrence_year_3 = "No")
+      
+      sim_data_rec_3yr <- sim_data_rec_4yr %>% 
+        filter(recurrence_year_4 == "Yes") %>% 
+        mutate(
+          recurrence_year_3 = {
+            n_yes <- round(total_n * 0.6)
+            n <- n()
+            yes_indices <- sample(n, n_yes)
+            rec <- rep("No", n)
+            rec[yes_indices] <- "Yes"
+            rec
+          }
         ) 
+      
+      sim_data_3yr <- sim_data_rec_3yr %>% rbind(sim_data_no_rec_4yr)
+      
+      sim_data_no_rec_3yr <- sim_data_3yr %>% 
+        filter(recurrence_year_3 == "No") %>% 
+        mutate(recurrence_year_2 = "No")
+      
+      sim_data_rec_2yr <- sim_data_3yr %>% 
+        filter(recurrence_year_3 == "Yes") %>% 
+        mutate(
+          recurrence_year_2 = {
+            n_yes <- round(total_n * 0.4)
+            n <- n()
+            yes_indices <- sample(n, n_yes)
+            rec <- rep("No", n)
+            rec[yes_indices] <- "Yes"
+            rec
+          }
+        ) 
+      
+      sim_data_2yr <- sim_data_rec_2yr %>% rbind(sim_data_no_rec_3yr)
+      
+      sim_data_no_rec_2yr <- sim_data_2yr %>% 
+        filter(recurrence_year_2 == "No") %>% 
+        mutate(recurrence_year_1 = "No")
+      
+      sim_data_rec_1yr <- sim_data_2yr %>% 
+        filter(recurrence_year_2 == "Yes") %>% 
+        mutate(
+          recurrence_year_1 = {
+            n_yes <- round(total_n * 0.2)
+            n <- n()
+            yes_indices <- sample(n, n_yes)
+            rec <- rep("No", n)
+            rec[yes_indices] <- "Yes"
+            rec
+          }
+        ) 
+      
+      sim_data_rec <- sim_data_rec_1yr %>% rbind(sim_data_no_rec_2yr)
+      sim_data <- rbind(sim_data_rec, sim_data_no_rec)
+      
+      # Simulate year by year
+      for (year in 1:years) {
+        current_year <- 2010 + base_year + year - 1
+        
+        # Assign age bands
+        sim_data <- sim_data %>%
+          dplyr::mutate(age_band = dplyr::case_when(
+            age < 5 ~ "1-4",
+            age >= 5 & age < 10 ~ "5-9",
+            age >= 10 & age < 15 ~ "10-14",
+            age >= 15 & age < 20 ~ "15-19",
+            age >= 20 & age < 25 ~ "20-24",
+            age >= 25 & age < 30 ~ "25-29",
+            age >= 30 & age < 35 ~ "30-34",
+            age >= 35 & age < 40 ~ "35-39",
+            age >= 40 & age < 45 ~ "40-44",
+            age >= 45 & age < 50 ~ "45-49",
+            age >= 50 & age < 55 ~ "50-54",
+            age >= 55 & age < 60 ~ "55-59",
+            age >= 60 & age < 65 ~ "60-64",
+            age >= 65 & age < 70 ~ "65-69",
+            age >= 70 & age < 75 ~ "70-74",
+            age >= 75 & age < 80 ~ "75-79",
+            age >= 80 & age < 85 ~ "80-84",
+            age >= 85 & age <= 90 ~ "85-90",
+            age > 90 ~ ">90"
+          ))
+        
+        # Death rates
+        male_annual_death_rate <- death_rates_ons[, 1:2] %>%
+          cbind("Male_death_rate" = death_rates_ons[, base_year]) %>%
+          filter(sex == "Male")
+        
+        female_annual_death_rate <- death_rates_ons[, 1:2] %>%
+          cbind("Female_death_rate" = death_rates_ons[, base_year]) %>%
+          filter(sex == "Female")
+        
+        death_rate <- male_annual_death_rate %>%
+          left_join(female_annual_death_rate, by = c("Age_range" = "Age_range")) %>%
+          mutate(gender = sex.x, .keep = "all") %>%
+          subset(select = -c(sex.x, sex.y))
+        
+        sim_data <- simulate_death_for_year(sim_data, death_rate, year)
+        
+        # Age the population by 1 year
+        sim_data <- sim_data %>%
+          mutate(age = age + 1) 
+      }
+      
+      sim_data$auc_target <- auc
+      sim_data$mc_iteration <- iter
+      
+      sim_data <- sim_data %>% 
+        mutate(
+          adjusted_recurrence_year_0 = "No",
+          adjusted_recurrence_year_1 = case_when(
+            death_year_1 == "No" & recurrence_year_1 == "Yes" ~ "Yes",
+            death_year_1 == "No" & recurrence_year_1 == "No" ~ "No",
+            death_year_1 == "Yes" ~ "No", 
+            TRUE ~ NA_character_
+          ),
+          adjusted_recurrence_year_2 = case_when(
+            death_year_2 == "No" & recurrence_year_2 == "Yes" ~ "Yes",
+            death_year_2 == "No" & recurrence_year_2 == "No" ~ "No",
+            death_year_2 == "Yes" ~ "No",  
+            TRUE ~ NA_character_
+          ),
+          adjusted_recurrence_year_3 = case_when(
+            death_year_3 == "No" & recurrence_year_3 == "Yes" ~ "Yes",
+            death_year_3 == "No" & recurrence_year_3 == "No" ~ "No",
+            death_year_3 == "Yes" ~ "No",  
+            TRUE ~ NA_character_
+          ),
+          adjusted_recurrence_year_4 = case_when(
+            death_year_4 == "No" & recurrence_year_4 == "Yes" ~ "Yes",
+            death_year_4 == "No" & recurrence_year_4 == "No" ~ "No",
+            death_year_4 == "Yes" ~ "No",  
+            TRUE ~ NA_character_
+          ),
+          adjusted_recurrence_year_5 = case_when(
+            death_year_5 == "No" & recurrence_year_5 == "Yes" ~ "Yes",
+            death_year_5 == "No" & recurrence_year_5 == "No" ~ "No",
+            death_year_5 == "Yes" ~ "No",  
+            TRUE ~ NA_character_
+          )
+        )
+      
+      mc_results[[iter]] <- sim_data
     }
     
-    sim_data$auc_target <- auc
-    
-    sim_data <- sim_data %>% 
-      mutate(
-        adjusted_recurrence_year_0 = "No",
-        adjusted_recurrence_year_1 = case_when(
-          death_year_1 == "No" & recurrence_year_1 == "Yes" ~ "Yes",
-          death_year_1 == "No" & recurrence_year_1 == "No" ~ "No",
-          death_year_1 == "Yes" ~ "No", 
-          TRUE ~ NA_character_
-        ),
-        adjusted_recurrence_year_2 = case_when(
-          death_year_2 == "No" & recurrence_year_2 == "Yes" ~ "Yes",
-          death_year_2 == "No" & recurrence_year_2 == "No" ~ "No",
-          death_year_2 == "Yes" ~ "No",  
-          TRUE ~ NA_character_
-        ),
-        adjusted_recurrence_year_3 = case_when(
-          death_year_3 == "No" & recurrence_year_3 == "Yes" ~ "Yes",
-          death_year_3 == "No" & recurrence_year_3 == "No" ~ "No",
-          death_year_3 == "Yes" ~ "No",  
-          TRUE ~ NA_character_
-        ),
-        adjusted_recurrence_year_4 = case_when(
-          death_year_4 == "No" & recurrence_year_4 == "Yes" ~ "Yes",
-          death_year_4 == "No" & recurrence_year_4 == "No" ~ "No",
-          death_year_4 == "Yes" ~ "No",  
-          TRUE ~ NA_character_
-        ),
-        adjusted_recurrence_year_5 = case_when(
-          death_year_4 == "No" & recurrence_year_4 == "Yes" ~ "Yes",
-          death_year_4 == "No" & recurrence_year_4 == "No" ~ "No",
-          death_year_4 == "Yes" ~ "No",  
-          TRUE ~ NA_character_
-        ),
-      )
-    
-    
-    results_list[[as.character(auc)]] <- sim_data
+    # Combine all Monte Carlo iterations for this AUC
+    results_list[[as.character(auc)]] <- dplyr::bind_rows(mc_results)
   }
   
   final_simulation <- dplyr::bind_rows(results_list)
+  
+  # If return_all_iterations = FALSE, summarize across iterations
+  if (!return_all_iterations) {
+    message("Summarizing Monte Carlo results...")
+    final_simulation <- summarize_mc_results(final_simulation)
+  }
+  
   return(final_simulation)
+}
+
+# Helper function to summarize Monte Carlo results
+summarize_mc_results <- function(data) {
+  summary_stats <- data %>%
+    group_by(auc_target, prediction) %>%
+    summarise(
+      n_iterations = n_distinct(mc_iteration),
+      mean_recurrence_year_1 = mean(adjusted_recurrence_year_1 == "Yes", na.rm = TRUE),
+      sd_recurrence_year_1 = sd(adjusted_recurrence_year_1 == "Yes", na.rm = TRUE),
+      mean_recurrence_year_2 = mean(adjusted_recurrence_year_2 == "Yes", na.rm = TRUE),
+      sd_recurrence_year_2 = sd(adjusted_recurrence_year_2 == "Yes", na.rm = TRUE),
+      mean_recurrence_year_3 = mean(adjusted_recurrence_year_3 == "Yes", na.rm = TRUE),
+      sd_recurrence_year_3 = sd(adjusted_recurrence_year_3 == "Yes", na.rm = TRUE),
+      mean_recurrence_year_4 = mean(adjusted_recurrence_year_4 == "Yes", na.rm = TRUE),
+      sd_recurrence_year_4 = sd(adjusted_recurrence_year_4 == "Yes", na.rm = TRUE),
+      mean_recurrence_year_5 = mean(adjusted_recurrence_year_5 == "Yes", na.rm = TRUE),
+      sd_recurrence_year_5 = sd(adjusted_recurrence_year_5 == "Yes", na.rm = TRUE),
+      .groups = "drop"
+    )
+  
+  return(summary_stats)
 }
 
 # Function to assign death rates to individuals each year
@@ -540,68 +553,19 @@ simulate_death_for_year <- function(sim_data, death_rate, year) {
   return(sim_data)
 }
 
-# Function to update dataset based on death rates
-update_dataset_with_death_rates <- function(data, data_with_death_rates) {
-  # First, create age_band in your main data to match the death rates tibble
-  data <- data %>%
-    mutate(
-      age_band = case_when(
-        age >= 1 & age <= 4 ~ "1-4",
-        age >= 5 & age <= 9 ~ "5-9",
-        age >= 10 & age <= 14 ~ "10-14",
-        age >= 15 & age <= 19 ~ "15-19",
-        age >= 20 & age <= 24 ~ "20-24",
-        age >= 25 & age <= 29 ~ "25-29",
-        age >= 30 & age <= 34 ~ "30-34",
-        age >= 35 & age <= 39 ~ "35-39",
-        age >= 40 & age <= 44 ~ "40-44",
-        age >= 45 & age <= 49 ~ "45-49",
-        age >= 50 & age <= 54 ~ "50-54",
-        age >= 55 & age <= 59 ~ "55-59",
-        age >= 60 & age <= 64 ~ "60-64",
-        age >= 65 & age <= 69 ~ "65-69",
-        age >= 70 & age <= 74 ~ "70-74",
-        age >= 75 & age <= 79 ~ "75-79",
-        age >= 80 & age <= 84 ~ "80-84",
-        age >= 85 & age <= 90 ~ "85-90",
-        age > 90 ~ ">90"
-      )
-    )
-  
-  # Calculate survival probabilities for each group
-  survival_probs <- data_with_death_rates %>%
-    mutate(survival_rate = survivors / n)
-  
-  # Join survival rates to your main data
-  data_updated <- data %>%
-    left_join(
-      survival_probs %>% select(age_band, sex, survival_rate),
-      by = c("age_band", "sex")
-    ) %>%
-    # Generate random numbers and keep survivors
-    mutate(random_draw = runif(n())) %>%
-    filter(random_draw <= survival_rate) %>%
-    select(-random_draw, -survival_rate, -age_band)
-  
-  return(data_updated)
-}
-
 ### 4.5 Function to Update Population with Colic + Interventions ####
 colic_intervention_rates_function <- function(population,
-                                              auc_targets = c(0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9, 0.95),
+                                              auc_targets = c(0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9,0.95),
                                               year) {
   result <- list()
   
-  for (auc_target in auc_targets)  
-{
+  for (auc_target in auc_targets) {
     message("Colic/Intervention rates for AUC: ", auc_target)
     subpopulation <- population %>% filter(auc_target == !!auc_target)
     
     # Calculate surviving people within each stone_free_status category
     n_sf <- nrow(subpopulation %>% filter(stone_free_status == "SF"))
-    
     n_less4 <- nrow(subpopulation %>% filter(stone_free_status == "less4"))
-    
     n_more4 <- nrow(subpopulation %>% filter(stone_free_status == "more4"))
     
     message("Colic/Intervention rates for SF patients, AUC: ", auc_target)
@@ -675,10 +639,11 @@ colic_intervention_rates_function <- function(population,
           rec
         },
         TRUE ~ "No"
-      ),
+      )
     )
     
     message("Colic/Intervention rates for <4mm Fragments, AUC: ", auc_target)
+    
     # <4mm fragments patients
     subpopulation_less4 <- subpopulation %>% filter(stone_free_status == "less4") %>% mutate(
       colic_intervention_year_0 = "No",
@@ -744,10 +709,11 @@ colic_intervention_rates_function <- function(population,
           rec
         },
         TRUE ~ "No"
-      ),
+      )
     )
     
     message("Colic/Intervention rates for >=4mm Fragments, AUC: ", auc_target)
+    
     # >=4mm fragments patients
     subpopulation_more4 <- subpopulation %>% filter(stone_free_status == "more4") %>% mutate(
       colic_intervention_year_0 = "No",
@@ -813,7 +779,7 @@ colic_intervention_rates_function <- function(population,
           rec
         },
         TRUE ~ "No"
-      ),
+      )
     )
     
     subpopulation <- rbind(
@@ -824,43 +790,30 @@ colic_intervention_rates_function <- function(population,
       id = 1:n()
     ) %>% select(id, everything())
     
-    
     message("Intervention types, AUC: ", auc_target)
-    # Get intervention types
-    years <- c(year,
-              year + 1,
-              year + 2,
-              year + 3,
-              year + 4,
-              year + 5)
     
+    # Get intervention types
+    years <- c(year, year + 1, year + 2, year + 3, year + 4, year + 5)
     yr_5 <- year + 5
     
-    intervention_props <- hes_data_elective_emergency %>% filter(year %in% years) %>% subset(
-      select = c(year, eswl_proportion, urs_proportion, pcnl_proportion)
-    )
+    intervention_props <- hes_data_elective_emergency %>% 
+      filter(year %in% years) %>% 
+      subset(select = c(year, eswl_proportion, urs_proportion, pcnl_proportion))
     
-    years <- years %>% as_tibble() %>% mutate(year = value,
-                                              .keep = "unused")
+    years <- years %>% as_tibble() %>% mutate(year = value, .keep = "unused")
     
-
-    
-    intervention_props <- years %>% left_join(intervention_props,
-                                                           by = c("year" = "year")) %>% mutate(
-      eswl_proportion = case_when(is.na(eswl_proportion) ~ 0.432,
-                                  TRUE ~ eswl_proportion),
-      urs_proportion = case_when(is.na(urs_proportion) ~ 0.451,
-                                 TRUE ~ urs_proportion),
-      pcnl_proportion = case_when(is.na(pcnl_proportion) ~ 0.117,
-                                  TRUE ~ pcnl_proportion),
-      .keep = "all"
-    )
+    intervention_props <- years %>% 
+      left_join(intervention_props, by = c("year" = "year")) %>% 
+      mutate(
+        eswl_proportion = case_when(is.na(eswl_proportion) ~ 0.432, TRUE ~ eswl_proportion),
+        urs_proportion = case_when(is.na(urs_proportion) ~ 0.451, TRUE ~ urs_proportion),
+        pcnl_proportion = case_when(is.na(pcnl_proportion) ~ 0.117, TRUE ~ pcnl_proportion),
+        .keep = "all"
+      )
     
     eswl_proportion <- (intervention_props %>% filter(year == yr_5))$eswl_proportion
     urs_proportion <- (intervention_props %>% filter(year == yr_5))$urs_proportion
     pcnl_proportion <- (intervention_props %>% filter(year == yr_5))$pcnl_proportion
-    
-
     
     total_n_intervention <- nrow(subpopulation %>% filter(colic_intervention_year_5 == "Intervention"))
     
@@ -868,88 +821,100 @@ colic_intervention_rates_function <- function(population,
     n_urs <- round(total_n_intervention * urs_proportion, digits = 0)
     n_pcnl <- round(total_n_intervention * pcnl_proportion, digits = 0)
     
-    subpopulation_swl_yr_5 <- subpopulation %>% filter(colic_intervention_year_5 == "Intervention") %>% slice_sample(
-      n = n_swl
-    ) %>% mutate(
-      intervention_type = "ESWL",
-      .keep = "all"
-    ) %>% subset(select = c(id, intervention_type))
+    subpopulation_swl_yr_5 <- subpopulation %>% 
+      filter(colic_intervention_year_5 == "Intervention") %>% 
+      slice_sample(n = n_swl) %>% 
+      mutate(intervention_type = "ESWL", .keep = "all") %>% 
+      subset(select = c(id, intervention_type))
     
-    subpopulation_urs_yr_5 <- subpopulation %>% filter(colic_intervention_year_5 == "Intervention" & !id %in% subpopulation_swl_yr_5$id) %>% slice_sample(
-      n = n_urs
-    ) %>% mutate(
-      intervention_type = "URS",
-      .keep = "all"
-    ) %>% subset(select = c(id, intervention_type))
+    subpopulation_urs_yr_5 <- subpopulation %>% 
+      filter(colic_intervention_year_5 == "Intervention" & !id %in% subpopulation_swl_yr_5$id) %>% 
+      slice_sample(n = n_urs) %>% 
+      mutate(intervention_type = "URS", .keep = "all") %>% 
+      subset(select = c(id, intervention_type))
     
-    subpopulation_pcnl_yr_5 <- subpopulation %>% filter(colic_intervention_year_5 == "Intervention" & !id %in% subpopulation_swl_yr_5$id & !id %in% subpopulation_urs_yr_5$id) %>% slice_sample(
-      n = n_pcnl
-    ) %>% mutate(
-      intervention_type = "PCNL",
-      .keep = "all"
-    ) %>% subset(select = c(id, intervention_type))
+    subpopulation_pcnl_yr_5 <- subpopulation %>% 
+      filter(colic_intervention_year_5 == "Intervention" & 
+               !id %in% subpopulation_swl_yr_5$id & 
+               !id %in% subpopulation_urs_yr_5$id) %>% 
+      slice_sample(n = n_pcnl) %>% 
+      mutate(intervention_type = "PCNL", .keep = "all") %>% 
+      subset(select = c(id, intervention_type))
     
-    subpopulation_interventions_yr_5 <- rbind(subpopulation_swl_yr_5,
-                                              subpopulation_urs_yr_5,
-                                              subpopulation_pcnl_yr_5) 
+    subpopulation_interventions_yr_5 <- rbind(
+      subpopulation_swl_yr_5,
+      subpopulation_urs_yr_5,
+      subpopulation_pcnl_yr_5
+    ) 
     
-    subpopulation <- subpopulation %>% left_join(subpopulation_interventions_yr_5, by = c("id" = "id")) 
-      
-    subpopulation <- subpopulation %>% mutate(
-      intervention_type = as.factor(ifelse(is.na(intervention_type), 
-                                 "None",
-                                 intervention_type))
+    subpopulation <- subpopulation %>% 
+      left_join(subpopulation_interventions_yr_5, by = c("id" = "id")) 
+    
+    subpopulation <- subpopulation %>% 
+      mutate(
+        intervention_type = as.factor(ifelse(is.na(intervention_type), "None", intervention_type))
+      )
+    
+    subpopulation$intervention_type <- factor(
+      subpopulation$intervention_type,
+      levels = c("ESWL", "URS", "PCNL", "None")
     )
     
-    subpopulation$intervention_type <- factor(subpopulation$intervention_type,
-                                              levels = c("ESWL",
-                                                         "URS",
-                                                         "PCNL",
-                                                         "None"))
-    
     subpopulation <- subpopulation %>% mutate(
-      colic_intervention_type_year_0 = case_when(colic_intervention_year_0 == "Intervention" & intervention_type == "ESWL"  ~ "ESWL",
-                                                 colic_intervention_year_0 == "Intervention" & intervention_type == "URS" ~ "URS",
-                                                 colic_intervention_year_0 == "Intervention" & intervention_type == "PCNL" ~ "PCNL",
-                                                 colic_intervention_year_0 == "Colic" ~ "Colic",
-                                                 colic_intervention_year_0 == "No" ~ "No",
-                                                 TRUE ~ NA_character_),
-      colic_intervention_type_year_1 = case_when(colic_intervention_year_1 == "Intervention" & intervention_type == "ESWL"  ~ "ESWL",
-                                                 colic_intervention_year_1 == "Intervention" & intervention_type == "URS" ~ "URS",
-                                                 colic_intervention_year_1 == "Intervention" & intervention_type == "PCNL" ~ "PCNL",
-                                                 colic_intervention_year_1 == "Colic" ~ "Colic",
-                                                 colic_intervention_year_1 == "No" ~ "No",
-                                                 TRUE ~ NA_character_),
-      colic_intervention_type_year_2 = case_when(colic_intervention_year_2 == "Intervention" & intervention_type == "ESWL"  ~ "ESWL",
-                                                 colic_intervention_year_2 == "Intervention" & intervention_type == "URS" ~ "URS",
-                                                 colic_intervention_year_2 == "Intervention" & intervention_type == "PCNL" ~ "PCNL",
-                                                 colic_intervention_year_2 == "Colic" ~ "Colic",
-                                                 colic_intervention_year_2 == "No" ~ "No",
-                                                 TRUE ~ NA_character_),
-      colic_intervention_type_year_3 = case_when(colic_intervention_year_3 == "Intervention" & intervention_type == "ESWL"  ~ "ESWL",
-                                                 colic_intervention_year_3 == "Intervention" & intervention_type == "URS" ~ "URS",
-                                                 colic_intervention_year_3 == "Intervention" & intervention_type == "PCNL" ~ "PCNL",
-                                                 colic_intervention_year_3 == "Colic" ~ "Colic",
-                                                 colic_intervention_year_3 == "No" ~ "No",
-                                                 TRUE ~ NA_character_),
-      colic_intervention_type_year_4 = case_when(colic_intervention_year_4 == "Intervention" & intervention_type == "ESWL"  ~ "ESWL",
-                                                 colic_intervention_year_4 == "Intervention" & intervention_type == "URS" ~ "URS",
-                                                 colic_intervention_year_4 == "Intervention" & intervention_type == "PCNL" ~ "PCNL",
-                                                 colic_intervention_year_4 == "Colic" ~ "Colic",
-                                                 colic_intervention_year_4 == "No" ~ "No",
-                                                 TRUE ~ NA_character_),
-      colic_intervention_type_year_5 = case_when(colic_intervention_year_5 == "Intervention" & intervention_type == "ESWL"  ~ "ESWL",
-                                                 colic_intervention_year_5 == "Intervention" & intervention_type == "URS" ~ "URS",
-                                                 colic_intervention_year_5 == "Intervention" & intervention_type == "PCNL" ~ "PCNL",
-                                                 colic_intervention_year_5 == "Colic" ~ "Colic",
-                                                 colic_intervention_year_5 == "No" ~ "No",
-                                                 TRUE ~ NA_character_),
+      colic_intervention_type_year_0 = case_when(
+        colic_intervention_year_0 == "Intervention" & intervention_type == "ESWL" ~ "ESWL",
+        colic_intervention_year_0 == "Intervention" & intervention_type == "URS" ~ "URS",
+        colic_intervention_year_0 == "Intervention" & intervention_type == "PCNL" ~ "PCNL",
+        colic_intervention_year_0 == "Colic" ~ "Colic",
+        colic_intervention_year_0 == "No" ~ "No",
+        TRUE ~ NA_character_
+      ),
+      colic_intervention_type_year_1 = case_when(
+        colic_intervention_year_1 == "Intervention" & intervention_type == "ESWL" ~ "ESWL",
+        colic_intervention_year_1 == "Intervention" & intervention_type == "URS" ~ "URS",
+        colic_intervention_year_1 == "Intervention" & intervention_type == "PCNL" ~ "PCNL",
+        colic_intervention_year_1 == "Colic" ~ "Colic",
+        colic_intervention_year_1 == "No" ~ "No",
+        TRUE ~ NA_character_
+      ),
+      colic_intervention_type_year_2 = case_when(
+        colic_intervention_year_2 == "Intervention" & intervention_type == "ESWL" ~ "ESWL",
+        colic_intervention_year_2 == "Intervention" & intervention_type == "URS" ~ "URS",
+        colic_intervention_year_2 == "Intervention" & intervention_type == "PCNL" ~ "PCNL",
+        colic_intervention_year_2 == "Colic" ~ "Colic",
+        colic_intervention_year_2 == "No" ~ "No",
+        TRUE ~ NA_character_
+      ),
+      colic_intervention_type_year_3 = case_when(
+        colic_intervention_year_3 == "Intervention" & intervention_type == "ESWL" ~ "ESWL",
+        colic_intervention_year_3 == "Intervention" & intervention_type == "URS" ~ "URS",
+        colic_intervention_year_3 == "Intervention" & intervention_type == "PCNL" ~ "PCNL",
+        colic_intervention_year_3 == "Colic" ~ "Colic",
+        colic_intervention_year_3 == "No" ~ "No",
+        TRUE ~ NA_character_
+      ),
+      colic_intervention_type_year_4 = case_when(
+        colic_intervention_year_4 == "Intervention" & intervention_type == "ESWL" ~ "ESWL",
+        colic_intervention_year_4 == "Intervention" & intervention_type == "URS" ~ "URS",
+        colic_intervention_year_4 == "Intervention" & intervention_type == "PCNL" ~ "PCNL",
+        colic_intervention_year_4 == "Colic" ~ "Colic",
+        colic_intervention_year_4 == "No" ~ "No",
+        TRUE ~ NA_character_
+      ),
+      colic_intervention_type_year_5 = case_when(
+        colic_intervention_year_5 == "Intervention" & intervention_type == "ESWL" ~ "ESWL",
+        colic_intervention_year_5 == "Intervention" & intervention_type == "URS" ~ "URS",
+        colic_intervention_year_5 == "Intervention" & intervention_type == "PCNL" ~ "PCNL",
+        colic_intervention_year_5 == "Colic" ~ "Colic",
+        colic_intervention_year_5 == "No" ~ "No",
+        TRUE ~ NA_character_
+      )
     )
     
     result[[as.character(auc_target)]] <- subpopulation
   }
-# Combine all into one dataframe
-final_result <- bind_rows(result)
-return(final_result)
+  
+  # Combine all into one dataframe
+  final_result <- bind_rows(result)
+  return(final_result)
 }
-    
