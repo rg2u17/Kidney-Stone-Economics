@@ -1281,7 +1281,7 @@ risk_all <- rad_data %>%
     mean_dose_year_3 = mean(rad_dose_year_3, na.rm = TRUE),
     mean_dose_year_4 = mean(rad_dose_year_4, na.rm = TRUE),
     mean_dose_year_5 = mean(rad_dose_year_5, na.rm = TRUE),
-    start_year = first(year),
+    start_year = year,
     n_patients = n(),
     .groups = "drop"
   ) %>%
@@ -1338,9 +1338,169 @@ risk_summary_monte_carlo_final <- rad_data %>%
   )
 
 risk_combined <- bind_rows(risk_summary_monte_carlo_final, risk_all)
+risk_combined$risk_status <- as.factor(risk_combined$risk_status)
+
+### 6.2.3 Get Grand Total of Number of Expected additional malignancies ####
+# Filter out deaths in year 5
+rad_data_filtered <- rad_data %>%
+  filter(death_year_5 != "Yes")
+
+# Get all unique combinations of auc_target and cohort_type
+target_cohort_combinations <- rad_data_filtered %>%
+  distinct(auc_target, cohort_type)
+
+# Initialize list to store all results
+all_results_list <- list()
+
+# Loop through each auc_target and cohort_type combination
+for(i in 1:nrow(target_cohort_combinations)) {
+  
+  current_auc <- target_cohort_combinations$auc_target[i]
+  current_cohort <- target_cohort_combinations$cohort_type[i]
+  
+  cat("Processing auc_target:", current_auc, "| cohort_type:", current_cohort, 
+      "(", i, "of", nrow(target_cohort_combinations), ")\n")
+  
+  # Filter data for current combination
+  current_data <- rad_data_filtered %>%
+    filter(auc_target == current_auc, cohort_type == current_cohort)
+  
+  # Count unique patients for this combination
+  total_unique_patients <- n_distinct(current_data$id)
+  
+  # Group by all relevant variables
+  unique_groups <- current_data %>%
+    group_by(age, sex, rad_dose_year_1, rad_dose_year_2, rad_dose_year_3, 
+             rad_dose_year_4, rad_dose_year_5, risk_status, stone_free_status) %>%
+    summarise(
+      n_patients = n_distinct(id),  # Count unique patients in this dose/risk/stone combination
+      start_year = first(year),
+      .groups = "drop"
+    )
+  
+  cat("  Found", nrow(unique_groups), "unique dose/risk/stone combinations\n")
+  cat("  Total unique patients:", total_unique_patients, "\n")
+  
+  # Set chunk size
+  chunk_size <- 100
+  n_chunks <- ceiling(nrow(unique_groups) / chunk_size)
+  
+  # Initialize chunk results
+  chunk_results <- vector("list", n_chunks)
+  
+  # Process in chunks
+  for(j in 1:n_chunks) {
+    if(j %% 10 == 0) {
+      cat("    Processing chunk", j, "of", n_chunks, "\n")
+    }
+    
+    # Get chunk indices
+    start_idx <- ((j - 1) * chunk_size) + 1
+    end_idx <- min(j * chunk_size, nrow(unique_groups))
+    
+    # Get current chunk
+    current_chunk <- unique_groups[start_idx:end_idx, ]
+    
+    # Process chunk using pmap
+    chunk_result <- current_chunk %>%
+      mutate(
+        mc_results = pmap(
+          list(age, sex, rad_dose_year_1, rad_dose_year_2, rad_dose_year_3,
+               rad_dose_year_4, rad_dose_year_5, start_year),
+          function(age, sex, d1, d2, d3, d4, d5, start_year) {
+            monte_carlo_lifetime_risk(
+              age = age,
+              sex = sex,
+              doses = c(d1, d2, d3, d4, d5),
+              start_year = start_year,
+              auc_target = current_auc,
+              n_simulations = 5
+            )
+          }
+        )
+      ) %>%
+      mutate(
+        risk_per_1000 = map_dbl(mc_results, "mean_risk"),
+        ci_lower_95 = map_dbl(mc_results, "ci_lower"),
+        ci_upper_95 = map_dbl(mc_results, "ci_upper"),
+        total_expected_malignancies = (risk_per_1000 / 1000) * n_patients,
+        total_expected_malignancies_lower_95 = (ci_lower_95 / 1000) * n_patients,
+        total_expected_malignancies_upper_95 = (ci_upper_95 / 1000) * n_patients,
+        auc_target = current_auc,
+        cohort_type = current_cohort,
+        risk_status = risk_status
+      )
+    
+    chunk_results[[j]] <- chunk_result
+    
+    rm(current_chunk, chunk_result)
+    gc(verbose = FALSE)
+  }
+  
+  # Combine chunks for this auc_target/cohort_type
+  combined_result <- bind_rows(chunk_results)
+  
+  # Calculate totals for this combination
+  summary_result <- combined_result %>%
+    group_by(risk_status, auc_target, cohort_type) %>%
+    summarise(
+      grand_total_expected_malignancies = sum(total_expected_malignancies, na.rm = TRUE),
+      grand_total_expected_malignancies_lower = sum(total_expected_malignancies_lower_95, na.rm = TRUE),
+      grand_total_expected_malignancies_upper = sum(total_expected_malignancies_upper_95, na.rm = TRUE),
+      total_patients = sum(n_patients, na.rm = TRUE),
+      .groups = "drop"
+    )
+  
+  all_results_list[[i]] <- summary_result
+  
+  rm(current_data, unique_groups, chunk_results, combined_result)
+  gc(verbose = FALSE)
+  
+  cat("  Completed. Expected malignancies:", 
+      round(summary_result$grand_total_expected_malignancies, 2), "\n\n")
+}
+
+# Combine all results
+malignancy_grand_total <- bind_rows(all_results_list)
+gc()
+
+# Display results
+malignancy_grand_total %>%
+  group_by(cohort_type,
+           risk_status,
+           auc_target) %>%
+  gt() %>%
+  fmt_number(
+    columns = grand_total_expected_malignancies,
+    decimals = 0
+  ) %>%
+  fmt_number(
+    columns = grand_total_expected_malignancies_lower,
+    decimals = 0
+  ) %>%
+  fmt_number(
+    columns = grand_total_expected_malignancies_upper,
+    decimals = 0
+  ) %>%
+  fmt_number(
+    columns = total_patients,
+    decimals = 0,
+    use_seps = TRUE
+  ) %>%
+  cols_label(
+    auc_target = "AUC Target",
+    cohort_type = "Cohort Type",
+    risk_status = "Risk Status",
+    grand_total_expected_malignancies = "Expected Lifetime Malignancies",
+    grand_total_expected_malignancies_lower = "Lower CI",
+    grand_total_expected_malignancies_upper = "Upper CI",
+    total_patients = "Total Patients"
+  )
+
 
 
 ## 6.3 Plot ####
+### 6.3.1 All Patients subdivided by Risk ####
 risk_smoothed <- risk_combined %>%
   select(age, risk_status, cohort_type, auc_target, cumulative_lifetime_risk, ci_lower_95, ci_upper_95) %>%
   group_by(risk_status, cohort_type, auc_target) %>%
