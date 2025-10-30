@@ -1497,7 +1497,90 @@ malignancy_grand_total %>%
     total_patients = "Total Patients"
   )
 
+### 6.2.4 Plot % increase in expected lifetime malignancies ####
+malignancy_plot_data <- malignancy_grand_total %>%
+  mutate(
+    percentage = (grand_total_expected_malignancies / total_patients) * 100,
+    percentage_lower = (grand_total_expected_malignancies_lower / total_patients) * 100,
+    percentage_upper = (grand_total_expected_malignancies_upper / total_patients) * 100
+  )
 
+comparisons <- list(
+  c("Maximum FU, CT", "Maximum FU, XR"),
+  c("Minimum FU, CT", "Minimum FU, XR"),
+  c("Maximum FU, CT", "Minimum FU, CT"),
+  c("Maximum FU, XR", "Minimum FU, XR")
+)
+
+calc_chisq_pvalue <- function(data, group1, group2) {
+  d1 <- data %>% filter(cohort_type == group1)
+  d2 <- data %>% filter(cohort_type == group2)
+  
+  if(nrow(d1) == 0 || nrow(d2) == 0) return(1)
+  
+  mat <- matrix(
+    c(d1$grand_total_expected_malignancies, 
+      d1$total_patients - d1$grand_total_expected_malignancies,
+      d2$grand_total_expected_malignancies,
+      d2$total_patients - d2$grand_total_expected_malignancies),
+    nrow = 2,
+    byrow = TRUE
+  )
+  
+  tryCatch({
+    chisq.test(mat)$p.value
+  }, error = function(e) 1)
+}
+
+ggplot(malignancy_plot_data, 
+       aes(x = cohort_type, 
+           y = percentage,
+           fill = cohort_type)) +
+  geom_col(color = "black", linewidth = 0.3) +
+  geom_errorbar(aes(ymin = percentage_lower, 
+                    ymax = percentage_upper),
+                width = 0.2) +
+  geom_signif(
+    comparisons = comparisons,
+    test = function(x, y) {
+      # Get the current facet's data
+      current_data <- malignancy_plot_data %>%
+        filter(cohort_type %in% c(x, y))
+      
+      if(nrow(current_data) < 2) return(list(p.value = 1))
+      
+      p_val <- calc_chisq_pvalue(current_data, unique(x), unique(y))
+      list(p.value = p_val)
+    },
+    map_signif_level = c("***" = 0.001, "**" = 0.01, "*" = 0.05, "ns" = 1),
+    step_increase = 0.08,
+    tip_length = 0.01,
+    size = 0.4,
+    textsize = 3
+  ) +
+  facet_grid(risk_status ~ auc_target,
+             labeller = labeller(
+               auc_target = function(x) paste0("AUC: ", x),
+               risk_status = function(x) paste0("Risk: ", x)
+             )) +
+  labs(
+    title = "Expected Lifetime Malignancies by AUC Target and Risk Status",
+    x = "Cohort Type",
+    y = "Expected Lifetime Malignancies (%)",
+    fill = "Cohort Type",
+    caption = "Pairwise chi-squared tests; * p<0.05, ** p<0.01, *** p<0.001, ns = not significant"
+  ) +
+  scale_y_continuous(labels = function(x) paste0(x, "%"),
+                     expand = expansion(mult = c(0, 0.25))) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+    strip.background = element_rect(fill = "lightblue", color = "black"),
+    strip.text = element_text(face = "bold", size = 10),
+    panel.border = element_rect(color = "grey80", fill = NA, linewidth = 0.5),
+    panel.spacing = unit(0.5, "lines"),
+    legend.position = "bottom"
+  )
 
 ## 6.3 Plot ####
 ### 6.3.1 All Patients subdivided by Risk ####
