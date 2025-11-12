@@ -13,3 +13,10 @@ There are two models - both labelled no. 4: <br>
 
 <img width="760" height="320" alt="image" src="https://github.com/user-attachments/assets/eee4aa40-d19e-4c0a-8518-ad3c1417d280" /> <br>
 Figure. EAU follow-up algorithm for patients with kidney stones following treatment.
+
+**To download this model use:**
+git clone git@github.com:rg2u17/Kidney-Stone-Economics.git
+
+**To run this model we suggest using the rmarkdown file in RStudio and selecting run all**
+Please note that this requires a significant amount of compute to run - we recommend running this in a HPC cluster otherwise it may take several days to run
+Efforts have been made to minimise compute load within each script
