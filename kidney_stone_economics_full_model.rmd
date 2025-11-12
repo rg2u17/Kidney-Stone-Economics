@@ -738,6 +738,24 @@ source("Inputs/11. Quality of Life.R")
 ```
 \newpage
 
+## Plot QALYs
+```{r}
+summary_df_full_qol_data %>% group_by(auc_label) %>% ggplot(aes(x = auc_label, y = total_qol, fill = risk_status)) +
+  geom_col(
+    position = position_dodge(width = 0.8),
+    width = 0.7,
+    color = "black"
+  ) +
+  facet_wrap( ~ cohort_type) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size = 10)) +
+  labs(title = "Annual QALYs for EAU Follow-Up of those with Clinically Significant Disease",
+       x = "Cohort Type",
+       y = "Annual QALYs (USIQoL)",
+       fill = "Risk Status")
+```
+\newpage
 
 
 # 12. Calculate ICER 
