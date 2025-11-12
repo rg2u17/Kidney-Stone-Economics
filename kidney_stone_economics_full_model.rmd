@@ -1,1 +1,748 @@
+---
+title: "kidney_stone_economics_full_model"
+author: "R Geraghty"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    fig_width: 10
+    fig_height: 10
+    number_sections: true
+    code_folding: TRUE
+---
+# Setup
+```{r, include = FALSE, warning=FALSE}
+library(knitr)
+library(gt)
+library(gtExtras)
+library(tidyverse)
+library(DiagrammeR)
+library(data.table)
+library(janitor)
+library(DataExplorer)
+library(pROC)
+library(ggplot2)
+library(pracma)
+library(glue)
+library(cutpointr)
+library(caret)
+library(cowplot)
+library(cutpointr)
+library(ggsignif)
+library(ggpubr)
+library(broom)
+```
+\newpage
+
+# 1. Define Inputs
+```{r}
+source("Inputs/1. Define Inputs.R")
+```
+\newpage
+
+# 2. Total Cost Calculation for Stone Free Patients
+```{r}
+source("Inputs/2. Total Cost Calculation for Stone Free Patients.R")
+```
+\newpage
+
+# 3. Visualise Model 
+```{r}
+source("Inputs/3. Visualise Model.R")
+```
+\newpage
+
+# 4. Distribution of Scores - Pick one!
+## 4.1 Beta Distribution - e.g modelling a machine learning model output
+```{r}
+source("Inputs/4. Model - Beta Distribution for Scores.R")
+```
+\newpage
+
+## 4.2 Normal Distribution - e.g modelling a blood test output
+```{r}
+source("Inputs/4. Model - Normal Distribution for Scores.R")
+```
+\newpage
+
+# 5. Run Model
+```{r}
+source("Inputs/5. Run Model.R")
+```
+\newpage
+
+## Summary plot of model 
+```{r}
+top_row <- plot_grid(roc_plot, density_plots,
+                     labels = c("A",
+                                "B"),
+                     label_x = 0, label_y = 0,
+                     hjust = -0.5, vjust = -0.5)
+
+overall_simulation_plot <- plot_grid(top_row, simulation_over_time_plot,
+                        labels = c("",
+                                   "C"),
+                        nrow = 2,
+                        label_x = 0, label_y = 0,
+                        hjust = -0.5, vjust = -0.5)
+
+overall_simulation_plot
+```
+
+# 6. Radiation Dose
+```{r}
+source("Inputs/6. Radiation Dose.R")
+```
+\newpage
+
+## Plot
+```{r}
+summary_df3 %>% ggplot(aes(x = auc_label, y=mean_dose, fill = risk_status)) + 
+  geom_col(position = position_dodge(width = 0.8), width = 0.7) +
+  geom_errorbar(
+    aes(ymin = mean_dose - sd, ymax = mean_dose + sd),
+    position = position_dodge(width = 0.8),
+    width = 0.2
+  ) +
+  facet_wrap(~ cohort_type) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(size = 10)
+  ) +
+  labs(
+    title = "Cumulative 5 Year Radiation Dose",
+    x = "Modelled Risk Stratification AUC-ROC",
+    y = "Mean Cumulative Radiation Dose (mSv)",
+    fill = "Risk Status"
+  ) 
+```
+\newpage
+
+## Plot
+```{r}
+summary_df3 %>% ggplot(aes(x = auc_label, y=median_dose, fill = risk_status)) + 
+  geom_col(position = position_dodge(width = 0.8), width = 0.7)  +
+  facet_wrap(~ cohort_type) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(size = 10)
+  ) +
+  labs(
+    title = "Cumulative 5 Year Radiation Dose",
+    x = "Modelled Risk Stratification AUC-ROC",
+    y = "Median Cumulative Radiation Dose (mSv)",
+    fill = "Risk Status"
+  ) 
+```
+\newpage
+
+## Plot
+```{r}
+data_for_plot %>% ggplot(aes(x = auc_label, y=cumulative_rad_dose, fill = risk_status)) + 
+  geom_boxplot(position = position_dodge(width = 0.8)) +
+  facet_wrap(~ cohort_type) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(size = 10)
+  ) +
+  labs(
+    title = "Cumulative 5 Year Radiation Dose",
+    x = "Modelled Risk Stratification AUC-ROC",
+    y = "Cumulative Radiation Dose (mSv)",
+    fill = "Risk Status"
+  ) 
+```
+\newpage
+
+# 7. Radiation Induced Malignancy
+```{r}
+source("Inputs/6. Radiation Induced Malignancy.R")
+```
+\newpage
+
+## Overall plot
+```{r}
+malignancy_risk_plot
+```
+\newpage
+
+## Organ Specific plot
+```{r}
+malignancy_data_grouped$auc <- as.factor(malignancy_data_grouped$auc)
+organ_specific_ear_per_person <- malignancy_data_grouped %>%
+  group_by(auc, age, sex, cohort_type, risk_status, organ) %>%
+  summarise(
+    five_year_ear      = sum(five_year_risk, na.rm = TRUE),
+    ten_year_ear       = sum(ten_year_risk, na.rm = TRUE),
+    fifteen_year_ear   = sum(fifteen_year_risk, na.rm = TRUE),
+    twenty_year_ear    = sum(twenty_year_risk, na.rm = TRUE),
+    twentyfive_year_ear = sum(twenty_five_year_risk, na.rm = TRUE),
+    thirty_year_ear    = sum(thirty_year_risk, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+organ_specific_ear_per_person$organ <- as.factor(organ_specific_ear_per_person$organ)
+
+organ_specific_ear_per_person_long <- organ_specific_ear_per_person %>%
+  group_by(organ) %>%
+  pivot_longer(
+    cols = c(
+      five_year_ear,
+      ten_year_ear,
+      fifteen_year_ear,
+      twenty_year_ear,
+      twentyfive_year_ear,
+      thirty_year_ear
+    ),
+    names_to = "follow_up",
+    values_to = "ear"
+  )  %>%
+  mutate(
+    ear_per_1000 = case_when(
+      sex == "male" ~ (ear / cohort_size_male) * 1000,
+      sex == "female" ~ (ear / cohort_size_female) * 1000,
+      TRUE ~ NA_integer_
+    ),
+    
+    follow_up = recode(
+      follow_up,
+      "five_year_ear"        = "5",
+      "ten_year_ear"         = "10",
+      "fifteen_year_ear"     = "15",
+      "twenty_year_ear"      = "20",
+      "twentyfive_year_ear"  = "25",
+      "thirty_year_ear"      = "30"
+    ),
+    yrs_after_first_scan = factor(follow_up, levels = c("5", "10", "15", "20", "25", "30")),
+    organ = recode(
+      organ,
+      "bladder" = "Bladder",
+      "colon" = "Colon",
+      "kidney" = "Kidney",
+      "liver" = "Liver",
+      "ovary" = "Ovary",
+      "pancreas" = "Pancreas",
+      "prostate" = "Prostate",
+      "rectum" = "Rectum",
+      "stomach" = "Stomach",
+      "uterus" = "Uterus"
+    ),
+    organ = factor(
+      organ,
+      levels = c(
+        "Stomach",
+        "Bladder",
+        "Liver",
+        "Colon",
+        "Uterus",
+        "Ovary",
+        "Pancreas",
+        "Rectum",
+        "Kidney",
+        "Prostate"
+      )
+    )
+  )
+
+
+ggplot(
+  organ_specific_ear_per_person_long,
+  aes(x = yrs_after_first_scan, y = ear_per_1000, fill = auc)
+) +
+  geom_col(position = position_dodge(width = 0.8)) +
+  facet_grid(cohort_type ~ organ, scales = "free_y") +
+  labs(title = "Estimated Excess Absolute Solid Cancer Incidence by Individual Exposed Organ", x = "Time from 1st Imaging (years)", y = "Estimated Excess Absolute Solid Cancer Incidence, n per 1000") +
+  theme_bw() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title = element_text(face = "bold"),
+    legend.position = "right",
+    strip.text = element_text(face = "bold")
+  ) + ylim(c(0, 11))
+```
+\newpage
+
+## Lifetime Expected Additional Malignancies Table
+```{r}
+malignancy_grand_total %>%
+  group_by(cohort_type,
+           risk_status,
+           auc_target) %>%
+  gt() %>%
+  fmt_number(
+    columns = grand_total_expected_malignancies,
+    decimals = 0
+  ) %>%
+  fmt_number(
+    columns = grand_total_expected_malignancies_lower,
+    decimals = 0
+  ) %>%
+  fmt_number(
+    columns = grand_total_expected_malignancies_upper,
+    decimals = 0
+  ) %>%
+  fmt_number(
+    columns = total_patients,
+    decimals = 0,
+    use_seps = TRUE
+  ) %>%
+  cols_label(
+    auc_target = "AUC Target",
+    cohort_type = "Cohort Type",
+    risk_status = "Risk Status",
+    grand_total_expected_malignancies = "Expected Lifetime Malignancies",
+    grand_total_expected_malignancies_lower = "Lower CI",
+    grand_total_expected_malignancies_upper = "Upper CI",
+    total_patients = "Total Patients"
+  )
+```
+\newpage
+
+## Plot Lifetime expected malignancies - Cohort comparisons
+```{r}
+malignancy_plot_data <- malignancy_grand_total %>%
+  mutate(
+    percentage = (grand_total_expected_malignancies / total_patients) * 100,
+    percentage_lower = (grand_total_expected_malignancies_lower / total_patients) * 100,
+    percentage_upper = (grand_total_expected_malignancies_upper / total_patients) * 100
+  )
+
+comparisons <- list(
+  c("Maximum FU, CT", "Maximum FU, XR"),
+  c("Minimum FU, CT", "Minimum FU, XR"),
+  c("Maximum FU, CT", "Minimum FU, CT"),
+  c("Maximum FU, XR", "Minimum FU, XR")
+)
+
+calc_chisq_pvalue <- function(data, group1, group2) {
+  d1 <- data %>% filter(cohort_type == group1)
+  d2 <- data %>% filter(cohort_type == group2)
+  
+  if(nrow(d1) == 0 || nrow(d2) == 0) return(1)
+  
+  mat <- matrix(
+    c(d1$grand_total_expected_malignancies, 
+      d1$total_patients - d1$grand_total_expected_malignancies,
+      d2$grand_total_expected_malignancies,
+      d2$total_patients - d2$grand_total_expected_malignancies),
+    nrow = 2,
+    byrow = TRUE
+  )
+  
+  tryCatch({
+    chisq.test(mat)$p.value
+  }, error = function(e) 1)
+}
+
+ggplot(malignancy_plot_data, 
+       aes(x = cohort_type, 
+           y = percentage,
+           fill = cohort_type)) +
+  geom_col(color = "black", linewidth = 0.3) +
+  geom_errorbar(aes(ymin = percentage_lower, 
+                    ymax = percentage_upper),
+                width = 0.2) +
+  geom_signif(
+    comparisons = comparisons,
+    test = function(x, y) {
+      # Get the current facet's data
+      current_data <- malignancy_plot_data %>%
+        filter(cohort_type %in% c(x, y))
+      
+      if(nrow(current_data) < 2) return(list(p.value = 1))
+      
+      p_val <- calc_chisq_pvalue(current_data, unique(x), unique(y))
+      list(p.value = p_val)
+    },
+    map_signif_level = c("***" = 0.001, "**" = 0.01, "*" = 0.05, "ns" = 1),
+    step_increase = 0.08,
+    tip_length = 0.01,
+    size = 0.4,
+    textsize = 3
+  ) +
+  facet_grid(risk_status ~ auc_target,
+             labeller = labeller(
+               auc_target = function(x) paste0("AUC: ", x),
+               risk_status = function(x) paste0("Risk: ", x)
+             )) +
+  labs(
+    title = "Expected Lifetime Malignancies by AUC Target and Risk Status",
+    x = "Cohort Type",
+    y = "Expected Additional Lifetime Malignancies (%)",
+    fill = "Cohort Type",
+    caption = "Pairwise chi-squared tests; * p<0.05, ** p<0.01, *** p<0.001, ns = not significant"
+  ) +
+  scale_y_continuous(labels = function(x) paste0(x, "%"),
+                     expand = expansion(mult = c(0, 0.25))) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+    strip.background = element_rect(fill = "lightblue", color = "black"),
+    strip.text = element_text(face = "bold", size = 10),
+    panel.border = element_rect(color = "grey80", fill = NA, linewidth = 0.5),
+    panel.spacing = unit(0.5, "lines"),
+    legend.position = "bottom"
+  )
+```
+\newpage
+
+## Plot Lifetime expected malignancies - AUC comparisons - Proportions
+```{r}
+# Get unique AUC target values for comparisons
+auc_values <- unique(as.factor(malignancy_plot_data$auc_target))
+
+ref_auc <- "0.55"
+
+# Define pairwise comparisons for AUC targets
+comparisons <- lapply(setdiff(auc_values, ref_auc), function(x) c(ref_auc, x))
+
+# Updated function to compare by auc_target instead of cohort_type
+calc_chisq_pvalue <- function(data, group1, group2) {
+  d1 <- data %>% filter(auc_target == group1)
+  d2 <- data %>% filter(auc_target == group2)
+  
+  if(nrow(d1) == 0 || nrow(d2) == 0) return(1)
+  
+  mat <- matrix(
+    c(d1$grand_total_expected_malignancies, 
+      d1$total_patients - d1$grand_total_expected_malignancies,
+      d2$grand_total_expected_malignancies,
+      d2$total_patients - d2$grand_total_expected_malignancies),
+    nrow = 2,
+    byrow = TRUE
+  )
+  
+  tryCatch({
+    chisq.test(mat)$p.value
+  }, error = function(e) 1)
+}
+
+ggplot(malignancy_plot_data, 
+       aes(x = as.factor(auc_target), 
+           y = percentage,
+           fill = auc_target)) +
+  geom_col(color = "black", linewidth = 0.3) +
+  geom_errorbar(aes(ymin = percentage_lower, 
+                    ymax = percentage_upper),
+                width = 0.2) +
+  facet_grid(risk_status ~ cohort_type,
+             labeller = labeller(
+               cohort_type = function(x) x,
+               risk_status = function(x) paste0("Risk: ", x)
+             )) +
+  labs(
+    title = "Expected Lifetime Malignancies by Cohort Type and Risk Status",
+    x = "AUC Target",
+    y = "Expected Additional Lifetime Malignancies (%)",
+    fill = "AUC Target",
+    caption = "Pairwise chi-squared tests; * p<0.05, ** p<0.01, *** p<0.001, ns = not significant"
+  ) +
+  scale_y_continuous(labels = function(x) paste0(x, "%"),
+                     expand = expansion(mult = c(0, 0.25))) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+    strip.background = element_rect(fill = "lightblue", color = "black"),
+    strip.text = element_text(face = "bold", size = 10),
+    panel.border = element_rect(color = "grey80", fill = NA, linewidth = 0.5),
+    panel.spacing = unit(0.5, "lines"),
+    legend.position = "bottom"
+  )  +
+  geom_signif(
+    comparisons = comparisons,
+    test = function(x, y) {
+      current_data <- malignancy_plot_data %>%
+        filter(auc_target %in% c(x, y))
+      
+      if(nrow(current_data) < 2) return(list(p.value = 1))
+      
+      p_val <- calc_chisq_pvalue(current_data, unique(x), unique(y))
+      list(p.value = p_val)
+    },
+    map_signif_level = c("***" = 0.001, "**" = 0.01, "*" = 0.05, "ns" = 1),
+    step_increase = 0.08,
+    tip_length = 0.01,
+    size = 0.4,
+    textsize = 3
+  ) 
+```
+\newpage
+
+## Plot Lifetime expected malignancies - AUC comparisons - Numbers
+```{r}
+ggplot(malignancy_plot_data, 
+       aes(x = as.factor(auc_target), 
+           y = grand_total_expected_malignancies,
+           fill = auc_target)) +
+  geom_col(color = "black", linewidth = 0.3) +
+  geom_errorbar(aes(ymin = grand_total_expected_malignancies_lower, 
+                    ymax = grand_total_expected_malignancies_upper),
+                width = 0.2) +
+  facet_grid(risk_status ~ cohort_type,
+             labeller = labeller(
+               cohort_type = function(x) x,
+               risk_status = function(x) paste0("Risk: ", x)
+             )) +
+  labs(
+    title = "Expected Lifetime Malignancies by Cohort Type and Risk Status",
+    x = "AUC Target",
+    y = "Expected Additional Lifetime Malignancies, n",
+    fill = "AUC Target",
+    caption = "Pairwise chi-squared tests; * p<0.05, ** p<0.01, *** p<0.001, ns = not significant"
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.25))) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+    strip.background = element_rect(fill = "lightblue", color = "black"),
+    strip.text = element_text(face = "bold", size = 10),
+    panel.border = element_rect(color = "grey80", fill = NA, linewidth = 0.5),
+    panel.spacing = unit(0.5, "lines"),
+    legend.position = "bottom"
+  )  +
+  geom_signif(
+    comparisons = comparisons,
+    test = function(x, y) {
+      current_data <- malignancy_plot_data %>%
+        filter(auc_target %in% c(x, y))
+      
+      if(nrow(current_data) < 2) return(list(p.value = 1))
+      
+      p_val <- calc_chisq_pvalue(current_data, unique(x), unique(y))
+      list(p.value = p_val)
+    },
+    map_signif_level = c("***" = 0.001, "**" = 0.01, "*" = 0.05, "ns" = 1),
+    step_increase = 0.08,
+    tip_length = 0.01,
+    size = 0.4,
+    textsize = 3
+  ) 
+```
+\newpage
+
+# 8. Economic Costs - All Patients
+```{r}
+source("Inputs/6. Economic Costs - All Patients.R")
+```
+\newpage
+
+## Plot total cost by cohort_type within risk groups - facet by FU type
+```{r}
+summary_df_full_cost_data %>% group_by(auc_label) %>% ggplot(aes(x = auc_label, y = total_cost, fill = risk_status)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.7, color = "black") +
+  facet_wrap(~ cohort_type) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(size = 10)
+  ) +
+  labs(
+    title = "Annual Cost for EAU Follow-Up of those with Clinically Significant Disease",
+    x = "Cohort Type",
+    y = "Annual Cost of Follow-up (£ Millions)",
+    fill = "Risk Status"
+  )
+```
+\newpage
+
+## Plot total cost by cohort_type within risk groups - facet by auc
+```{r}
+summary_df_full_cost_data %>% group_by(cohort_type) %>% ggplot(aes(x = cohort_type, y = total_cost, fill = risk_status)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.7, color = "black") +
+  facet_wrap(~ auc_label) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(size = 10)
+  ) +
+  labs(
+    title = "Annual Cost for Maximum EAU Follow-Up of those with Clinically Significant Disease",
+    x = "Cohort Type",
+    y = "Annual  Cost of Follow-up (£ Millions)",
+    fill = "Risk Status"
+  )
+```
+\newpage
+
+## Plot total cost by cohort_type within risk groups - facet by risk status
+```{r}
+summary_df_full_cost_data %>% group_by(cohort_type) %>% ggplot(aes(x = cohort_type, y = total_cost, fill = auc_label)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.7, color = "black") +
+  facet_wrap(~ risk_status) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(size = 10)
+  ) +
+  labs(
+    title = "Annual Cost for Maximum EAU Follow-Up of those with Clinically Significant Disease",
+    x = "Cohort Type",
+    y = "Annual Cost of Follow-up (£ Millions)",
+    fill = "Risk Status"
+  )
+```
+\newpage
+
+## Summary table
+```{r}
+summary_df_full_cost_data %>% subset(risk_status == "All") %>% group_by(auc_label,
+                        risk_status) %>% gt() %>% gt_theme_nytimes()
+```
+\newpage
+
+## Summary table by risk status
+```{r}
+summary_df_full_cost_data %>% group_by(auc_label,
+                        risk_status) %>% gt() %>% gt_theme_nytimes()
+
+summary_df_full_cost_data_all_patients <- summary_df_full_cost_data
+```
+\newpage
+
+# 9. Economic Costs - Recurrence only
+```{r}
+source("Inputs/9. Economic Costs - Recurrence only.R")
+```
+\newpage
+
+## Plot total cost by cohort_type within risk groups - facet by FU type
+```{r}
+summary_df %>% group_by(auc_label) %>% ggplot(aes(x = auc_label, y = total_cost, fill = risk_status)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.7, color = "black") +
+  facet_wrap(~ cohort_type) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(size = 10)
+  ) +
+  labs(
+    title = "Annual Cost for EAU Follow-Up of those with Clinically Significant Disease - Recurrence Only",
+    x = "Cohort Type",
+    y = "Total Cost of Follow-up (£ Millions)",
+    fill = "Risk Status"
+  )
+```
+\newpage
+
+## Plot total cost by cohort_type within risk groups - facet by auc
+```{r}
+summary_df %>% group_by(cohort_type) %>% ggplot(aes(x = cohort_type, y = total_cost, fill = risk_status)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.7, color = "black") +
+  facet_wrap(~ auc_label) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(size = 10)
+  ) +
+  labs(
+    title = "Annual Cost for Maximum EAU Follow-Up of those with Clinically Significant Disease - Recurrence Only",
+    x = "Cohort Type",
+    y = "Total Cost of Follow-up (£ Millions)",
+    fill = "Risk Status"
+  )
+```
+\newpage
+
+## Plot total cost by cohort_type within risk groups - facet by risk status
+```{r}
+summary_df %>% group_by(cohort_type) %>% ggplot(aes(x = cohort_type, y = total_cost, fill = auc_label)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.7, color = "black") +
+  facet_wrap(~ risk_status) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(size = 10)
+  ) +
+  labs(
+    title = "Annual Cost for Maximum EAU Follow-Up of those with Clinically Significant Disease - Recurrence Only",
+    x = "Cohort Type",
+    y = "Total Cost of Follow-up (£ Millions)",
+    fill = "Risk Status"
+  )
+```
+\newpage
+
+## Plot total cost by auc - facet by risk status and cohort_type
+```{r}
+summary_df %>% 
+  group_by(auc_label) %>% 
+  ggplot(aes(x = auc_label, y = total_cost, fill = risk_status)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.7, color = "black") +
+  facet_grid(risk_status ~ cohort_type) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(size = 10)
+  ) +
+  labs(
+    title = "Annual Cost for Maximum EAU Follow-Up of those with Clinically Significant Disease - Recurrence Only",
+    x = "Cohort Type",
+    y = "Annual Cost of Follow-up (£ Millions)",
+    fill = "Risk Status"
+  )
+```
+
+
+## Summary table for Recurrence Only
+```{r}
+summary_df %>% subset(risk_status == "All") %>% group_by(auc_label,
+                        risk_status) %>% gt() %>% gt_theme_nytimes()
+```
+\newpage
+
+# 10. Clinician Time - Number of Appointments
+```{r}
+source("Inputs/10. Clinician Time.R")
+```
+\newpage
+
+## Plot total number of appointments for 2020 by cohort_type within risk groups - facet by FU type
+```{r}
+summary_df_appts %>% group_by(auc_label) %>% ggplot(aes(x = auc_label, y = total_appts, fill = risk_status)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.7, color = "black") +
+  facet_wrap(~ cohort_type) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(size = 10)
+  ) +
+  labs(
+    title = "Annual Number of Appointments for EAU Follow-Up of those with Clinically Significant Disease",
+    x = "Cohort Type",
+    y = "Total Follow-up Appointments, n (000's)",
+    fill = "Risk Status"
+  )
+```
+
+## Tabulate number of appointments
+```{r}
+summary_df_appts %>% 
+  filter(risk_status == "All") %>%
+  group_by(auc_label,
+           cohort_type) %>% 
+  summarise(
+    total_appts = sum(round(total_appts, 0))
+  ) %>%
+  gt()
+```
+\newpage
+
+
+# 11. Quality of Life
+```{r}
+source("Inputs/11. Quality of Life.R")
+```
+\newpage
+
+
+
+# 12. Calculate ICER 
+```{r}
+source("Inputs/12. Calculate ICER.R")
+```
+\newpage
 
