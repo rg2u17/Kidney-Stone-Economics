@@ -6,7 +6,7 @@ The model examines multiple theoretical diagnostic accuracy thresholds for predi
 
 Each script is labelled in numeric order, and those wishing to replicate the model should run each in order. <br>
 
-There are two models - both labelled no. 4: <br>
+**There are two types of test score distribution** - both are labelled no. 4: <br>
 1. Beta distribution for score - e.g. prognostic model output <br>
 2. Normal distribution for scores - e.g. blood test result <br>
 <br>
