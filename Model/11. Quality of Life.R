@@ -587,7 +587,7 @@ calculate_qol <- function(complete_pop_yr_fu,
                           cutpoints_yr,
                           start_year,
                           years = c(1,2,3,4,5),
-                          auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+                          target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
                           fu_type = c("min", "max"),
                           post_op_imaging = c("none", ct_cost, imaging_cost, us_cost),
                           imaging_fu_type = c("ct", "xr", "xr_us"),
@@ -600,18 +600,23 @@ calculate_qol <- function(complete_pop_yr_fu,
   post_op_imaging <- post_op_imaging[1]
   if(post_op_imaging == "none") post_op_imaging <- 0
   
-  for (auc_target in auc_targets) {
+  for (target_auc in target_aucs) {
     message("Calculating QoL for: ", start_year,
             ", AUC: ", auc_target,
             ", Follow-up Type: ", fu_type,
             ", Follow-up Imaging: ", imaging_fu_type,
             " and Post-Operative Imaging: ", post_op_imaging)
     
+    target_auc <- as.integer(target_auc)
+    
+    complete_pop_yr_fu2 <- complete_pop_yr_fu %>%
+      filter(.data$auc_target == target_auc)
+    
     # Cutpoint for this AUC
-    cutpoint <- (cutpoints_yr %>% filter(auc_target == !!auc_target))$cutpoint
+    cutpoint <- (cutpoints_yr %>% filter(auc_target == !!target_auc))$cutpoint
     
     # Determine non-SF proportions for distributing misclassified SF
-    not_sf_props <- complete_pop_yr_fu %>%
+    not_sf_props <- complete_pop_yr_fu2 %>%
       filter(stone_free_status %in% c("less4", "more4")) %>%
       count(stone_free_status) %>%
       mutate(prop = n / sum(n)) %>%
@@ -619,9 +624,9 @@ calculate_qol <- function(complete_pop_yr_fu,
     less4_prob <- not_sf_props$prop[not_sf_props$stone_free_status == "less4"]
     
     # Assign SF status according to imaging type
-    rand_sens <- runif(nrow(complete_pop_yr_fu))
-    rand_spec <- runif(nrow(complete_pop_yr_fu))
-    complete_pop_yr_fu1 <- complete_pop_yr_fu %>%
+    rand_sens <- runif(nrow(complete_pop_yr_fu2))
+    rand_spec <- runif(nrow(complete_pop_yr_fu2))
+    complete_pop_yr_fu1 <- complete_pop_yr_fu2 %>%
       mutate(
         stone_free_status_original = stone_free_status,
         stone_free_status1 = case_when(
@@ -675,7 +680,7 @@ calculate_qol <- function(complete_pop_yr_fu,
       ) %>%
       ungroup()
     
-    results_list[[paste0("auc_", auc_target)]] <- combined_result
+    results_list[[paste0("auc_", target_auc)]] <- combined_result
   }
   
   if (length(auc_targets) == 1) {
@@ -1177,18 +1182,29 @@ data_for_plot <- data_for_plot_qol %>%
 auc_values <- unique(data_for_plot$auc_label)
 
 ## 11.7 Plot QALYs ####
-summary_df_full_qol_data %>% group_by(auc_label) %>% ggplot(aes(x = auc_label, y = total_qol, fill = risk_status)) +
+summary_df_full_qol_data %>% 
+  group_by(auc_label) %>% 
+  ggplot(aes(x = auc_label, y = total_qol, fill = risk_status)) +
   geom_col(
     position = position_dodge(width = 0.8),
     width = 0.7,
     color = "black"
   ) +
-  facet_wrap( ~ cohort_type) +
+  geom_errorbar(
+    aes(ymin = total_qol_lower, ymax = total_qol_upper),
+    position = position_dodge(width = 0.8),
+    width = 0.25,
+    color = "black"
+  ) +
+  facet_wrap(~ cohort_type) +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        strip.text = element_text(size = 10)) +
-  labs(title = "Annual QALYs for EAU Follow-Up of those with Clinically Significant Disease",
-       x = "Cohort Type",
-       y = "Annual QALYs (USIQoL)",
-       fill = "Risk Status")
-
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(size = 10)
+  ) +
+  labs(
+    title = "Annual USIQoL score for EAU Follow-Up of those with Clinically Significant Disease",
+    x = "Cohort Type",
+    y = "Annual USIQoL score",
+    fill = "Risk Status"
+  )
