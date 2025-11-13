@@ -980,51 +980,6 @@ bind_rows(overall_ear_long) %>%
                          levels = c("High Risk", "Low Risk", "All"))
   )
 
-# Plot with error bars
-overall_ear_long_all %>% 
-  group_by(auc, cohort_type) %>%
-  ggplot(aes(x = yrs_after_first_scan, y = ear_per_1000, fill = risk_status)) +
-  geom_col(position = position_dodge(width = 0.8)) +
-  geom_errorbar(
-    aes(ymin = ear_per_1000 - ear_se_per_1000, ymax = ear_per_1000 + ear_se_per_1000),
-    position = position_dodge(width = 0.8),
-    width = 0.2,
-    color = "black"
-  ) +
-  facet_grid(auc ~ cohort_type, scales = "free_y") +
-  labs(
-    title = "Overall Estimated Excess Absolute Solid Cancer Incidence",
-    x = "Time from 1st Imaging",
-    y = "Estimated Excess Absolute Solid Cancer Incidence per 100,000, n"
-  ) +
-  theme_bw() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    strip.text = element_text(size = 10)
-  ) + ylim (0,1600)
-
-overall_ear_long_all %>% 
-  group_by(auc, cohort_type) %>%
-  ggplot(aes(x = yrs_after_first_scan, y = ear, fill = risk_status)) +
-  geom_col(position = position_dodge(width = 0.8)) +
-  geom_errorbar(
-    aes(ymin = ear - ear_se, ymax = ear + ear_se),
-    position = position_dodge(width = 0.8),
-    width = 0.2,
-    color = "black"
-  ) +
-  facet_grid(cohort_type ~ auc, scales = "free_y") +
-  labs(
-    title = "Overall Estimated Excess Absolute Solid Cancer Incidence",
-    x = "Time from 1st Imaging",
-    y = "Estimated Excess Absolute Solid Cancer Incidence per 100,000, n"
-  ) +
-  theme_bw() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    strip.text = element_text(size = 10)
-  )
-
 ## 5.2 Organ specific plot ####
 malignancy_data_grouped$auc <- as.factor(malignancy_data_grouped$auc)
 
@@ -1092,7 +1047,7 @@ organ_ear_se <- organ_specific_ear_per_person %>%
 
 # Join them together
 organ_specific_ear_per_person_long <- organ_ear_means %>%
-  left_join(organ_ear_se, by = c("auc", "cohort_type", "risk_status", "organ", "follow_up")) %>%
+  cbind(organ_ear_se %>% select = ear_se) %>%
   group_by(organ) %>%
   mutate(
     ear_per_1000 = ear /1000,
