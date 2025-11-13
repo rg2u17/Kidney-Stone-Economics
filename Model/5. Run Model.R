@@ -109,7 +109,7 @@ roc_plot <- ggplot(roc_data, aes(x = 1 - specificity, y = sensitivity, color = a
 #### 5.1.3 Plot Density plots ####
 plots <- lapply(1:9, function(i) scores_2016[[i]]$density_plot)
 plot_grid(plotlist = plots, ncol = 3)
-
+density_plots <- plot_grid(plotlist = plots, ncol = 3)
 
 ### 5.2 Simulate Population #####
 #### 5.2.1 2016 #####
