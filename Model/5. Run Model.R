@@ -640,3 +640,30 @@ ggplot(final_summary_2020_combined,
     legend.position = "bottom"
   )
 
+simulation_over_time_plot <- ggplot(final_summary_2020_combined, 
+       aes(x = year, y = percentage, 
+           color = status, 
+           shape = risk_status,
+           linetype = risk_status)) +
+  geom_point(size = 2.5) +
+  geom_line(linewidth = 0.8) +
+  facet_grid(stone_free_status ~ auc_target, 
+             labeller = labeller(
+               stone_free_status = "SF Status: ",
+               auc_target = "AUC: "
+             )) +
+  scale_color_manual(values = c("Cumulative Recurrence" = "#D55E00", "Survivors" = "#0072B2")) +
+  labs(
+    title = "Cumulative Recurrence and Survivors by Stone-Free Status and Risk Group",
+    x = "Year of Follow-up",
+    y = "% of Initial Population",
+    color = "Outcome",
+    shape = "Risk Group",
+    linetype = "Risk Group"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    strip.background = element_rect(fill = "gray90", color = NA),
+    strip.text = element_text(face = "bold", size = 10),
+    legend.position = "bottom"
+  )
