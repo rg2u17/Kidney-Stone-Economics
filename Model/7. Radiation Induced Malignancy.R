@@ -939,7 +939,7 @@ overall_ear_se <- overall_ear_per_person %>%
   select(-follow_up_se)
 
 overall_ear_long <- overall_ear_means %>%
-  left_join(overall_ear_se, by = c("auc", "cohort_type", "risk_status", "follow_up")) %>%
+  %>% cbind(overall_ear_se %>% select(ear_se)) %>%
   mutate(
     ear_per_1000 = ear * 1000,
     ear_se_per_1000 = ear_se * 1000,
