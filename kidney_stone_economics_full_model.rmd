@@ -37,38 +37,38 @@ library(broom)
 
 # 1. Define Inputs
 ```{r}
-source("Inputs/1. Define Inputs.R")
+source("Model/1. Define Inputs.R")
 ```
 \newpage
 
 # 2. Total Cost Calculation for Stone Free Patients
 ```{r}
-source("Inputs/2. Total Cost Calculation for Stone Free Patients.R")
+source("Model/2. Total Cost Calculation for Stone Free Patients.R")
 ```
 \newpage
 
 # 3. Visualise Model 
 ```{r}
-source("Inputs/3. Visualise Model.R")
+source("Model/3. Visualise Model.R")
 ```
 \newpage
 
 # 4. Distribution of Scores - Pick one!
 ## 4.1 Beta Distribution - e.g modelling a machine learning model output
 ```{r}
-source("Inputs/4. Model - Beta Distribution for Scores.R")
+source("Model/4. Model - Beta Distribution for Scores.R")
 ```
 \newpage
 
 ## 4.2 Normal Distribution - e.g modelling a blood test output
 ```{r}
-source("Inputs/4. Model - Normal Distribution for Scores.R")
+source("Model/4. Model - Normal Distribution for Scores.R")
 ```
 \newpage
 
 # 5. Run Model
 ```{r}
-source("Inputs/5. Run Model.R")
+source("Model/5. Run Model.R")
 ```
 \newpage
 
@@ -92,7 +92,7 @@ overall_simulation_plot
 
 # 6. Radiation Dose
 ```{r}
-source("Inputs/6. Radiation Dose.R")
+source("Model/6. Radiation Dose.R")
 ```
 \newpage
 
@@ -160,7 +160,7 @@ data_for_plot %>% ggplot(aes(x = auc_label, y=cumulative_rad_dose, fill = risk_s
 
 # 7. Radiation Induced Malignancy
 ```{r}
-source("Inputs/6. Radiation Induced Malignancy.R")
+source("Model/6. Radiation Induced Malignancy.R")
 ```
 \newpage
 
@@ -526,7 +526,7 @@ ggplot(malignancy_plot_data,
 
 # 8. Economic Costs - All Patients
 ```{r}
-source("Inputs/6. Economic Costs - All Patients.R")
+source("Model/6. Economic Costs - All Patients.R")
 ```
 \newpage
 
@@ -605,7 +605,7 @@ summary_df_full_cost_data_all_patients <- summary_df_full_cost_data
 
 # 9. Economic Costs - Recurrence only
 ```{r}
-source("Inputs/9. Economic Costs - Recurrence only.R")
+source("Model/9. Economic Costs - Recurrence only.R")
 ```
 \newpage
 
@@ -696,7 +696,7 @@ summary_df %>% subset(risk_status == "All") %>% group_by(auc_label,
 
 # 10. Clinician Time - Number of Appointments
 ```{r}
-source("Inputs/10. Clinician Time.R")
+source("Model/10. Clinician Time.R")
 ```
 \newpage
 
@@ -734,7 +734,7 @@ summary_df_appts %>%
 
 # 11. Quality of Life
 ```{r}
-source("Inputs/11. Quality of Life.R")
+source("Model/11. Quality of Life.R")
 ```
 \newpage
 
@@ -760,7 +760,7 @@ summary_df_full_qol_data %>% group_by(auc_label) %>% ggplot(aes(x = auc_label, y
 
 # 12. Calculate ICER 
 ```{r}
-source("Inputs/12. Calculate ICER.R")
+source("Model/12. Calculate ICER.R")
 ```
 \newpage
 
