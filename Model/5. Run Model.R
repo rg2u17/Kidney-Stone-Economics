@@ -79,8 +79,21 @@ label_positions <- auc_labels %>%
                    "\nActual AUC = ", round(auc_actual, 3))
   )
 
-# 4. Plot with facets and AUC labels
+# Plot with facets and AUC labels
 ggplot(roc_data, aes(x = 1 - specificity, y = sensitivity, color = auc_target)) +
+  geom_line(size = 1) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "gray") +
+  labs(
+    title = "Simulated ROC Curves",
+    x = "False Positive Rate (1 - Specificity)",
+    y = "True Positive Rate (Sensitivity)",
+    color = "Target AUC"
+  ) +
+  facet_wrap(~ noise_sd) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+roc_plot <- ggplot(roc_data, aes(x = 1 - specificity, y = sensitivity, color = auc_target)) +
   geom_line(size = 1) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "gray") +
   labs(
