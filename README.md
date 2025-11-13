@@ -26,12 +26,17 @@ We recommend running this in a HPC cluster (if available), alternatively running
 <br>
 **File paths:**
 At present, each file that is required is stored in the Inputs folder. We recommend setting the working directory for your project one level above this. When you run this command within R: <br>
-```getwd()```
+<br>
+```getwd()``` <br>
+<br>
 The output should be: <br>
+<br>
 _Kidney-Stone-Economics/Inputs_ <br>
 <br>
 Otherwise you will need to use:
-```setwd('File/Path/To/Kidney-Stone-Economics')``` 
+<br>
+```setwd('File/Path/To/Kidney-Stone-Economics')``` <br>
+<br>
 To set the working working directory to an appropriate place <br>
 This will ensure the scripts run without having to alter the file path
 
