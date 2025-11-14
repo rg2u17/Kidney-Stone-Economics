@@ -19,10 +19,10 @@ Figure. EAU follow-up algorithm for patients with kidney stones following treatm
 **To download this model use:** <br>
 ```git clone https://github.com/rg2u17/Kidney-Stone-Economics.git``` <br>
 <br>
-**To run this model we suggest using the rmarkdown file in RStudio and selecting run all** <br>
-Please note that this requires a significant amount of compute to run - Despite effots to minimise this within each script <br>
+**To run this model we suggest using the rmarkdown file (kidney_stone_economics_full_model.rmd) in RStudio and selecting run all** <br>
+Please note that this requires a significant amount of compute to run - Despite efforts to minimise this within each script <br>
 <br>
-We recommend running this in a HPC cluster (if available), alternatively running it on a local PC may take several days to run. <br>
+We recommend running the scripts sequentially in a HPC cluster (if available), alternatively running it on a local PC may take several days to run. <br>
 <br>
 **File paths:**
 At present, each file that is required is stored in the Inputs folder. We recommend setting the working directory for your project one level above this. When you run this command within R: <br>
