@@ -38,6 +38,7 @@ library(ggsignif)
 library(ggpubr)
 library(parallel)
 library(furrr)
+library(future)
 
 calculate_sd_from_ci <- function(ci_lower, ci_upper) {
   se <- (ci_upper - ci_lower) / (2 * 1.96)
@@ -1267,7 +1268,7 @@ risk_all <- rad_data %>%
     ci_lower_95 = map_dbl(mc_results, "ci_lower"),
     ci_upper_95 = map_dbl(mc_results, "ci_upper")
   ) %>%
-  select(-doses)  # Remove temporary column
+  select(-doses)  
 
 plan(sequential) 
 
@@ -1629,38 +1630,59 @@ risk_all_with_sf_status_sf <- rad_data %>%
     ci_upper_95 = map_dbl(mc_results, "ci_upper")
   )
 
-### 6.2.2 Subdivided by Risk status ####
+### 6.4.2 Subdivided by Risk status ####
+plan(multisession, workers = parallel::detectCores() - 1)
+
 risk_summary_monte_carlo_final_with_sf_status_sf <- rad_data %>%
-  mutate(cohort_type_recurrence = paste0(cohort_type,"_recurrence_",recurrence)) %>%
+  mutate(cohort_type_recurrence = paste0(cohort_type, "_recurrence_", recurrence)) %>%
   group_by(age, sex, risk_status, auc_target, cohort_type_recurrence) %>%
   summarise(
-    mean_dose_year_1 = mean(rad_dose_year_1, na.rm = TRUE),
-    mean_dose_year_2 = mean(rad_dose_year_2, na.rm = TRUE),
-    mean_dose_year_3 = mean(rad_dose_year_3, na.rm = TRUE),
-    mean_dose_year_4 = mean(rad_dose_year_4, na.rm = TRUE),
-    mean_dose_year_5 = mean(rad_dose_year_5, na.rm = TRUE),
+    across(starts_with("rad_dose_year_"), 
+           ~mean(.x, na.rm = TRUE),
+           .names = "mean_{.col}"),
     start_year = first(year),
     n_patients = n(),
     .groups = "drop"
   ) %>%
-  rowwise() %>%
   mutate(
-    mc_results = list(monte_carlo_lifetime_risk(
-      age = age,
-      sex = sex,
-      doses = c(mean_dose_year_1, mean_dose_year_2, mean_dose_year_3, 
-                mean_dose_year_4, mean_dose_year_5),
-      start_year = start_year,
-      auc_target = auc_target,
-      n_simulations = 100
-    ))
+    mc_results = future_pmap(
+      list(age, sex, mean_rad_dose_year_1, mean_rad_dose_year_2,
+           mean_rad_dose_year_3, mean_rad_dose_year_4, mean_rad_dose_year_5,
+           start_year, auc_target),
+      function(a, s, d1, d2, d3, d4, d5, sy, at) {
+        monte_carlo_lifetime_risk(
+          age = a, sex = s,
+          doses = c(d1, d2, d3, d4, d5),
+          start_year = sy, auc_target = at,
+          n_simulations = 100
+        )
+      },
+      .options = furrr_options(seed = TRUE),
+      .progress = TRUE
+    )
   ) %>%
-  ungroup() %>%
   mutate(
-    cumulative_lifetime_risk = map_dbl(mc_results, "mean_risk"),
-    ci_lower_95 = map_dbl(mc_results, "ci_lower"),
-    ci_upper_95 = map_dbl(mc_results, "ci_upper")
+    cumulative_lifetime_risk = future_map_dbl(
+      mc_results, 
+      "mean_risk",
+      .options = furrr_options(seed = TRUE),
+      .progress = TRUE
+    ),
+    ci_lower_95 = future_map_dbl(
+      mc_results, 
+      "ci_lower",
+      .options = furrr_options(seed = TRUE),
+      .progress = TRUE
+    ),
+    ci_upper_95 = future_map_dbl(
+      mc_results, 
+      "ci_upper",
+      .options = furrr_options(seed = TRUE),
+      .progress = TRUE
+    )
   )
+
+plan(sequential)
 
 risk_combined_with_sf_status_sf <- bind_rows(risk_summary_monte_carlo_final_with_sf_status_sf, risk_all_with_sf_status_sf)
 
@@ -1684,7 +1706,7 @@ malignancy_risk_plot_sf <- ggplot(risk_smoothed_sf, aes(x = age, y = y, color = 
   facet_grid(
     cohort_type_recurrence ~ auc_target,
     labeller = labeller(
-      auc_target = auc_target,
+      auc_target = label_value,  # Changed this line
       cohort_type_recurrence = label_wrap_gen(10)
     )
   ) +
@@ -1702,8 +1724,8 @@ malignancy_risk_plot_sf <- ggplot(risk_smoothed_sf, aes(x = age, y = y, color = 
     strip.text = element_text(size = 9),
     legend.position = "bottom",
     panel.spacing = unit(0.5, "lines"),
-    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8),   # facet panel box
-    strip.background = element_rect(color = "black", fill = "#f0f0f0", linewidth = 0.8) # strip box
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8),
+    strip.background = element_rect(color = "black", fill = "#f0f0f0", linewidth = 0.8)
   ) +
   xlim(10, 85) + ylim(0, 1.5)
 
@@ -1744,7 +1766,7 @@ risk_combined_with_sf_status_sf %>%
   facet_grid(
     cohort_type_recurrence ~ auc_target,
     labeller = labeller(
-      auc_target = auc_target,
+      auc_target = label_value,
       cohort_type_recurrence = label_wrap_gen(10)
     )
   ) +
