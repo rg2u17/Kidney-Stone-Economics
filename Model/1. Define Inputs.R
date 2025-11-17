@@ -1192,3 +1192,377 @@ fu_times <- as_tibble(cbind(
   ),
   imaging_type = "ct"
 )) %>% select(point_and_type_of_fu, imaging_type, time)
+
+
+## FU Appts
+
+# appts associated with 'low risk' disease (as per EAU) - XR FU
+year_1_lr_sf_fu_appts_xr <- 4
+year_2_lr_sf_fu_appts_xr <- 0
+year_3_lr_sf_fu_appts_xr <- 2
+year_4_lr_sf_fu_appts_xr <- 2
+year_5_lr_sf_fu_appts_xr <- 2
+
+year_1_lr_less4_fu_appts_xr <- 2 * (2)
+year_2_lr_less4_fu_appts_xr <- 2
+year_3_lr_less4_fu_appts_xr <- 2
+year_4_lr_less4_fu_appts_xr <- 2
+year_5_lr_less4_fu_appts_xr <- 2
+
+year_1_lr_more4_fu_appts_xr <- 2 * (2)
+year_2_lr_more4_fu_appts_xr <- 2 * (2)
+year_3_lr_more4_fu_appts_xr <- 2
+year_4_lr_more4_fu_appts_xr <- 2
+year_5_lr_more4_fu_appts_xr <- 2
+
+# appts associated with 'low risk' disease (as per EAU) - XR + US FU
+year_1_lr_sf_fu_appts_xr_us <- 2 * (2 )
+year_2_lr_sf_fu_appts_xr_us <- 0
+year_3_lr_sf_fu_appts_xr_us <- 1 * (2 )
+year_4_lr_sf_fu_appts_xr_us <- 1 * (2 )
+year_5_lr_sf_fu_appts_xr_us <- 1 * (2 )
+
+year_1_lr_less4_fu_appts_xr_us <- 2 * (2 )
+year_2_lr_less4_fu_appts_xr_us <- 2 
+year_3_lr_less4_fu_appts_xr_us <- 2 
+year_4_lr_less4_fu_appts_xr_us <- 2 
+year_5_lr_less4_fu_appts_xr_us <- 2 
+
+year_1_lr_more4_fu_appts_xr_us <- 2 * (2 )
+year_2_lr_more4_fu_appts_xr_us <- 2 * (2 )
+year_3_lr_more4_fu_appts_xr_us <- 2 
+year_4_lr_more4_fu_appts_xr_us <- 2 
+year_5_lr_more4_fu_appts_xr_us <- 2 
+
+# appts associated with 'low risk' disease (as per EAU) - CT FU
+year_1_lr_sf_fu_appts_ct <- 2 * (2)
+year_2_lr_sf_fu_appts_ct <- 0
+year_3_lr_sf_fu_appts_ct <- 1 * (2)
+year_4_lr_sf_fu_appts_ct <- 1 * (2)
+year_5_lr_sf_fu_appts_ct <- 1 * (2)
+
+year_1_lr_less4_fu_appts_ct <- 2 * (2)
+year_2_lr_less4_fu_appts_ct <- 2
+year_3_lr_less4_fu_appts_ct <- 2
+year_4_lr_less4_fu_appts_ct <- 2
+year_5_lr_less4_fu_appts_ct <- 2
+
+year_1_lr_more4_fu_appts_ct <- 2 * (2)
+year_2_lr_more4_fu_appts_ct <- 2 * (2)
+year_3_lr_more4_fu_appts_ct <- 2
+year_4_lr_more4_fu_appts_ct <- 2
+year_5_lr_more4_fu_appts_ct <- 2
+
+
+# appts associated with 'high risk' disease
+## XR FU
+year_1_hr_sf_fu_appts_current_xr <- 2 * (2+ 1)
+year_1_hr_sf_fu_appts_eau_xr <- 2 * (2+ 1)
+
+year_2_hr_sf_fu_appts_current_xr <- 1 * (2+ 1)
+year_2_hr_sf_fu_appts_eau_xr <- 1 * (2+ 1)
+
+year_3_onwards_hr_sf_fu_appts_current_xr <- 1 * (2+ 1)
+year_3_onwards_hr_sf_fu_appts_eau_xr <- 1 * (2+ 1)
+
+year_3_hr_sf_fu_appts_current_xr <- 2 * (2+ 1)
+year_3_hr_sf_fu_appts_eau_xr <- 1 * (2+ 1)
+year_4_hr_sf_fu_appts_eau_xr <- 1 * (2+ 1)
+year_5_hr_sf_fu_appts_eau_xr <- 1 * (2+ 1)
+
+year_1_hr_less4_fu_appts_eau_xr <- 2 * (2+ 1)
+year_2_hr_less4_fu_appts_eau_xr <- 1 * (2+ 1)
+year_3_hr_less4_fu_appts_eau_xr <- 1 * (2+ 1)
+year_4_hr_less4_fu_appts_eau_xr <- 1 * (2+ 1)
+year_5_hr_less4_fu_appts_eau_xr <- 1 * (2+ 1)
+
+year_1_hr_less4_fu_appts_eau_xr <- 2 * (2+ 1)
+year_2_hr_more4_fu_appts_eau_xr <- 2 * (2)+ 1
+year_3_hr_more4_fu_appts_eau_xr <- 1 * (2+ 1)
+year_4_hr_more4_fu_appts_eau_xr <- 1 * (2+ 1)
+year_5_hr_more4_fu_appts_eau_xr <- 1 * (2+ 1)
+
+## XR + US FU
+year_1_hr_sf_fu_appts_current_xr_us <- 2 * (2 + 1)
+year_1_hr_sf_fu_appts_eau_xr_us <- 2 * (2 + 1)
+
+year_2_hr_sf_fu_appts_current_xr_us <- 1 * (2 + 1)
+year_2_hr_sf_fu_appts_eau_xr_us <- 1 * (2 + 1)
+
+year_3_onwards_hr_sf_fu_appts_current_xr_us <- 1 * (2 + 1)
+year_3_onwards_hr_sf_fu_appts_eau_xr_us <- 1 * (2 + 1)
+
+year_3_hr_sf_fu_appts_current_xr_us <- 2 * (2 + 1)
+year_3_hr_sf_fu_appts_eau_xr_us <- 1 * (2 + 1)
+year_4_hr_sf_fu_appts_eau_xr_us <- 1 * (2 + 1)
+year_5_hr_sf_fu_appts_eau_xr_us <- 1 * (2 + 1)
+
+year_1_hr_less4_fu_appts_eau_xr_us <- 2 * (2 + 1)
+year_2_hr_less4_fu_appts_eau_xr_us <- 1 * (2 + 1)
+year_3_hr_less4_fu_appts_eau_xr_us <- 1 * (2 + 1)
+year_4_hr_less4_fu_appts_eau_xr_us <- 1 * (2 + 1)
+year_5_hr_less4_fu_appts_eau_xr_us <- 1 * (2 + 1)
+
+year_1_hr_less4_fu_appts_eau_xr_us <- 2 * (2 + 1)
+year_2_hr_more4_fu_appts_eau_xr_us <- 2 * (2 + 1)
+year_3_hr_more4_fu_appts_eau_xr_us <- 1 * (2 + 1)
+year_4_hr_more4_fu_appts_eau_xr_us <- 1 * (2 + 1)
+year_5_hr_more4_fu_appts_eau_xr_us <- 1 * (2 + 1)
+
+## CT FU
+year_1_hr_sf_fu_appts_current_ct <- 2 * (2+ 1)
+year_1_hr_sf_fu_appts_eau_ct <- 2 * (2+ 1)
+
+year_2_hr_sf_fu_appts_current_ct <- 1 * (2+ 1)
+year_2_hr_sf_fu_appts_eau_ct <- 1 * (2+ 1)
+
+year_3_onwards_hr_sf_fu_appts_current_ct <- 1 * (2+ 1)
+year_3_onwards_hr_sf_fu_appts_eau_ct <- 1 * (2+ 1)
+
+year_3_hr_sf_fu_appts_current_ct <- 2 * (2+ 1)
+year_3_hr_sf_fu_appts_eau_ct <- 1 * (2+ 1)
+year_4_hr_sf_fu_appts_eau_ct <- 1 * (2+ 1)
+year_5_hr_sf_fu_appts_eau_ct <- 1 * (2+ 1)
+
+year_1_hr_less4_fu_appts_eau_ct <- 2 * (2+ 1)
+year_2_hr_less4_fu_appts_eau_ct <- 1 * (2+ 1)
+year_3_hr_less4_fu_appts_eau_ct <- 1 * (2+ 1)
+year_4_hr_less4_fu_appts_eau_ct <- 1 * (2+ 1)
+year_5_hr_less4_fu_appts_eau_ct <- 1 * (2+ 1)
+
+year_1_hr_less4_fu_appts_eau_ct <- 2 * (2+ 1)
+year_2_hr_more4_fu_appts_eau_ct <- 2 * (2)+ 1
+year_3_hr_more4_fu_appts_eau_ct <- 1 * (2+ 1)
+year_4_hr_more4_fu_appts_eau_ct <- 1 * (2+ 1)
+year_5_hr_more4_fu_appts_eau_ct <- 1 * (2+ 1)
+
+
+fu_appts <- as_tibble(cbind(
+  appts = c(
+    year_1_lr_sf_fu_appts_xr,
+    year_2_lr_sf_fu_appts_xr,
+    year_3_lr_sf_fu_appts_xr,
+    year_4_lr_sf_fu_appts_xr,
+    year_5_lr_sf_fu_appts_xr,
+    year_1_lr_less4_fu_appts_xr,
+    year_2_lr_less4_fu_appts_xr,
+    year_3_lr_less4_fu_appts_xr,
+    year_4_lr_less4_fu_appts_xr,
+    year_5_lr_less4_fu_appts_xr,
+    year_1_lr_more4_fu_appts_xr,
+    year_2_lr_more4_fu_appts_xr,
+    year_3_lr_more4_fu_appts_xr,
+    year_4_lr_more4_fu_appts_xr,
+    year_5_lr_more4_fu_appts_xr,
+    year_1_hr_sf_fu_appts_current_xr,
+    year_1_hr_sf_fu_appts_eau_xr,
+    year_2_hr_sf_fu_appts_current_xr,
+    year_2_hr_sf_fu_appts_eau_xr,
+    year_3_onwards_hr_sf_fu_appts_current_xr,
+    year_3_onwards_hr_sf_fu_appts_eau_xr,
+    year_3_hr_sf_fu_appts_current_xr,
+    year_3_hr_sf_fu_appts_eau_xr,
+    year_4_hr_sf_fu_appts_eau_xr,
+    year_5_hr_sf_fu_appts_eau_xr,
+    year_1_hr_less4_fu_appts_eau_xr,
+    year_2_hr_less4_fu_appts_eau_xr,
+    year_3_hr_less4_fu_appts_eau_xr,
+    year_4_hr_less4_fu_appts_eau_xr,
+    year_5_hr_less4_fu_appts_eau_xr,
+    year_1_hr_less4_fu_appts_eau_xr,
+    year_2_hr_more4_fu_appts_eau_xr,
+    year_3_hr_more4_fu_appts_eau_xr,
+    year_4_hr_more4_fu_appts_eau_xr,
+    year_5_hr_more4_fu_appts_eau_xr
+  ),
+  point_and_type_of_fu = c(
+    "year_1_lr_sf_fu_appts",
+    "year_2_lr_sf_fu_appts",
+    "year_3_lr_sf_fu_appts",
+    "year_4_lr_sf_fu_appts",
+    "year_5_lr_sf_fu_appts",
+    "year_1_lr_less4_fu_appts",
+    "year_2_lr_less4_fu_appts",
+    "year_3_lr_less4_fu_appts",
+    "year_4_lr_less4_fu_appts",
+    "year_5_lr_less4_fu_appts",
+    "year_1_lr_more4_fu_appts",
+    "year_2_lr_more4_fu_appts",
+    "year_3_lr_more4_fu_appts",
+    "year_4_lr_more4_fu_appts",
+    "year_5_lr_more4_fu_appts",
+    "year_1_hr_sf_fu_appts_current",
+    "year_1_hr_sf_fu_appts_eau",
+    "year_2_hr_sf_fu_appts_current",
+    "year_2_hr_sf_fu_appts_eau",
+    "year_3_onwards_hr_sf_fu_appts_current",
+    "year_3_onwards_hr_sf_fu_appts_eau",
+    "year_3_hr_sf_fu_appts_current",
+    "year_3_hr_sf_fu_appts_eau",
+    "year_4_hr_sf_fu_appts_eau",
+    "year_5_hr_sf_fu_appts_eau",
+    "year_1_hr_less4_fu_appts_eau",
+    "year_2_hr_less4_fu_appts_eau",
+    "year_3_hr_less4_fu_appts_eau",
+    "year_4_hr_less4_fu_appts_eau",
+    "year_5_hr_less4_fu_appts_eau",
+    "year_1_hr_more4_fu_appts_eau",
+    "year_2_hr_more4_fu_appts_eau",
+    "year_3_hr_more4_fu_appts_eau",
+    "year_4_hr_more4_fu_appts_eau",
+    "year_5_hr_more4_fu_appts_eau"
+  ),
+  imaging_type = "xr"
+)) %>% rbind(cbind(
+  appts = c(
+    year_1_lr_sf_fu_appts_xr_us,
+    year_2_lr_sf_fu_appts_xr_us,
+    year_3_lr_sf_fu_appts_xr_us,
+    year_4_lr_sf_fu_appts_xr_us,
+    year_5_lr_sf_fu_appts_xr_us,
+    year_1_lr_less4_fu_appts_xr_us,
+    year_2_lr_less4_fu_appts_xr_us,
+    year_3_lr_less4_fu_appts_xr_us,
+    year_4_lr_less4_fu_appts_xr_us,
+    year_5_lr_less4_fu_appts_xr_us,
+    year_1_lr_more4_fu_appts_xr_us,
+    year_2_lr_more4_fu_appts_xr_us,
+    year_3_lr_more4_fu_appts_xr_us,
+    year_4_lr_more4_fu_appts_xr_us,
+    year_5_lr_more4_fu_appts_xr_us,
+    year_1_hr_sf_fu_appts_current_xr_us,
+    year_1_hr_sf_fu_appts_eau_xr_us,
+    year_2_hr_sf_fu_appts_current_xr_us,
+    year_2_hr_sf_fu_appts_eau_xr_us,
+    year_3_onwards_hr_sf_fu_appts_current_xr_us,
+    year_3_onwards_hr_sf_fu_appts_eau_xr_us,
+    year_3_hr_sf_fu_appts_current_xr_us,
+    year_3_hr_sf_fu_appts_eau_xr_us,
+    year_4_hr_sf_fu_appts_eau_xr_us,
+    year_5_hr_sf_fu_appts_eau_xr_us,
+    year_1_hr_less4_fu_appts_eau_xr_us,
+    year_2_hr_less4_fu_appts_eau_xr_us,
+    year_3_hr_less4_fu_appts_eau_xr_us,
+    year_4_hr_less4_fu_appts_eau_xr_us,
+    year_5_hr_less4_fu_appts_eau_xr_us,
+    year_1_hr_less4_fu_appts_eau_xr_us,
+    year_2_hr_more4_fu_appts_eau_xr_us,
+    year_3_hr_more4_fu_appts_eau_xr_us,
+    year_4_hr_more4_fu_appts_eau_xr_us,
+    year_5_hr_more4_fu_appts_eau_xr_us
+  ),
+  point_and_type_of_fu = c(
+    "year_1_lr_sf_fu_appts",
+    "year_2_lr_sf_fu_appts",
+    "year_3_lr_sf_fu_appts",
+    "year_4_lr_sf_fu_appts",
+    "year_5_lr_sf_fu_appts",
+    "year_1_lr_less4_fu_appts",
+    "year_2_lr_less4_fu_appts",
+    "year_3_lr_less4_fu_appts",
+    "year_4_lr_less4_fu_appts",
+    "year_5_lr_less4_fu_appts",
+    "year_1_lr_more4_fu_appts",
+    "year_2_lr_more4_fu_appts",
+    "year_3_lr_more4_fu_appts",
+    "year_4_lr_more4_fu_appts",
+    "year_5_lr_more4_fu_appts",
+    "year_1_hr_sf_fu_appts_current",
+    "year_1_hr_sf_fu_appts_eau",
+    "year_2_hr_sf_fu_appts_current",
+    "year_2_hr_sf_fu_appts_eau",
+    "year_3_onwards_hr_sf_fu_appts_current",
+    "year_3_onwards_hr_sf_fu_appts_eau",
+    "year_3_hr_sf_fu_appts_current",
+    "year_3_hr_sf_fu_appts_eau",
+    "year_4_hr_sf_fu_appts_eau",
+    "year_5_hr_sf_fu_appts_eau",
+    "year_1_hr_less4_fu_appts_eau",
+    "year_2_hr_less4_fu_appts_eau",
+    "year_3_hr_less4_fu_appts_eau",
+    "year_4_hr_less4_fu_appts_eau",
+    "year_5_hr_less4_fu_appts_eau",
+    "year_1_hr_more4_fu_appts_eau",
+    "year_2_hr_more4_fu_appts_eau",
+    "year_3_hr_more4_fu_appts_eau",
+    "year_4_hr_more4_fu_appts_eau",
+    "year_5_hr_more4_fu_appts_eau"
+  ),
+  imaging_type = "xr_us"
+)) %>% rbind(cbind(
+  appts = c(
+    year_1_lr_sf_fu_appts_ct,
+    year_2_lr_sf_fu_appts_ct,
+    year_3_lr_sf_fu_appts_ct,
+    year_4_lr_sf_fu_appts_ct,
+    year_5_lr_sf_fu_appts_ct,
+    year_1_lr_less4_fu_appts_ct,
+    year_2_lr_less4_fu_appts_ct,
+    year_3_lr_less4_fu_appts_ct,
+    year_4_lr_less4_fu_appts_ct,
+    year_5_lr_less4_fu_appts_ct,
+    year_1_lr_more4_fu_appts_ct,
+    year_2_lr_more4_fu_appts_ct,
+    year_3_lr_more4_fu_appts_ct,
+    year_4_lr_more4_fu_appts_ct,
+    year_5_lr_more4_fu_appts_ct,
+    year_1_hr_sf_fu_appts_current_ct,
+    year_1_hr_sf_fu_appts_eau_ct,
+    year_2_hr_sf_fu_appts_current_ct,
+    year_2_hr_sf_fu_appts_eau_ct,
+    year_3_onwards_hr_sf_fu_appts_current_ct,
+    year_3_onwards_hr_sf_fu_appts_eau_ct,
+    year_3_hr_sf_fu_appts_current_ct,
+    year_3_hr_sf_fu_appts_eau_ct,
+    year_4_hr_sf_fu_appts_eau_ct,
+    year_5_hr_sf_fu_appts_eau_ct,
+    year_1_hr_less4_fu_appts_eau_ct,
+    year_2_hr_less4_fu_appts_eau_ct,
+    year_3_hr_less4_fu_appts_eau_ct,
+    year_4_hr_less4_fu_appts_eau_ct,
+    year_5_hr_less4_fu_appts_eau_ct,
+    year_1_hr_less4_fu_appts_eau_ct,
+    year_2_hr_more4_fu_appts_eau_ct,
+    year_3_hr_more4_fu_appts_eau_ct,
+    year_4_hr_more4_fu_appts_eau_ct,
+    year_5_hr_more4_fu_appts_eau_ct
+  ),
+  point_and_type_of_fu = c(
+    "year_1_lr_sf_fu_appts",
+    "year_2_lr_sf_fu_appts",
+    "year_3_lr_sf_fu_appts",
+    "year_4_lr_sf_fu_appts",
+    "year_5_lr_sf_fu_appts",
+    "year_1_lr_less4_fu_appts",
+    "year_2_lr_less4_fu_appts",
+    "year_3_lr_less4_fu_appts",
+    "year_4_lr_less4_fu_appts",
+    "year_5_lr_less4_fu_appts",
+    "year_1_lr_more4_fu_appts",
+    "year_2_lr_more4_fu_appts",
+    "year_3_lr_more4_fu_appts",
+    "year_4_lr_more4_fu_appts",
+    "year_5_lr_more4_fu_appts",
+    "year_1_hr_sf_fu_appts_current",
+    "year_1_hr_sf_fu_appts_eau",
+    "year_2_hr_sf_fu_appts_current",
+    "year_2_hr_sf_fu_appts_eau",
+    "year_3_onwards_hr_sf_fu_appts_current",
+    "year_3_onwards_hr_sf_fu_appts_eau",
+    "year_3_hr_sf_fu_appts_current",
+    "year_3_hr_sf_fu_appts_eau",
+    "year_4_hr_sf_fu_appts_eau",
+    "year_5_hr_sf_fu_appts_eau",
+    "year_1_hr_less4_fu_appts_eau",
+    "year_2_hr_less4_fu_appts_eau",
+    "year_3_hr_less4_fu_appts_eau",
+    "year_4_hr_less4_fu_appts_eau",
+    "year_5_hr_less4_fu_appts_eau",
+    "year_1_hr_more4_fu_appts_eau",
+    "year_2_hr_more4_fu_appts_eau",
+    "year_3_hr_more4_fu_appts_eau",
+    "year_4_hr_more4_fu_appts_eau",
+    "year_5_hr_more4_fu_appts_eau"
+  ),
+  imaging_type = "ct"
+)) %>% select(point_and_type_of_fu, imaging_type, appts)
