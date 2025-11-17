@@ -187,67 +187,6 @@ organ_specific_ear_per_person <- malignancy_data_grouped %>%
 
 organ_specific_ear_per_person$organ <- as.factor(organ_specific_ear_per_person$organ)
 
-organ_specific_ear_per_person_long <- organ_specific_ear_per_person %>%
-  group_by(organ) %>%
-  pivot_longer(
-    cols = c(
-      five_year_ear,
-      ten_year_ear,
-      fifteen_year_ear,
-      twenty_year_ear,
-      twentyfive_year_ear,
-      thirty_year_ear
-    ),
-    names_to = "follow_up",
-    values_to = "ear"
-  )  %>%
-  mutate(
-    ear_per_1000 = case_when(
-      sex == "male" ~ (ear / cohort_size_male) * 1000,
-      sex == "female" ~ (ear / cohort_size_female) * 1000,
-      TRUE ~ NA_integer_
-    ),
-    
-    follow_up = recode(
-      follow_up,
-      "five_year_ear"        = "5",
-      "ten_year_ear"         = "10",
-      "fifteen_year_ear"     = "15",
-      "twenty_year_ear"      = "20",
-      "twentyfive_year_ear"  = "25",
-      "thirty_year_ear"      = "30"
-    ),
-    yrs_after_first_scan = factor(follow_up, levels = c("5", "10", "15", "20", "25", "30")),
-    organ = recode(
-      organ,
-      "bladder" = "Bladder",
-      "colon" = "Colon",
-      "kidney" = "Kidney",
-      "liver" = "Liver",
-      "ovary" = "Ovary",
-      "pancreas" = "Pancreas",
-      "prostate" = "Prostate",
-      "rectum" = "Rectum",
-      "stomach" = "Stomach",
-      "uterus" = "Uterus"
-    ),
-    organ = factor(
-      organ,
-      levels = c(
-        "Stomach",
-        "Bladder",
-        "Liver",
-        "Colon",
-        "Uterus",
-        "Ovary",
-        "Pancreas",
-        "Rectum",
-        "Kidney",
-        "Prostate"
-      )
-    )
-  )
-
 
 ggplot(
   organ_specific_ear_per_person_long,
