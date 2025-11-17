@@ -36,6 +36,8 @@ library(cowplot)
 library(cutpointr)
 library(ggsignif)
 library(ggpubr)
+library(parallel)
+library(furrr)
 
 calculate_sd_from_ci <- function(ci_lower, ci_upper) {
   se <- (ci_upper - ci_lower) / (2 * 1.96)
@@ -466,7 +468,7 @@ combine_auc_data <- function(data, auc_label) {
       risk_status = ifelse(risk_status == "LR", "Low Risk", "High Risk"),
       cumulative_rad_dose = rowSums(across(starts_with("rad_dose_year_")), na.rm = TRUE),
       recurrence = case_when(true_rec_5yr == "Yes" ~ "Yes",
-                            true_rec_5yr == "No" ~ "No"),
+                             true_rec_5yr == "No" ~ "No"),
       .keep = "all"
     ) %>%
     select(auc_label, 
@@ -939,7 +941,7 @@ overall_ear_se <- overall_ear_per_person %>%
   select(-follow_up_se)
 
 overall_ear_long <- overall_ear_means %>%
-  %>% cbind(overall_ear_se %>% select(ear_se)) %>%
+  cbind(overall_ear_se %>% select(ear_se)) %>%
   mutate(
     ear_per_1000 = ear * 1000,
     ear_se_per_1000 = ear_se * 1000,
@@ -1047,7 +1049,7 @@ organ_ear_se <- organ_specific_ear_per_person %>%
 
 # Join them together
 organ_specific_ear_per_person_long <- organ_ear_means %>%
-  cbind(organ_ear_se %>% select = ear_se) %>%
+  cbind(organ_ear_se %>% select(ear_se)) %>%
   group_by(organ) %>%
   mutate(
     ear_per_1000 = ear /1000,
@@ -1228,37 +1230,46 @@ monte_carlo_lifetime_risk <- function(age, sex, doses, start_year,
 
 ## 6.2 Run function ####
 ### 6.2.1 All patients ####
+plan(multisession, workers = parallel::detectCores() - 1)
+
 risk_all <- rad_data %>%
   group_by(age, sex, cohort_type, auc_target) %>%
   summarise(
-    mean_dose_year_1 = mean(rad_dose_year_1, na.rm = TRUE),
-    mean_dose_year_2 = mean(rad_dose_year_2, na.rm = TRUE),
-    mean_dose_year_3 = mean(rad_dose_year_3, na.rm = TRUE),
-    mean_dose_year_4 = mean(rad_dose_year_4, na.rm = TRUE),
-    mean_dose_year_5 = mean(rad_dose_year_5, na.rm = TRUE),
-    start_year = year,
+    across(starts_with("rad_dose_year_"), 
+           ~mean(.x, na.rm = TRUE), 
+           .names = "mean_{.col}"),
+    start_year = first(year),  # Changed from just 'year'
     n_patients = n(),
     .groups = "drop"
   ) %>%
-  rowwise() %>%
   mutate(
-    risk_status = "All",  
-    mc_results = list(monte_carlo_lifetime_risk(
-      age = age,
-      sex = sex,
-      doses = c(mean_dose_year_1, mean_dose_year_2, mean_dose_year_3,
-                mean_dose_year_4, mean_dose_year_5),
-      start_year = start_year,
-      auc_target = auc_target,
-      n_simulations = 100
-    ))
+    risk_status = "All",
+    doses = pmap(list(mean_rad_dose_year_1, mean_rad_dose_year_2, 
+                      mean_rad_dose_year_3, mean_rad_dose_year_4, 
+                      mean_rad_dose_year_5), c)
   ) %>%
-  ungroup() %>%
+  mutate(
+    mc_results = future_pmap(
+      list(age, sex, doses, start_year, auc_target),
+      ~monte_carlo_lifetime_risk(
+        age = ..1,
+        sex = ..2,
+        doses = ..3,
+        start_year = ..4,
+        auc_target = ..5,
+        n_simulations = 100
+      ),
+      .options = furrr_options(seed = TRUE)
+    )
+  ) %>%
   mutate(
     cumulative_lifetime_risk = map_dbl(mc_results, "mean_risk"),
     ci_lower_95 = map_dbl(mc_results, "ci_lower"),
     ci_upper_95 = map_dbl(mc_results, "ci_upper")
-  )
+  ) %>%
+  select(-doses)  # Remove temporary column
+
+plan(sequential) 
 
 ### 6.2.2 Subdivided by Risk status ####
 risk_summary_monte_carlo_final <- rad_data %>%
@@ -1551,13 +1562,14 @@ risk_smoothed <- risk_combined %>%
     .groups = "drop"
   )
 
-malignancy_risk_plot <- ggplot(risk_smoothed, aes(x = age, y = y, color = risk_status, fill = risk_status)) +
+malignancy_risk_plot <- risk_smoothed %>% 
+  ggplot(aes(x = age, y = y, color = risk_status, fill = risk_status)) +
   geom_ribbon(aes(ymin = ymin, ymax = ymax), alpha = 0.2, color = NA) +
   geom_line(size = 0.8) +
   facet_grid(
     cohort_type ~ auc_target,
     labeller = labeller(
-      auc_target = auc_target,
+      auc_target = label_value,  # Changed this line
       cohort_type = label_wrap_gen(10)
     )
   ) +
@@ -1575,8 +1587,8 @@ malignancy_risk_plot <- ggplot(risk_smoothed, aes(x = age, y = y, color = risk_s
     strip.text = element_text(size = 9),
     legend.position = "bottom",
     panel.spacing = unit(0.5, "lines"),
-    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8),   # facet panel box
-    strip.background = element_rect(color = "black", fill = "#f0f0f0", linewidth = 0.8) # strip box
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8),
+    strip.background = element_rect(color = "black", fill = "#f0f0f0", linewidth = 0.8)
   ) +
   xlim(10, 85) + ylim(0, 1.5)
 
