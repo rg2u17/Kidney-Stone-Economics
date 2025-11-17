@@ -26,6 +26,9 @@ Please note that this requires a significant amount of compute to run - Despite 
 <br>
 We recommend running the scripts sequentially in a HPC cluster (if available), alternatively running it on a local PC may take several days to run. <br>
 <br>
+Prior to running all the scripts please check all packages are installed - if not, then you can run this in the console prior to running all the markdown chunks: <br>
+```install.packages(c("tidyverse", "gt", "gtExtra", "DiagrammeR", "data.table", "janitor", "pROC", "ggplot2", "pracma", "glue", "cutpointr", "caret", "cowplot", "ggsignif", "ggpubr", "broom", "pryr", "lubridate", "sfsmisc"))``` <br>
+<br>
 **File paths:**
 At present, each file that is required is stored in the Inputs folder. We recommend setting the working directory for your project one level above this. When you run this command within R: <br>
 <br>
