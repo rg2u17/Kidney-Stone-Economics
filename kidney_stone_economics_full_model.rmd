@@ -32,6 +32,9 @@ library(cutpointr)
 library(ggsignif)
 library(ggpubr)
 library(broom)
+library(purrr)
+library(furrr)
+library(future)
 ```
 \newpage
 
