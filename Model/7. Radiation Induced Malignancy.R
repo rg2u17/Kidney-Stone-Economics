@@ -1,5 +1,5 @@
 # Overall Excess Absolute Risk Model (EAR) for Solid cancers associated with ionising radiation ####
-# RadRAT: A Radiation Risk Assessment Tool for Lifetime Cancer Risk Projection
+# Adapted from: RadRAT: A Radiation Risk Assessment Tool for Lifetime Cancer Risk Projection
 # Berrington de Gonzalez A, Iulian Apostoaei A, Veiga LH, Rajaraman P, Thomas BA, Owen Hoffman F, Gilbert E, Land C. RadRAT: a radiation risk assessment tool for lifetime cancer risk projection. J Radiol Prot. 2012 Sep;32(3):205-22. doi: 10.1088/0952-4746/32/3/205. Epub 2012 Jul 19. PMID: 22810503; PMCID: PMC3816370.
 
 # Equation:
