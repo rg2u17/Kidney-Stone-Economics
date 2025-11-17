@@ -1803,3 +1803,132 @@ risk_combined_with_sf_status_sf %>%
   ) %>%
   gt() %>% 
   gt_theme_espn()
+
+# 8. Plot additional risk of malignancy per AUC + risk status ####
+## 8.1 Proportions ####
+           # Get unique AUC target values for comparisons
+auc_values <- unique(as.factor(malignancy_plot_data$auc_target))
+
+ref_auc <- "0.55"
+
+# Define pairwise comparisons for AUC targets
+comparisons <- lapply(setdiff(auc_values, ref_auc), function(x) c(ref_auc, x))
+
+# Updated function to compare by auc_target instead of cohort_type
+calc_chisq_pvalue <- function(data, group1, group2) {
+  d1 <- data %>% filter(auc_target == group1)
+  d2 <- data %>% filter(auc_target == group2)
+  
+  if(nrow(d1) == 0 || nrow(d2) == 0) return(1)
+  
+  mat <- matrix(
+    c(d1$grand_total_expected_malignancies, 
+      d1$total_patients - d1$grand_total_expected_malignancies,
+      d2$grand_total_expected_malignancies,
+      d2$total_patients - d2$grand_total_expected_malignancies),
+    nrow = 2,
+    byrow = TRUE
+  )
+  
+  tryCatch({
+    chisq.test(mat)$p.value
+  }, error = function(e) 1)
+}
+
+ggplot(malignancy_plot_data, 
+       aes(x = as.factor(auc_target), 
+           y = percentage,
+           fill = auc_target)) +
+  geom_col(color = "black", linewidth = 0.3) +
+  geom_errorbar(aes(ymin = percentage_lower, 
+                    ymax = percentage_upper),
+                width = 0.2) +
+  facet_grid(risk_status ~ cohort_type,
+             labeller = labeller(
+               cohort_type = function(x) x,
+               risk_status = function(x) paste0("Risk: ", x)
+             )) +
+  labs(
+    title = "Expected Lifetime Malignancies by Cohort Type and Risk Status",
+    x = "AUC Target",
+    y = "Expected Additional Lifetime Malignancies (%)",
+    fill = "AUC Target",
+    caption = "Pairwise chi-squared tests; * p<0.05, ** p<0.01, *** p<0.001, ns = not significant"
+  ) +
+  scale_y_continuous(labels = function(x) paste0(x, "%"),
+                     expand = expansion(mult = c(0, 0.25))) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+    strip.background = element_rect(fill = "lightblue", color = "black"),
+    strip.text = element_text(face = "bold", size = 10),
+    panel.border = element_rect(color = "grey80", fill = NA, linewidth = 0.5),
+    panel.spacing = unit(0.5, "lines"),
+    legend.position = "bottom"
+  )  +
+  geom_signif(
+    comparisons = comparisons,
+    test = function(x, y) {
+      current_data <- malignancy_plot_data %>%
+        filter(auc_target %in% c(x, y))
+      
+      if(nrow(current_data) < 2) return(list(p.value = 1))
+      
+      p_val <- calc_chisq_pvalue(current_data, unique(x), unique(y))
+      list(p.value = p_val)
+    },
+    map_signif_level = c("***" = 0.001, "**" = 0.01, "*" = 0.05, "ns" = 1),
+    step_increase = 0.08,
+    tip_length = 0.01,
+    size = 0.4,
+    textsize = 3
+  ) 
+
+## 8.2 Raw Numbers ####
+           ggplot(malignancy_plot_data, 
+       aes(x = as.factor(auc_target), 
+           y = grand_total_expected_malignancies,
+           fill = auc_target)) +
+  geom_col(color = "black", linewidth = 0.3) +
+  geom_errorbar(aes(ymin = grand_total_expected_malignancies_lower, 
+                    ymax = grand_total_expected_malignancies_upper),
+                width = 0.2) +
+  facet_grid(risk_status ~ cohort_type,
+             labeller = labeller(
+               cohort_type = function(x) x,
+               risk_status = function(x) paste0("Risk: ", x)
+             )) +
+  labs(
+    title = "Expected Lifetime Malignancies by Cohort Type and Risk Status",
+    x = "AUC Target",
+    y = "Expected Additional Lifetime Malignancies, n",
+    fill = "AUC Target",
+    caption = "Pairwise chi-squared tests; * p<0.05, ** p<0.01, *** p<0.001, ns = not significant"
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.25))) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+    strip.background = element_rect(fill = "lightblue", color = "black"),
+    strip.text = element_text(face = "bold", size = 10),
+    panel.border = element_rect(color = "grey80", fill = NA, linewidth = 0.5),
+    panel.spacing = unit(0.5, "lines"),
+    legend.position = "bottom"
+  )  +
+  geom_signif(
+    comparisons = comparisons,
+    test = function(x, y) {
+      current_data <- malignancy_plot_data %>%
+        filter(auc_target %in% c(x, y))
+      
+      if(nrow(current_data) < 2) return(list(p.value = 1))
+      
+      p_val <- calc_chisq_pvalue(current_data, unique(x), unique(y))
+      list(p.value = p_val)
+    },
+    map_signif_level = c("***" = 0.001, "**" = 0.01, "*" = 0.05, "ns" = 1),
+    step_increase = 0.08,
+    tip_length = 0.01,
+    size = 0.4,
+    textsize = 3
+  ) 
