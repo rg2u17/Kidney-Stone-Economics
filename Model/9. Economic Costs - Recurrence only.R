@@ -1150,3 +1150,5 @@ summary_df %>% group_by(cohort_type) %>% ggplot(aes(x = cohort_type, y = total_c
     y = "Total Cost of Follow-up (£ Millions)",
     fill = "Risk Status"
   )
+
+summary_df_rec_only <- summary_df
