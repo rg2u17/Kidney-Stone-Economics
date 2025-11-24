@@ -1159,3 +1159,5 @@ summary_df %>% group_by(cohort_type) %>% ggplot(aes(x = cohort_type, y = total_c
 # Create gt summary table
 summary_df %>% subset(risk_status == "All") %>% group_by(auc_label,
                         risk_status) %>% gt() %>% gt_theme_nytimes()
+
+summary_df_full_cost_data <- summary_df
