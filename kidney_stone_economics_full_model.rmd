@@ -32,9 +32,6 @@ library(cutpointr)
 library(ggsignif)
 library(ggpubr)
 library(broom)
-library(purrr)
-library(furrr)
-library(future)
 ```
 \newpage
 
@@ -57,7 +54,6 @@ source("Model/3. Visualise Model.R")
 \newpage
 
 # 4. Distribution of Scores - Pick one!
-**Uncomment to run normal distribution over beta distribution model** <br>
 ## 4.1 Beta Distribution - e.g modelling a machine learning model output
 ```{r}
 source("Model/4. Model - Beta Distribution for Scores.R")
@@ -65,6 +61,7 @@ source("Model/4. Model - Beta Distribution for Scores.R")
 \newpage
 
 ## 4.2 Normal Distribution - e.g modelling a blood test output
+<br> **uncomment to run** <br>
 ```{r}
 #source("Model/4. Model - Normal Distribution for Scores.R")
 ```
@@ -469,7 +466,7 @@ ggplot(malignancy_plot_data,
 
 # 8. Economic Costs - All Patients
 ```{r}
-source("Model/6. Economic Costs - All Patients.R")
+source("Model/8. Economic Costs - All Patients.R")
 ```
 \newpage
 
@@ -554,7 +551,7 @@ source("Model/9. Economic Costs - Recurrence only.R")
 
 ## Plot total cost by cohort_type within risk groups - facet by FU type
 ```{r}
-summary_df %>% group_by(auc_label) %>% ggplot(aes(x = auc_label, y = total_cost, fill = risk_status)) +
+summary_df_rec_only %>% group_by(auc_label) %>% ggplot(aes(x = auc_label, y = total_cost, fill = risk_status)) +
   geom_col(position = position_dodge(width = 0.8), width = 0.7, color = "black") +
   facet_wrap(~ cohort_type) +
   theme_bw() +
@@ -573,7 +570,7 @@ summary_df %>% group_by(auc_label) %>% ggplot(aes(x = auc_label, y = total_cost,
 
 ## Plot total cost by cohort_type within risk groups - facet by auc
 ```{r}
-summary_df %>% group_by(cohort_type) %>% ggplot(aes(x = cohort_type, y = total_cost, fill = risk_status)) +
+summary_df_rec_only %>% group_by(cohort_type) %>% ggplot(aes(x = cohort_type, y = total_cost, fill = risk_status)) +
   geom_col(position = position_dodge(width = 0.8), width = 0.7, color = "black") +
   facet_wrap(~ auc_label) +
   theme_bw() +
@@ -592,7 +589,7 @@ summary_df %>% group_by(cohort_type) %>% ggplot(aes(x = cohort_type, y = total_c
 
 ## Plot total cost by cohort_type within risk groups - facet by risk status
 ```{r}
-summary_df %>% group_by(cohort_type) %>% ggplot(aes(x = cohort_type, y = total_cost, fill = auc_label)) +
+summary_df_rec_only %>% group_by(cohort_type) %>% ggplot(aes(x = cohort_type, y = total_cost, fill = auc_label)) +
   geom_col(position = position_dodge(width = 0.8), width = 0.7, color = "black") +
   facet_wrap(~ risk_status) +
   theme_bw() +
@@ -611,7 +608,7 @@ summary_df %>% group_by(cohort_type) %>% ggplot(aes(x = cohort_type, y = total_c
 
 ## Plot total cost by auc - facet by risk status and cohort_type
 ```{r}
-summary_df %>% 
+summary_df_rec_only %>% 
   group_by(auc_label) %>% 
   ggplot(aes(x = auc_label, y = total_cost, fill = risk_status)) +
   geom_col(position = position_dodge(width = 0.8), width = 0.7, color = "black") +
@@ -632,7 +629,7 @@ summary_df %>%
 
 ## Summary table for Recurrence Only
 ```{r}
-summary_df %>% subset(risk_status == "All") %>% group_by(auc_label,
+summary_df_rec_only %>% subset(risk_status == "All") %>% group_by(auc_label,
                         risk_status) %>% gt() %>% gt_theme_nytimes()
 ```
 \newpage
@@ -706,4 +703,3 @@ summary_df_full_qol_data %>% group_by(auc_label) %>% ggplot(aes(x = auc_label, y
 source("Model/12. Calculate ICER.R")
 ```
 \newpage
-
