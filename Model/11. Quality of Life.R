@@ -8,11 +8,13 @@ library(ggsignif)
 library(data.table)
 library(pryr)
 library(lubridate)
+library(sfsmisc)
+library(mice)
 
 
 ## 11.2 Load data ####
 ### 11.2.1 Read in data ####
-usiqol_metrics <- fread("Input/usiqol_scores.csv", header = TRUE) %>% 
+usiqol_metrics <- fread("usiqol_scores.csv", header = TRUE) %>% 
   janitor::clean_names() %>%
   as_tibble() %>%
   subset(select = c(date_of_birth,
@@ -25,7 +27,7 @@ usiqol_metrics <- fread("Input/usiqol_scores.csv", header = TRUE) %>%
                     date_completed_3,
                     total_post_2))
 
-usiqol_stone_sizes_pre_post <- fread("Input/stone_free_statuses_usiqol_2.csv", header = TRUE) %>% 
+usiqol_stone_sizes_pre_post <- fread("stone_free_statuses_usiqol_2.csv", header = TRUE) %>% 
   janitor::clean_names() %>%
   as_tibble()
 
@@ -199,8 +201,8 @@ usiqol_change_with_rx <- usiqol_change_with_rx %>%
       is.na(qol_se) | qol_se > 4 ~ mean_change_se,
       TRUE ~ qol_se
     ),
-    qol_change_ci_lower = qol_change - qt(0.975, n - 1) * qol_se,
-    qol_change_ci_upper = qol_change + qt(0.975, n - 1) * qol_se
+    qol_change_ci_lower = qol_change - 1.96 * qol_se,
+    qol_change_ci_upper = qol_change + 1.96 * qol_se
   )
 
 # Plot output
@@ -248,25 +250,44 @@ usiqol_metrics_by_age_stone_free_status <-
     stone_free_status_pre,
     stone_free_status_post,
     scored_when
-  )) %>% 
+  )) %>%
   group_by(age_bin, stone_free_status) %>%
   summarise(
     n = sum(!is.na(usiqol_scores)),
     total_mean = mean(usiqol_scores, na.rm = TRUE),
     total_sd   = sd(usiqol_scores, na.rm = TRUE),
     total_se = total_sd / sqrt(n),
-    total_ci_lower = total_mean - qt(0.975, n - 1) * total_se,
-    total_ci_upper = total_mean + qt(0.975, n - 1) * total_se
+    total_ci_lower = total_mean - 1.96 * total_se,
+    total_ci_upper = total_mean + 1.96 * total_se
   ) %>% 
   select(-n) %>%
   ungroup()
 
 str(usiqol_metrics_by_age_stone_free_status)
 
+na_plot <- usiqol_metrics_by_age_stone_free_status %>%
+  ggplot(aes(
+    x = age_bin,
+    y = total_mean,
+    color = stone_free_status,
+    fill = stone_free_status
+  )) +
+  geom_col(position = "dodge") + 
+  geom_errorbar(aes(ymin = total_ci_lower, ymax = total_ci_upper),
+                position = position_dodge(width = 0.9),
+                width = 0.25,
+                color = "black") +
+  scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
+  labs(
+    x = "Age bin (years)",
+    y = "Mean USIQOL score",
+    fill = "Stone Free Status",
+    color = "Stone Free Status"
+  )
+
 
 ### 11.2.8 Deal with missing data/outliers ####
-
-
+#### 11.2.8.1 Populate with Means/SD ####
 # Some stone free statuses are missing within age bins - populate with sensible values
 difference_between_levels <- usiqol_metrics_by_age_stone_free_status %>%
   subset(select= c(total_mean,
@@ -282,7 +303,7 @@ less4_mean <- difference_between_levels$total_mean[2]
 more4_mean <- difference_between_levels$total_mean[3]
 
 
-usiqol_metrics_by_age_stone_free_status <- usiqol_metrics_by_age_stone_free_status %>%
+usiqol_metrics_by_age_stone_free_status2 <- usiqol_metrics_by_age_stone_free_status %>%
   complete(age_bin, stone_free_status = c("more4", "less4", "SF"),
            fill = list(total_mean = NA, 
                        total_se = NA, 
@@ -311,7 +332,6 @@ usiqol_metrics_by_age_stone_free_status <- usiqol_metrics_by_age_stone_free_stat
 
 
 # CIs for some are either very wide or missing - amend to assign as average of those with reasonable values
-
 # Get mean for lower CI excluding those < 0
 mean_se <- usiqol_metrics_by_age_stone_free_status %>%
   subset(select = c(total_ci_lower, total_se)) %>%
@@ -329,7 +349,7 @@ mean_sd <- usiqol_metrics_by_age_stone_free_status %>%
   drop_na(total_ci_lower_sd) %>%
   summarise(mean_sd = mean(total_ci_lower_sd))
 
-usiqol_metrics_by_age_stone_free_status <- usiqol_metrics_by_age_stone_free_status %>%
+usiqol_metrics_by_age_stone_free_status2 <- usiqol_metrics_by_age_stone_free_status2 %>%
   mutate(
     total_sd = case_when(
       is.na(total_sd) ~ mean_sd$mean_sd,
@@ -340,19 +360,79 @@ usiqol_metrics_by_age_stone_free_status <- usiqol_metrics_by_age_stone_free_stat
       TRUE ~ total_se
     ),
     total_ci_lower = case_when(
-      total_ci_lower < 0 | is.na(total_ci_lower) ~ (total_mean - qt(0.975, n - 1) * mean_se$mean_se),
+      total_ci_lower < 0 | is.na(total_ci_lower) ~ (total_mean - 1.96 * mean_se$mean_se),
       TRUE ~ total_ci_lower
     ),
     total_ci_upper = case_when(
-      total_ci_upper > 50 | is.na(total_ci_upper) ~  (total_mean + qt(0.975, n - 1) * mean_se$mean_se),
+      total_ci_upper > 50 | is.na(total_ci_upper) ~  (total_mean + 1.96 * mean_se$mean_se),
       TRUE ~ total_ci_upper
     )
   ) %>% drop_na(stone_free_status)
 
+#### 11.2.8.2 Imputation ####
+# Use Mice to impute missing data
+usiqol_metrics_by_age_stone_free_status1 <-  
+  usiqol_metrics_aggregated  %>%
+  subset(select = c(age_bin,
+                    total_pre,
+                    total_post_1,
+                    stone_free_status_pre,
+                    stone_free_status_post
+  )) %>% 
+  pivot_longer(cols = c(total_pre,total_post_1),
+               names_to = "scored_when",
+               values_to = "usiqol_scores") %>%
+  mutate(
+    stone_free_status = case_when(
+      scored_when == "total_pre" ~ stone_free_status_pre,
+      scored_when == "total_post_1" ~ stone_free_status_post,
+      TRUE ~ NA_character_
+    ) %>% as.factor()
+  ) %>%
+  subset(select = -c(
+    stone_free_status_pre,
+    stone_free_status_post,
+    scored_when
+  )) %>% 
+  complete(age_bin, stone_free_status = c("more4", "less4", "SF"), fill = list(usiqol_scores = NA)) %>%
+  mice(m = 5, 
+       method = "lasso.norm") %>%
+  complete() %>%
+  filter(age_bin != "Aged 1 to 4") %>%
+  drop_na(stone_free_status) %>%
+  group_by(age_bin, stone_free_status) %>%
+  summarise(
+    n = sum(!is.na(usiqol_scores)),
+    total_mean = mean(usiqol_scores, na.rm = TRUE),
+    total_sd   = sd(usiqol_scores, na.rm = TRUE),
+    total_se = total_sd / sqrt(n),
+    total_ci_lower = total_mean - 1.96 * total_se,
+    total_ci_upper = total_mean + 1.96 * total_se
+  ) %>% 
+  select(-n) %>%
+  ungroup()
 
+usiqol_metrics_by_age_stone_free_status1 <- usiqol_metrics_by_age_stone_free_status1 %>%
+  mutate(
+    total_sd = case_when(
+      is.na(total_sd) ~ mean_sd$mean_sd,
+      TRUE ~ total_sd
+    ),
+    total_se = case_when(
+      is.na(total_se) ~ mean_se$mean_se,
+      TRUE ~ total_se
+    ),
+    total_ci_lower = case_when(
+      total_ci_lower < 0 | is.na(total_ci_lower) ~ (total_mean - 1.96 * mean_se$mean_se),
+      TRUE ~ total_ci_lower
+    ),
+    total_ci_upper = case_when(
+      total_ci_upper > 50 | is.na(total_ci_upper) ~  (total_mean + 1.96 * mean_se$mean_se),
+      TRUE ~ total_ci_upper
+    )
+  )
 
-### 11.2.9 Plot output ####
-usiqol_metrics_by_age_stone_free_status %>%
+mice_imputation_qol_plot <- usiqol_metrics_by_age_stone_free_status1 %>%
   ggplot(aes(
     x = age_bin,
     y = total_mean,
@@ -364,12 +444,44 @@ usiqol_metrics_by_age_stone_free_status %>%
                 position = position_dodge(width = 0.9),
                 width = 0.25,
                 color = "black") +
+  scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
   labs(
     x = "Age bin (years)",
     y = "Mean USIQOL score",
     fill = "Stone Free Status",
     color = "Stone Free Status"
   )
+
+### 11.2.9 Plot output ####
+means_plot <- usiqol_metrics_by_age_stone_free_status2 %>%
+  ggplot(aes(
+    x = age_bin,
+    y = total_mean,
+    color = stone_free_status,
+    fill = stone_free_status
+  )) +
+  geom_col(position = "dodge") + 
+  geom_errorbar(aes(ymin = total_ci_lower, ymax = total_ci_upper),
+                position = position_dodge(width = 0.9),
+                width = 0.25,
+                color = "black") +
+  scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
+  labs(
+    x = "Age bin (years)",
+    y = "Mean USIQOL score",
+    fill = "Stone Free Status",
+    color = "Stone Free Status"
+  )
+
+### 11.2.10 Plot all data manipulations together ####
+plot_grid(na_plot, means_plot, mice_imputation_qol_plot,
+          labels = c("A",
+                     "B",
+                     "C"))
+
+### 11.2.11 Assign QOL Scores going forwards ####
+usiqol_metrics_by_age_stone_free_status <- usiqol_metrics_by_age_stone_free_status2 # Imputed scores
+# usiqol_metrics_by_age_stone_free_status1 # mean scores  
 
 ## 11.3 Functions to assign QOL scores - with MC simulation #### 
 ### 11.3.1 Assign Age helper function ####
@@ -416,7 +528,8 @@ assign_age_helper <- function(data,
 }
 
 ### 11.3.2 Precalculate MC distributions ####
-qol_mc_lookup <- event_qol_change %>%
+mc_reps <- 100
+qol_mc_lookup <- usiqol_change_with_rx %>%
   mutate(
     mc_dist = pmap(
       list(qol_change, qol_sd),
@@ -450,9 +563,9 @@ assign_qol_chunked <- function(data,
                                baseline_qol = usiqol_metrics_by_age_stone_free_status,
                                event_qol_change = usiqol_change_with_rx,
                                year_cols = c(1,2,3,4,5),
-                               mc_reps = 110,
+                               mc_reps = 100,
                                ci_level = 0.95,
-                               chunk_size = 50000,
+                               chunk_size = 10,  
                                verbose = TRUE) {
   
   max_qol <- 60
@@ -461,20 +574,16 @@ assign_qol_chunked <- function(data,
   vcat <- function(...) if (verbose) message(...)
   
   n <- nrow(data)
-  total_chunks <- ceiling(n / chunk_size)
-  
-  vcat("✅ assign_qol_chunked(): starting.")
-  vcat(" → Total rows (expanded for years): ", n)
-  vcat(" → Chunks: ", total_chunks)
-  vcat(" → Monte Carlo reps: ", mc_reps, "\n")
+  total_chunks <- chunk_size  
+  rows_per_chunk <- ceiling(n / chunk_size) 
   
   start_time <- Sys.time()
   results_list <- vector("list", total_chunks)
   
   for (i in seq_len(total_chunks)) {
     
-    idx_start <- (i - 1) * chunk_size + 1
-    idx_end <- min(i * chunk_size, n)
+    idx_start <- (i - 1) * rows_per_chunk + 1
+    idx_end <- min(i * rows_per_chunk, n)
     chunk <- data[idx_start:idx_end, ]
     
     if (verbose) {
@@ -589,7 +698,7 @@ calculate_qol <- function(complete_pop_yr_fu,
                           years = c(1,2,3,4,5),
                           target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
                           fu_type = c("min", "max"),
-                          post_op_imaging = c("none", ct_cost, imaging_cost, us_cost),
+                          post_op_imaging = c("none", "ct", "xr", "us"),
                           imaging_fu_type = c("ct", "xr", "xr_us"),
                           xr_sens = 0.67,
                           xr_spec = 0.98,
@@ -602,12 +711,12 @@ calculate_qol <- function(complete_pop_yr_fu,
   
   for (target_auc in target_aucs) {
     message("Calculating QoL for: ", start_year,
-            ", AUC: ", auc_target,
+            ", AUC: ", target_auc,
             ", Follow-up Type: ", fu_type,
             ", Follow-up Imaging: ", imaging_fu_type,
             " and Post-Operative Imaging: ", post_op_imaging)
     
-    target_auc <- as.integer(target_auc)
+    target_auc <- as.numeric(target_auc)
     
     complete_pop_yr_fu2 <- complete_pop_yr_fu %>%
       filter(.data$auc_target == target_auc)
@@ -626,19 +735,28 @@ calculate_qol <- function(complete_pop_yr_fu,
     # Assign SF status according to imaging type
     rand_sens <- runif(nrow(complete_pop_yr_fu2))
     rand_spec <- runif(nrow(complete_pop_yr_fu2))
+    
     complete_pop_yr_fu1 <- complete_pop_yr_fu2 %>%
       mutate(
         stone_free_status_original = stone_free_status,
         stone_free_status1 = case_when(
           imaging_fu_type %in% c("xr", "xr_us") &
-            stone_free_status_original %in% c("less4", "more4") & rand_sens <= ifelse(imaging_fu_type=="xr", xr_sens, us_sens) ~ stone_free_status_original,
+            stone_free_status_original %in% c("less4", "more4") & 
+            rand_sens <= ifelse(imaging_fu_type=="xr", xr_sens, us_sens) ~ stone_free_status_original,
+          
           imaging_fu_type %in% c("xr", "xr_us") &
-            stone_free_status_original %in% c("less4", "more4") & rand_sens > ifelse(imaging_fu_type=="xr", xr_sens, us_sens) ~ "SF",
+            stone_free_status_original %in% c("less4", "more4") & 
+            rand_sens > ifelse(imaging_fu_type=="xr", xr_sens, us_sens) ~ "SF",  
+          
           imaging_fu_type %in% c("xr", "xr_us") &
-            stone_free_status_original == "sf" & rand_spec <= ifelse(imaging_fu_type=="xr", xr_spec, us_spec) ~ "SF",
+            stone_free_status_original == "SF" & 
+            rand_spec <= ifelse(imaging_fu_type=="xr", xr_spec, us_spec) ~ "SF",  
+          
           imaging_fu_type %in% c("xr", "xr_us") &
-            stone_free_status_original == "sf" & rand_spec > ifelse(imaging_fu_type=="xr", xr_spec, us_spec) ~
-            ifelse(runif(n()) <= less4_prob, "less4", "more4"),
+            stone_free_status_original == "SF" & 
+            rand_spec > ifelse(imaging_fu_type=="xr", xr_spec, us_spec) ~
+            if_else(runif(n()) <= less4_prob, "less4", "more4"),
+          
           TRUE ~ stone_free_status_original
         ),
         .keep = "all"
@@ -655,7 +773,7 @@ calculate_qol <- function(complete_pop_yr_fu,
     combined_result <- assign_qol_chunked(
       data = complete_pop_yr_fu1,
       mc_reps = 100,
-      chunk_size = 2000,
+      chunk_size = 10,
       verbose = TRUE
     ) %>%
       as_tibble() %>%
@@ -669,20 +787,55 @@ calculate_qol <- function(complete_pop_yr_fu,
     
     # --- QALY calculation ---
     # Compute QALY as sum of mean QoL across years divided by max possible score
-    cat("Calculating QALYs for AUC:", auc_target)
+    message("Calculating QALYs for AUC:", target_auc)
     combined_result <- combined_result %>%
-      rowwise() %>%
       mutate(
-        qaly_5yr = sum(c_across(starts_with("qol_mean_year_")), na.rm = TRUE),
-        qaly_5yr_lower = sum(c_across(starts_with("qol_lower_year_")), na.rm = TRUE),
-        qaly_5yr_upper = sum(c_across(starts_with("qol_upper_year_")), na.rm = TRUE),
+        qaly_5yr = rowSums(select(., starts_with("qol_mean_year_")), na.rm = TRUE) / (60*5),
+        qaly_5yr_lower = rowSums(select(., starts_with("qol_lower_year_")), na.rm = TRUE) / (60*5),
+        qaly_5yr_upper = rowSums(select(., starts_with("qol_upper_year_")), na.rm = TRUE) / (60*5),
+        risk_status = case_when(prediction == "No" ~ "Low Risk",
+                                prediction == "Yes" ~ "High Risk",
+                                TRUE ~ NA_character_),
         .keep = "all"
       ) %>%
-      ungroup()
+      select(
+        id,
+        sex,
+        stone_free_status_original,
+        stone_free_status1,
+        auc_target,
+        risk_status,
+        true_rec_5yr,
+        year,
+        imaging_fu_type,
+        year,
+        baseline_qol_mean,
+        qol_mean_year_1,
+        qol_mean_year_2,
+        qol_mean_year_3,
+        qol_mean_year_4,
+        qol_mean_year_5,
+        baseline_qol_lower,
+        qol_lower_year_1,
+        qol_lower_year_2,
+        qol_lower_year_3,
+        qol_lower_year_4,
+        qol_lower_year_5,
+        baseline_qol_upper,
+        qol_upper_year_1,
+        qol_upper_year_2,
+        qol_upper_year_3,
+        qol_upper_year_4,
+        qol_upper_year_5,
+        qaly_5yr,
+        qaly_5yr_lower,
+        qaly_5yr_upper
+      )
     
     results_list[[paste0("auc_", target_auc)]] <- combined_result
   }
   
+  message("Concatenating data for Year:", start_year, " Follow-up Type: ", fu_type, " Imaging Type: ", imaging_fu_type)
   if (length(auc_targets) == 1) {
     return(results_list[[1]])
   } else {
@@ -698,7 +851,7 @@ qol_2016_xr_min <- calculate_qol(
   cutpoints_yr = cutpoints_2016,
   start_year = 2016,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "min",
   imaging_fu_type = "xr"
 )
@@ -708,7 +861,7 @@ qol_2016_xr_max <- calculate_qol(
   cutpoints_yr = cutpoints_2016,
   start_year = 2016,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "max",
   imaging_fu_type = "xr"
 )
@@ -718,7 +871,7 @@ qol_2016_xr_us_min <- calculate_qol(
   cutpoints_yr = cutpoints_2016,
   start_year = 2016,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "min",
   imaging_fu_type = "xr_us"
 )
@@ -728,7 +881,7 @@ qol_2016_xr_us_max <- calculate_qol(
   cutpoints_yr = cutpoints_2016,
   start_year = 2016,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "max",
   imaging_fu_type = "xr_us"
 )
@@ -738,7 +891,7 @@ qol_2016_ct_min <- calculate_qol(
   cutpoints_yr = cutpoints_2016,
   start_year = 2016,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "min",
   imaging_fu_type = "ct"
 )
@@ -748,7 +901,7 @@ qol_2016_ct_max <- calculate_qol(
   cutpoints_yr = cutpoints_2016,
   start_year = 2016,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "max",
   imaging_fu_type = "ct"
 )
@@ -759,7 +912,7 @@ qol_2017_xr_min <- calculate_qol(
   cutpoints_yr = cutpoints_2017,
   start_year = 2017,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "min",
   imaging_fu_type = "xr"
 )
@@ -769,7 +922,7 @@ qol_2017_xr_max <- calculate_qol(
   cutpoints_yr = cutpoints_2017,
   start_year = 2017,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "max",
   imaging_fu_type = "xr"
 )
@@ -779,7 +932,7 @@ qol_2017_xr_us_min <- calculate_qol(
   cutpoints_yr = cutpoints_2017,
   start_year = 2017,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "min",
   imaging_fu_type = "xr_us"
 )
@@ -789,7 +942,7 @@ qol_2017_xr_us_max <- calculate_qol(
   cutpoints_yr = cutpoints_2017,
   start_year = 2017,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "max",
   imaging_fu_type = "xr_us"
 )
@@ -799,7 +952,7 @@ qol_2017_ct_min <- calculate_qol(
   cutpoints_yr = cutpoints_2017,
   start_year = 2017,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "min",
   imaging_fu_type = "ct"
 )
@@ -809,7 +962,7 @@ qol_2017_ct_max <- calculate_qol(
   cutpoints_yr = cutpoints_2017,
   start_year = 2017,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "max",
   imaging_fu_type = "ct"
 )
@@ -820,7 +973,7 @@ qol_2018_xr_min <- calculate_qol(
   cutpoints_yr = cutpoints_2018,
   start_year = 2018,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "min",
   imaging_fu_type = "xr"
 )
@@ -830,7 +983,7 @@ qol_2018_xr_max <- calculate_qol(
   cutpoints_yr = cutpoints_2018,
   start_year = 2018,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "max",
   imaging_fu_type = "xr"
 )
@@ -840,7 +993,7 @@ qol_2018_xr_us_min <- calculate_qol(
   cutpoints_yr = cutpoints_2018,
   start_year = 2018,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "min",
   imaging_fu_type = "xr_us"
 )
@@ -850,7 +1003,7 @@ qol_2018_xr_us_max <- calculate_qol(
   cutpoints_yr = cutpoints_2018,
   start_year = 2018,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "max",
   imaging_fu_type = "xr_us"
 )
@@ -860,7 +1013,7 @@ qol_2018_ct_min <- calculate_qol(
   cutpoints_yr = cutpoints_2018,
   start_year = 2018,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "min",
   imaging_fu_type = "ct"
 )
@@ -870,7 +1023,7 @@ qol_2018_ct_max <- calculate_qol(
   cutpoints_yr = cutpoints_2018,
   start_year = 2018,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "max",
   imaging_fu_type = "ct"
 )
@@ -881,7 +1034,7 @@ qol_2019_xr_min <- calculate_qol(
   cutpoints_yr = cutpoints_2019,
   start_year = 2019,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "min",
   imaging_fu_type = "xr"
 )
@@ -891,7 +1044,7 @@ qol_2019_xr_max <- calculate_qol(
   cutpoints_yr = cutpoints_2019,
   start_year = 2019,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "max",
   imaging_fu_type = "xr"
 )
@@ -901,7 +1054,7 @@ qol_2019_xr_us_min <- calculate_qol(
   cutpoints_yr = cutpoints_2019,
   start_year = 2019,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "min",
   imaging_fu_type = "xr_us"
 )
@@ -911,7 +1064,7 @@ qol_2019_xr_us_max <- calculate_qol(
   cutpoints_yr = cutpoints_2019,
   start_year = 2019,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "max",
   imaging_fu_type = "xr_us"
 )
@@ -921,7 +1074,7 @@ qol_2019_ct_min <- calculate_qol(
   cutpoints_yr = cutpoints_2019,
   start_year = 2019,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "min",
   imaging_fu_type = "ct"
 )
@@ -931,7 +1084,7 @@ qol_2019_ct_max <- calculate_qol(
   cutpoints_yr = cutpoints_2019,
   start_year = 2019,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "max",
   imaging_fu_type = "ct"
 )
@@ -942,7 +1095,7 @@ qol_2020_xr_min <- calculate_qol(
   cutpoints_yr = cutpoints_2020,
   start_year = 2020,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "min",
   imaging_fu_type = "xr"
 )
@@ -952,7 +1105,7 @@ qol_2020_xr_max <- calculate_qol(
   cutpoints_yr = cutpoints_2020,
   start_year = 2020,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "max",
   imaging_fu_type = "xr"
 )
@@ -962,7 +1115,7 @@ qol_2020_xr_us_min <- calculate_qol(
   cutpoints_yr = cutpoints_2020,
   start_year = 2020,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "min",
   imaging_fu_type = "xr_us"
 )
@@ -972,7 +1125,7 @@ qol_2020_xr_us_max <- calculate_qol(
   cutpoints_yr = cutpoints_2020,
   start_year = 2020,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "max",
   imaging_fu_type = "xr_us"
 )
@@ -982,7 +1135,7 @@ qol_2020_ct_min <- calculate_qol(
   cutpoints_yr = cutpoints_2020,
   start_year = 2020,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "min",
   imaging_fu_type = "ct"
 )
@@ -992,7 +1145,7 @@ qol_2020_ct_max <- calculate_qol(
   cutpoints_yr = cutpoints_2020,
   start_year = 2020,
   years = c(1,2,3,4,5),
-  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "max",
   imaging_fu_type = "ct"
 )
@@ -1067,61 +1220,103 @@ aggregate_qol_cohorts <- function(auc_target = c(1,2,3,4,5,6,7,8,9)) {
 }
 
 ### 11.5.2 AUC 0.55 ####
-qol_auc_0.55 <- aggregate_cost_cohorts(auc_target = 1)
+qol_auc_0.55 <- aggregate_qol_cohorts(auc_target = 1)
 
 ### 11.5.3 AUC 0.6 ####
-qol_auc_0.6 <- aggregate_cost_cohorts(auc_target = 2)
+qol_auc_0.6 <- aggregate_qol_cohorts(auc_target = 2)
 
 ### 11.5.4 AUC 0.55 ####
-qol_auc_0.65 <- aggregate_cost_cohorts(auc_target = 3)
+qol_auc_0.65 <- aggregate_qol_cohorts(auc_target = 3)
 
 ### 11.5.5 AUC 0.55 ####
-qol_auc_0.7 <- aggregate_cost_cohorts(auc_target = 4)
+qol_auc_0.7 <- aggregate_qol_cohorts(auc_target = 4)
 
 ### 11.5.6 AUC 0.55 ####
-qol_auc_0.75 <- aggregate_cost_cohorts(auc_target = 5)
+qol_auc_0.75 <- aggregate_qol_cohorts(auc_target = 5)
 
 ### 11.5.7 AUC 0.55 ####
-qol_auc_0.8 <- aggregate_cost_cohorts(auc_target = 6)
+qol_auc_0.8 <- aggregate_qol_cohorts(auc_target = 6)
 
 ### 11.5.8 AUC 0.55 ####
-qol_auc_0.85 <- aggregate_cost_cohorts(auc_target = 7)
+qol_auc_0.85 <- aggregate_qol_cohorts(auc_target = 7)
 
 ### 11.5.9 AUC 0.55 ####
-qol_auc_0.9 <- aggregate_cost_cohorts(auc_target = 8)
+qol_auc_0.9 <- aggregate_qol_cohorts(auc_target = 8)
 
 ### 11.5.10 AUC 0.55 ####
-qol_auc_0.95 <- aggregate_cost_cohorts(auc_target = 9)
+qol_auc_0.95 <- aggregate_qol_cohorts(auc_target = 9)
 
 ## 11.6 Combine datasets and calculate cumulative qol ####
 combine_auc_data <- function(data, auc_label) {
   data %>%
     mutate(
       auc_label = auc_label,
-      risk_status = ifelse(risk_status == "LR", "Low Risk", "High Risk"),
+      risk_status = case_when(
+        risk_status == "LR" ~ "Low Risk",
+        risk_status == "HR" ~ "High Risk",
+        TRUE ~ risk_status
+      ),
       annual_qol = case_when(
-        year == 2020 ~ qol_year_1,
-        year == 2019 ~ qol_year_2,
-        year == 2018 ~ qol_year_3,
-        year == 2017 ~ qol_year_4,
-        year == 2016 ~ qol_year_5,
+        year == 2020 ~ qol_mean_year_1,
+        year == 2019 ~ qol_mean_year_2,
+        year == 2018 ~ qol_mean_year_3,
+        year == 2017 ~ qol_mean_year_4,
+        year == 2016 ~ qol_mean_year_5,
         TRUE ~ NA_real_
-      )
+      ),
+      annual_qol_lower = case_when(
+        year == 2020 ~ qol_lower_year_1,
+        year == 2019 ~ qol_lower_year_2,
+        year == 2018 ~ qol_lower_year_3,
+        year == 2017 ~ qol_lower_year_4,
+        year == 2016 ~ qol_lower_year_5,
+        TRUE ~ NA_real_
+      ),
+      annual_qol_upper = case_when(
+        year == 2020 ~ qol_upper_year_1,
+        year == 2019 ~ qol_upper_year_2,
+        year == 2018 ~ qol_upper_year_3,
+        year == 2017 ~ qol_upper_year_4,
+        year == 2016 ~ qol_upper_year_5,
+        TRUE ~ NA_real_
+      ),
+      stone_free_status = stone_free_status_original
     ) %>%
-    select(auc_label, cohort_type, stone_free_status, risk_status, annual_qol, true_rec_5yr)
+    select(auc_label,
+           cohort_type,
+           stone_free_status,
+           risk_status,
+           annual_qol,
+           annual_qol_lower,
+           annual_qol_upper,
+           qaly_5yr,
+           true_rec_5yr
+           )
 }
 
-# Combine all AUC datasets and filter cohort_types
-data_for_plot_qol <- bind_rows(
-  combine_auc_data(qol_auc_0.55, "AUC 0.55"),
-  combine_auc_data(qol_auc_0.6,  "AUC 0.6"),
-  combine_auc_data(qol_auc_0.65, "AUC 0.65"),
-  combine_auc_data(qol_auc_0.7,  "AUC 0.7"),
-  combine_auc_data(qol_auc_0.75, "AUC 0.75"),
-  combine_auc_data(qol_auc_0.8,  "AUC 0.8"),
-  combine_auc_data(qol_auc_0.85, "AUC 0.85"),
-  combine_auc_data(qol_auc_0.9,  "AUC 0.9"),
-  combine_auc_data(qol_auc_0.95, "AUC 0.95")
+auc_list <- list(
+  qol_auc_0.55,
+  qol_auc_0.6,
+  qol_auc_0.65,
+  qol_auc_0.7,
+  qol_auc_0.75,
+  qol_auc_0.8,
+  qol_auc_0.85,
+  qol_auc_0.9,
+  qol_auc_0.95
+)
+
+auc_labels <- c(
+  "AUC 0.55", "AUC 0.6", "AUC 0.65",
+  "AUC 0.7", "AUC 0.75", "AUC 0.8",
+  "AUC 0.85", "AUC 0.9", "AUC 0.95"
+)
+
+data_for_plot_qol <- map2_dfr(
+  auc_list,
+  auc_labels,
+  combine_auc_data,
+  .progress = TRUE
 )
 
 data_for_plot_qol$auc_label <- as.factor(data_for_plot_qol$auc_label)
@@ -1133,7 +1328,12 @@ data_for_plot_qol$true_rec_5yr <- as.factor(data_for_plot_qol$true_rec_5yr)
 summary_df_qol <- data_for_plot_qol %>%
   group_by(auc_label, risk_status, cohort_type) %>%
   summarise(
-    total_qol = sum(annual_qol, na.rm = TRUE),
+    total_qol = mean(annual_qol, na.rm = TRUE),
+    total_qol_lower = quantile(annual_qol, 0.025, na.rm = TRUE),
+    total_qol_upper = quantile(annual_qol, 0.975, na.rm = TRUE),
+    mean_qaly_5yr = mean(qaly_5yr, na.rm = TRUE),
+    lower_qaly_5yr = quantile(qaly_5yr, 0.025, na.rm = TRUE),
+    upper_qaly_5yr = quantile(qaly_5yr, 0.975, na.rm = TRUE),
     .groups = "drop"
   )
 
@@ -1141,16 +1341,20 @@ summary_df_qol <- data_for_plot_qol %>%
 summary_all <- data_for_plot_qol %>%
   group_by(auc_label, cohort_type) %>%
   summarise(
-    total_qol = sum(annual_qol, na.rm = TRUE),
+    total_qol = mean(annual_qol, na.rm = TRUE),
+    total_qol_lower = quantile(annual_qol, 0.025, na.rm = TRUE),
+    total_qol_upper = quantile(annual_qol, 0.975, na.rm = TRUE),
+    mean_qaly_5yr = mean(qaly_5yr, na.rm = TRUE),
+    lower_qaly_5yr = quantile(qaly_5yr, 0.025, na.rm = TRUE),
+    upper_qaly_5yr = quantile(qaly_5yr, 0.975, na.rm = TRUE),
     .groups = "drop"
   ) %>%
-  mutate(risk_status = "All") %>%
-  select(auc_label, risk_status, cohort_type, total_qol)
+  mutate(risk_status = "All") 
 
 # Combine all summaries
 summary_df_qol <- bind_rows(summary_df_qol, summary_all)
 summary_df_qol <- summary_df_qol %>% mutate(
-  total_qol = total_qol / 1000000
+  total_qol = total_qol
 )
 
 # Factor levels for ordering
@@ -1167,7 +1371,7 @@ summary_df_full_qol_data <- summary_df_qol %>%
   )
 
 # Prepare data_for_plot factors similarly
-data_for_plot <- data_for_plot_qol %>%
+data_for_plot_qol2 <- data_for_plot_qol %>%
   mutate(
     cohort_type = factor(cohort_type, levels = c("Minimum FU, XR", 
                                                  "Minimum FU, CT", 
@@ -1181,9 +1385,9 @@ data_for_plot <- data_for_plot_qol %>%
 # All auc values
 auc_values <- unique(data_for_plot$auc_label)
 
-## 11.7 Plot QALYs ####
+## 11.7 Plot QoL ####
 summary_df_full_qol_data %>% 
-  group_by(auc_label) %>% 
+  group_by(auc_label) %>%
   ggplot(aes(x = auc_label, y = total_qol, fill = risk_status)) +
   geom_col(
     position = position_dodge(width = 0.8),
@@ -1193,18 +1397,37 @@ summary_df_full_qol_data %>%
   geom_errorbar(
     aes(ymin = total_qol_lower, ymax = total_qol_upper),
     position = position_dodge(width = 0.8),
-    width = 0.25,
-    color = "black"
+    width = 0.3
   ) +
   facet_wrap(~ cohort_type) +
   theme_bw() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    strip.text = element_text(size = 10)
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size = 10)) +
+  labs(title = "Annual Mean USIQoL score for EAU Follow-Up of those with Clinically Significant Disease",
+       x = "Cohort Type",
+       y = "USIQoL score",
+       fill = "Risk Status")
+
+## 11.8 Plot QALYs ####
+summary_df_full_qol_data %>% 
+  group_by(auc_label) %>%
+  ggplot(aes(x = auc_label, y = mean_qaly_5yr, fill = risk_status)) +
+  geom_col(
+    position = position_dodge(width = 0.8),
+    width = 0.7,
+    color = "black"
   ) +
-  labs(
-    title = "Annual USIQoL score for EAU Follow-Up of those with Clinically Significant Disease",
-    x = "Cohort Type",
-    y = "Annual USIQoL score",
-    fill = "Risk Status"
-  )
+  geom_errorbar(
+    aes(ymin = lower_qaly_5yr, ymax = upper_qaly_5yr),
+    position = position_dodge(width = 0.8),
+    width = 0.3
+  ) +
+  facet_wrap(~ cohort_type) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size = 10)) +
+  labs(title = "Mean USIQoL Adjusted Life Years for EAU Follow-Up of those with Clinically Significant Disease",
+       x = "Cohort Type",
+       y = "Mean 5yr QALYs (USIQOL)",
+       fill = "Risk Status") + ylim(0,0.7)
+
