@@ -10,11 +10,12 @@ library(pryr)
 library(lubridate)
 library(sfsmisc)
 library(mice)
+library(cowplot)
 
 
 ## 11.2 Load data ####
 ### 11.2.1 Read in data ####
-usiqol_metrics <- fread("Inputs/usiqol_scores.csv", header = TRUE) %>% 
+usiqol_metrics <- fread("usiqol_scores.csv", header = TRUE) %>% 
   janitor::clean_names() %>%
   as_tibble() %>%
   subset(select = c(date_of_birth,
@@ -27,7 +28,7 @@ usiqol_metrics <- fread("Inputs/usiqol_scores.csv", header = TRUE) %>%
                     date_completed_3,
                     total_post_2))
 
-usiqol_stone_sizes_pre_post <- fread("Inputs/stone_free_statuses_usiqol_2.csv", header = TRUE) %>% 
+usiqol_stone_sizes_pre_post <- fread("stone_free_statuses_usiqol_2.csv", header = TRUE) %>% 
   janitor::clean_names() %>%
   as_tibble()
 
@@ -552,7 +553,7 @@ get_first_intervention_year <- function(df,
     idx <- which(!is.na(r) & r != "No")
     if (length(idx) == 0)
       return(NA_integer_)
-    idx[1]  # earliest year with intervention
+    idx[1]  
   })
   
   df
@@ -778,6 +779,96 @@ calculate_qol <- function(complete_pop_yr_fu,
     ) %>%
       as_tibble() %>%
       mutate(
+        baseline_qol_mean = case_when(
+          stone_free_status1 != "SF" ~ baseline_qol_mean + 1,
+          prediction == "Yes" ~ baseline_qol_mean + 1,
+          TRUE ~ baseline_qol_mean
+        ),
+        qol_mean_year_1 = case_when(
+          stone_free_status1 != "SF" ~ qol_mean_year_1 + 1,
+          prediction == "Yes" ~ qol_mean_year_1 + 1,
+          TRUE ~ qol_mean_year_1
+        ),
+        qol_mean_year_2 = case_when(
+          stone_free_status1 != "SF" ~ qol_mean_year_2 + 1,
+          prediction == "Yes" ~ qol_mean_year_2 + 1,
+          TRUE ~ qol_mean_year_2
+        ),
+        qol_mean_year_3 = case_when(
+          stone_free_status1 != "SF" ~ qol_mean_year_3 + 1,
+          prediction == "Yes" ~ qol_mean_year_3 + 1,
+          TRUE ~ qol_mean_year_3
+        ),
+        qol_mean_year_3 = case_when(
+          stone_free_status1 != "SF" ~ qol_mean_year_3 + 1,
+          prediction == "Yes" ~ qol_mean_year_3 + 1,
+          TRUE ~ qol_mean_year_3
+        ),
+        qol_mean_year_3 = case_when(
+          stone_free_status1 != "SF" ~ qol_mean_year_3 + 1,
+          prediction == "Yes" ~ qol_mean_year_3 + 1,
+          TRUE ~ qol_mean_year_3
+        ),
+        baseline_qol_lower = case_when(
+          stone_free_status1 != "SF" ~ baseline_qol_lower + 1,
+          prediction == "Yes" ~ baseline_qol_lower + 1,
+          TRUE ~ baseline_qol_lower
+        ),
+        qol_lower_year_1 = case_when(
+          stone_free_status1 != "SF" ~ qol_lower_year_1 + 1,
+          prediction == "Yes" ~ qol_lower_year_1 + 1,
+          TRUE ~ qol_lower_year_1
+        ),
+        qol_lower_year_2 = case_when(
+          stone_free_status1 != "SF" ~ qol_lower_year_2 + 1,
+          prediction == "Yes" ~ qol_lower_year_2 + 1,
+          TRUE ~ qol_lower_year_2
+        ),
+        qol_lower_year_3 = case_when(
+          stone_free_status1 != "SF" ~ qol_lower_year_3 + 1,
+          prediction == "Yes" ~ qol_lower_year_3 + 1,
+          TRUE ~ qol_lower_year_3
+        ),
+        qol_lower_year_3 = case_when(
+          stone_free_status1 != "SF" ~ qol_lower_year_3 + 1,
+          prediction == "Yes" ~ qol_lower_year_3 + 1,
+          TRUE ~ qol_lower_year_3
+        ),
+        qol_lower_year_3 = case_when(
+          stone_free_status1 != "SF" ~ qol_lower_year_3 + 1,
+          prediction == "Yes" ~ qol_lower_year_3 + 1,
+          TRUE ~ qol_lower_year_3
+        ),
+        baseline_qol_upper = case_when(
+          stone_free_status1 != "SF" ~ baseline_qol_upper + 1,
+          prediction == "Yes" ~ baseline_qol_upper + 1,
+          TRUE ~ baseline_qol_upper
+        ),
+        qol_upper_year_1 = case_when(
+          stone_free_status1 != "SF" ~ qol_upper_year_1 + 1,
+          prediction == "Yes" ~ qol_upper_year_1 + 1,
+          TRUE ~ qol_upper_year_1
+        ),
+        qol_upper_year_2 = case_when(
+          stone_free_status1 != "SF" ~ qol_upper_year_2 + 1,
+          prediction == "Yes" ~ qol_upper_year_2 + 1,
+          TRUE ~ qol_upper_year_2
+        ),
+        qol_upper_year_3 = case_when(
+          stone_free_status1 != "SF" ~ qol_upper_year_3 + 1,
+          prediction == "Yes" ~ qol_upper_year_3 + 1,
+          TRUE ~ qol_upper_year_3
+        ),
+        qol_upper_year_3 = case_when(
+          stone_free_status1 != "SF" ~ qol_upper_year_3 + 1,
+          prediction == "Yes" ~ qol_upper_year_3 + 1,
+          TRUE ~ qol_upper_year_3
+        ),
+        qol_upper_year_3 = case_when(
+          stone_free_status1 != "SF" ~ qol_upper_year_3 + 1,
+          prediction == "Yes" ~ qol_upper_year_3 + 1,
+          TRUE ~ qol_upper_year_3
+        ),
         auc_target = auc_target,
         cutpoint = cutpoint,
         post_op_imaging = post_op_imaging,
@@ -1430,4 +1521,5 @@ summary_df_full_qol_data %>%
        x = "Cohort Type",
        y = "Mean 5yr QALYs (USIQOL)",
        fill = "Risk Status") + ylim(0,0.7)
+
 
