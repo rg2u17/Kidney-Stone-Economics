@@ -15,7 +15,7 @@ library(cowplot)
 
 ## 11.2 Load data ####
 ### 11.2.1 Read in data ####
-usiqol_metrics <- fread("Inputs/usiqol_scores.csv", header = TRUE) %>% 
+usiqol_metrics <- fread("usiqol_scores.csv", header = TRUE) %>% 
   janitor::clean_names() %>%
   as_tibble() %>%
   subset(select = c(date_of_birth,
@@ -28,7 +28,7 @@ usiqol_metrics <- fread("Inputs/usiqol_scores.csv", header = TRUE) %>%
                     date_completed_3,
                     total_post_2))
 
-usiqol_stone_sizes_pre_post <- fread("Inputs/stone_free_statuses_usiqol_2.csv", header = TRUE) %>% 
+usiqol_stone_sizes_pre_post <- fread("stone_free_statuses_usiqol_2.csv", header = TRUE) %>% 
   janitor::clean_names() %>%
   as_tibble()
 
@@ -371,45 +371,50 @@ usiqol_metrics_by_age_stone_free_status2 <- usiqol_metrics_by_age_stone_free_sta
   ) %>% drop_na(stone_free_status)
 
 #### 11.2.8.2 Imputation ####
-# Use Mice to impute missing data
-usiqol_metrics_by_age_stone_free_status1 <-  
-  usiqol_metrics_aggregated  %>%
-  subset(select = c(age_bin,
-                    total_pre,
-                    total_post_1,
-                    stone_free_status_pre,
-                    stone_free_status_post
-  )) %>% 
-  pivot_longer(cols = c(total_pre,total_post_1),
-               names_to = "scored_when",
-               values_to = "usiqol_scores") %>%
+usiqol_long <- usiqol_metrics_aggregated %>%
+  select(age_bin,
+         total_pre,
+         total_post_1,
+         stone_free_status_pre,
+         stone_free_status_post
+  ) %>%
+  pivot_longer(
+    cols = c(total_pre, total_post_1),
+    names_to = "scored_when",
+    values_to = "usiqol_scores"
+  ) %>%
   mutate(
     stone_free_status = case_when(
-      scored_when == "total_pre" ~ stone_free_status_pre,
+      scored_when == "total_pre"  ~ stone_free_status_pre,
       scored_when == "total_post_1" ~ stone_free_status_post,
       TRUE ~ NA_character_
     ) %>% as.factor()
   ) %>%
-  subset(select = -c(
-    stone_free_status_pre,
-    stone_free_status_post,
-    scored_when
-  )) %>% 
-  complete(age_bin, stone_free_status = c("more4", "less4", "SF"), fill = list(usiqol_scores = NA)) %>%
-  mice(m = 5, 
-       method = "lasso.norm") %>%
-  complete() %>%
+  select(-stone_free_status_pre, -stone_free_status_post, -scored_when) %>%
+  complete(age_bin, stone_free_status = c("more4", "less4", "SF"), 
+           fill = list(usiqol_scores = NA)) %>%
   filter(age_bin != "Aged 1 to 4") %>%
-  drop_na(stone_free_status) %>%
+  drop_na(stone_free_status)
+
+ini <- mice(usiqol_long, m = 5, maxit = 0, print = FALSE)
+meth <- ini$method
+meth["usiqol_scores"] <- "lasso.norm"  # your original method
+
+post <- ini$post
+post["usiqol_scores"] <- "imp[[j]] <- pmax(pmin(imp[[j]], 60), 15)"
+
+imputed <- mice(usiqol_long, method = meth, m = 5, post = post, print = FALSE)
+
+usiqol_metrics_by_age_stone_free_status1 <- complete(imputed) %>%
   group_by(age_bin, stone_free_status) %>%
   summarise(
     n = sum(!is.na(usiqol_scores)),
     total_mean = mean(usiqol_scores, na.rm = TRUE),
     total_sd   = sd(usiqol_scores, na.rm = TRUE),
-    total_se = total_sd / sqrt(n),
+    total_se   = total_sd / sqrt(n),
     total_ci_lower = total_mean - 1.96 * total_se,
     total_ci_upper = total_mean + 1.96 * total_se
-  ) %>% 
+  ) %>%
   select(-n) %>%
   ungroup()
 
