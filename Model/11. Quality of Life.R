@@ -15,7 +15,7 @@ library(cowplot)
 
 ## 11.2 Load data ####
 ### 11.2.1 Read in data ####
-usiqol_metrics <- fread("usiqol_scores.csv", header = TRUE) %>% 
+usiqol_metrics <- fread("Inputs/usiqol_scores.csv", header = TRUE) %>% 
   janitor::clean_names() %>%
   as_tibble() %>%
   subset(select = c(date_of_birth,
@@ -28,7 +28,7 @@ usiqol_metrics <- fread("usiqol_scores.csv", header = TRUE) %>%
                     date_completed_3,
                     total_post_2))
 
-usiqol_stone_sizes_pre_post <- fread("stone_free_statuses_usiqol_2.csv", header = TRUE) %>% 
+usiqol_stone_sizes_pre_post <- fread("Inputs/stone_free_statuses_usiqol_2.csv", header = TRUE) %>% 
   janitor::clean_names() %>%
   as_tibble()
 
