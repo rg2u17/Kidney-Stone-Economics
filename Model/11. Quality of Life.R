@@ -792,27 +792,32 @@ calculate_qol <- function(complete_pop_yr_fu,
         qol_mean_year_1 = case_when(
           stone_free_status1 != "SF" ~ qol_mean_year_1 + 1,
           prediction == "Yes" ~ qol_mean_year_1 + 1,
+          first_intervention_year == 1 ~ qol_mean_year_1 + 1,
           TRUE ~ qol_mean_year_1
         ),
         qol_mean_year_2 = case_when(
           stone_free_status1 != "SF" ~ qol_mean_year_2 + 1,
           prediction == "Yes" ~ qol_mean_year_2 + 1,
+          first_intervention_year < 3 ~ qol_mean_year_2 + 1,
           TRUE ~ qol_mean_year_2
         ),
         qol_mean_year_3 = case_when(
           stone_free_status1 != "SF" ~ qol_mean_year_3 + 1,
           prediction == "Yes" ~ qol_mean_year_3 + 1,
+          first_intervention_year < 4 ~ qol_mean_year_3 + 1,
           TRUE ~ qol_mean_year_3
         ),
-        qol_mean_year_3 = case_when(
-          stone_free_status1 != "SF" ~ qol_mean_year_3 + 1,
-          prediction == "Yes" ~ qol_mean_year_3 + 1,
-          TRUE ~ qol_mean_year_3
+        qol_mean_year_4 = case_when(
+          stone_free_status1 != "SF" ~ qol_mean_year_4 + 1,
+          prediction == "Yes" ~ qol_mean_year_4 + 1,
+          first_intervention_year < 5 ~ qol_mean_year_4 + 1,
+          TRUE ~ qol_mean_year_4
         ),
-        qol_mean_year_3 = case_when(
-          stone_free_status1 != "SF" ~ qol_mean_year_3 + 1,
-          prediction == "Yes" ~ qol_mean_year_3 + 1,
-          TRUE ~ qol_mean_year_3
+        qol_mean_year_5 = case_when(
+          stone_free_status1 != "SF" ~ qol_mean_year_5 + 1,
+          prediction == "Yes" ~ qol_mean_year_5 + 1,
+          first_intervention_year < 6 ~ qol_mean_year_4 + 1,
+          TRUE ~ qol_mean_year_5
         ),
         baseline_qol_lower = case_when(
           stone_free_status1 != "SF" ~ baseline_qol_lower + 1,
@@ -822,27 +827,32 @@ calculate_qol <- function(complete_pop_yr_fu,
         qol_lower_year_1 = case_when(
           stone_free_status1 != "SF" ~ qol_lower_year_1 + 1,
           prediction == "Yes" ~ qol_lower_year_1 + 1,
+          first_intervention_year == 1 ~ qol_lower_year_1 + 1,
           TRUE ~ qol_lower_year_1
         ),
         qol_lower_year_2 = case_when(
           stone_free_status1 != "SF" ~ qol_lower_year_2 + 1,
           prediction == "Yes" ~ qol_lower_year_2 + 1,
+          first_intervention_year < 3 ~ qol_lower_year_2 + 1,
           TRUE ~ qol_lower_year_2
         ),
         qol_lower_year_3 = case_when(
           stone_free_status1 != "SF" ~ qol_lower_year_3 + 1,
           prediction == "Yes" ~ qol_lower_year_3 + 1,
+          first_intervention_year < 4 ~ qol_lower_year_3 + 1,
           TRUE ~ qol_lower_year_3
         ),
-        qol_lower_year_3 = case_when(
-          stone_free_status1 != "SF" ~ qol_lower_year_3 + 1,
-          prediction == "Yes" ~ qol_lower_year_3 + 1,
-          TRUE ~ qol_lower_year_3
+        qol_lower_year_4 = case_when(
+          stone_free_status1 != "SF" ~ qol_lower_year_4 + 1,
+          prediction == "Yes" ~ qol_lower_year_4 + 1,
+          first_intervention_year < 5 ~ qol_lower_year_4 + 1,
+          TRUE ~ qol_lower_year_4
         ),
-        qol_lower_year_3 = case_when(
-          stone_free_status1 != "SF" ~ qol_lower_year_3 + 1,
-          prediction == "Yes" ~ qol_lower_year_3 + 1,
-          TRUE ~ qol_lower_year_3
+        qol_lower_year_5 = case_when(
+          stone_free_status1 != "SF" ~ qol_lower_year_5 + 1,
+          prediction == "Yes" ~ qol_lower_year_5 + 1,
+          first_intervention_year < 6 ~ qol_lower_year_5 + 1,
+          TRUE ~ qol_lower_year_5
         ),
         baseline_qol_upper = case_when(
           stone_free_status1 != "SF" ~ baseline_qol_upper + 1,
@@ -852,27 +862,32 @@ calculate_qol <- function(complete_pop_yr_fu,
         qol_upper_year_1 = case_when(
           stone_free_status1 != "SF" ~ qol_upper_year_1 + 1,
           prediction == "Yes" ~ qol_upper_year_1 + 1,
+          first_intervention_year == 1 ~ qol_upper_year_1 + 1,
           TRUE ~ qol_upper_year_1
         ),
         qol_upper_year_2 = case_when(
           stone_free_status1 != "SF" ~ qol_upper_year_2 + 1,
           prediction == "Yes" ~ qol_upper_year_2 + 1,
+          first_intervention_year < 3 ~ qol_upper_year_2 + 1,
           TRUE ~ qol_upper_year_2
         ),
         qol_upper_year_3 = case_when(
           stone_free_status1 != "SF" ~ qol_upper_year_3 + 1,
           prediction == "Yes" ~ qol_upper_year_3 + 1,
+          first_intervention_year < 4 ~ qol_upper_year_3 + 1,
           TRUE ~ qol_upper_year_3
         ),
-        qol_upper_year_3 = case_when(
-          stone_free_status1 != "SF" ~ qol_upper_year_3 + 1,
-          prediction == "Yes" ~ qol_upper_year_3 + 1,
-          TRUE ~ qol_upper_year_3
+        qol_upper_year_4 = case_when(
+          stone_free_status1 != "SF" ~ qol_upper_year_4 + 1,
+          prediction == "Yes" ~ qol_upper_year_4 + 1,
+          first_intervention_year < 5 ~ qol_upper_year_4 + 1,
+          TRUE ~ qol_upper_year_4
         ),
-        qol_upper_year_3 = case_when(
-          stone_free_status1 != "SF" ~ qol_upper_year_3 + 1,
-          prediction == "Yes" ~ qol_upper_year_3 + 1,
-          TRUE ~ qol_upper_year_3
+        qol_upper_year_5 = case_when(
+          stone_free_status1 != "SF" ~ qol_upper_year_5 + 1,
+          prediction == "Yes" ~ qol_upper_year_5 + 1,
+          first_intervention_year < 6 ~ qol_upper_year_5 + 1,
+          TRUE ~ qol_upper_year_5
         ),
         auc_target = auc_target,
         cutpoint = cutpoint,
