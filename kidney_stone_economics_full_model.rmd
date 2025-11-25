@@ -680,20 +680,27 @@ source("Model/11. Quality of Life.R")
 
 ## Plot QALYs
 ```{r}
-summary_df_full_qol_data %>% group_by(auc_label) %>% ggplot(aes(x = auc_label, y = total_qol, fill = risk_status)) +
+summary_df_full_qol_data %>% 
+  group_by(auc_label) %>%
+  ggplot(aes(x = auc_label, y = mean_qaly_5yr, fill = risk_status)) +
   geom_col(
     position = position_dodge(width = 0.8),
     width = 0.7,
     color = "black"
   ) +
-  facet_wrap( ~ cohort_type) +
+  geom_errorbar(
+    aes(ymin = lower_qaly_5yr, ymax = upper_qaly_5yr),
+    position = position_dodge(width = 0.8),
+    width = 0.3
+  ) +
+  facet_wrap(~ cohort_type) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
         strip.text = element_text(size = 10)) +
-  labs(title = "Annual QALYs for EAU Follow-Up of those with Clinically Significant Disease",
+  labs(title = "Mean USIQoL Adjusted Life Years for EAU Follow-Up of those with Clinically Significant Disease",
        x = "Cohort Type",
-       y = "Annual QALYs (USIQoL)",
-       fill = "Risk Status")
+       y = "Mean 5yr QALYs (USIQOL)",
+       fill = "Risk Status") + ylim(0,0.7)
 ```
 \newpage
 
