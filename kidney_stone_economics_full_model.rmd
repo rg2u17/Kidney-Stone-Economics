@@ -464,6 +464,161 @@ ggplot(malignancy_plot_data,
 ```
 \newpage
 
+## Plot Relative Lifetime expected malignancies Compared to Baseline - AUC comparisons - Numbers
+```{r}
+baseline_malignancies <- malignancy_plot_data %>%
+  filter(auc_target == 0.55) %>%
+  filter(cohort_type == "Minimum FU, XR") %>%
+  select(
+    risk_status,
+    grand_total_expected_malignancies,
+    grand_total_expected_malignancies_lower,
+    grand_total_expected_malignancies_upper
+  )
+
+baseline_malignancies_hr <- (baseline_malignancies %>%
+                               filter(risk_status == "High Risk"))$grand_total_expected_malignancies
+
+baseline_malignancies_hr_upper <- (baseline_malignancies %>%
+                               filter(risk_status == "High Risk"))$grand_total_expected_malignancies_upper
+
+baseline_malignancies_hr_lower <- (baseline_malignancies %>%
+                               filter(risk_status == "High Risk"))$grand_total_expected_malignancies_lower
+
+baseline_malignancies_lr <- (baseline_malignancies %>%
+                               filter(risk_status == "Low Risk"))$grand_total_expected_malignancies
+
+baseline_malignancies_lr_upper <- (baseline_malignancies %>%
+                               filter(risk_status == "Low Risk"))$grand_total_expected_malignancies_upper
+
+baseline_malignancies_lr_lower <- (baseline_malignancies %>%
+                               filter(risk_status == "Low Risk"))$grand_total_expected_malignancies_lower
+  
+
+malignancy_plot_data %>%
+  mutate(grand_total_expected_malignancies = case_when(
+    risk_status == "High Risk" ~ grand_total_expected_malignancies - baseline_malignancies_hr,
+    risk_status == "Low Risk" ~  grand_total_expected_malignancies - baseline_malignancies_lr
+  ),
+  grand_total_expected_malignancies_lower = case_when(
+    risk_status == "High Risk" ~ grand_total_expected_malignancies_lower - baseline_malignancies_hr_lower,
+    risk_status == "Low Risk" ~  grand_total_expected_malignancies_lower - baseline_malignancies_lr_lower
+  ),
+  grand_total_expected_malignancies_upper = case_when(
+    risk_status == "High Risk" ~ grand_total_expected_malignancies_upper - baseline_malignancies_hr_upper,
+    risk_status == "Low Risk" ~  grand_total_expected_malignancies_upper - baseline_malignancies_lr_upper
+  )
+  ) %>%
+  ggplot(aes(x = as.factor(auc_target), 
+           y = grand_total_expected_malignancies,
+           fill = auc_target)) +
+  geom_col(color = "black", linewidth = 0.3) +
+  geom_errorbar(aes(ymin = grand_total_expected_malignancies_lower, 
+                    ymax = grand_total_expected_malignancies_upper),
+                width = 0.2) +
+  facet_grid(risk_status ~ cohort_type,
+             labeller = labeller(
+               cohort_type = function(x) x,
+               risk_status = function(x) paste0("Risk: ", x)
+             )) +
+  labs(
+    title = "Expected Lifetime Malignancies Compared to Baseline by Cohort Type and Risk Status",
+    x = "AUC Target",
+    y = "Difference in Expected Additional Lifetime Malignancies, n",
+    fill = "AUC Target",
+    caption = "Pairwise chi-squared tests; * p<0.05, ** p<0.01, *** p<0.001, ns = not significant"
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.25))) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+    strip.background = element_rect(fill = "lightblue", color = "black"),
+    strip.text = element_text(face = "bold", size = 10),
+    panel.border = element_rect(color = "grey80", fill = NA, linewidth = 0.5),
+    panel.spacing = unit(0.5, "lines"),
+    legend.position = "bottom"
+  ) 
+```
+\newpage
+
+## Plot Relative Lifetime expected malignancies Compared to Baseline - AUC comparisons - Proportions
+```{r}
+baseline_malignancies_perc <- malignancy_plot_data %>%
+  filter(auc_target == 0.55) %>%
+  filter(cohort_type == "Minimum FU, XR") %>%
+  select(
+    risk_status,
+    percentage,
+    percentage_lower,
+    percentage_upper
+  )
+
+baseline_malignancies_perc_hr <- (baseline_malignancies_perc %>%
+                               filter(risk_status == "High Risk"))$percentage
+
+baseline_malignancies_perc_hr_upper <- (baseline_malignancies_perc %>%
+                               filter(risk_status == "High Risk"))$percentage_upper
+
+baseline_malignancies_perc_hr_lower <- (baseline_malignancies_perc %>%
+                               filter(risk_status == "High Risk"))$percentage_lower
+
+baseline_malignancies_perc_lr <- (baseline_malignancies_perc %>%
+                               filter(risk_status == "Low Risk"))$percentage
+
+baseline_malignancies_perc_lr_upper <- (baseline_malignancies_perc %>%
+                               filter(risk_status == "Low Risk"))$percentage_upper
+
+baseline_malignancies_perc_lr_lower <- (baseline_malignancies_perc %>%
+                               filter(risk_status == "Low Risk"))$percentage_lower
+  
+
+malignancy_plot_data %>%
+  mutate(percentage = case_when(
+    risk_status == "High Risk" ~  percentage - baseline_malignancies_perc_hr,
+    risk_status == "Low Risk" ~  percentage - baseline_malignancies_perc_lr
+  ),
+  percentage_lower = case_when(
+    risk_status == "High Risk" ~ percentage_lower - baseline_malignancies_perc_hr_lower,
+    risk_status == "Low Risk" ~ percentage_lower - baseline_malignancies_perc_lr_lower
+  ),
+  percentage_upper = case_when(
+    risk_status == "High Risk" ~ percentage_upper - baseline_malignancies_perc_hr_upper,
+    risk_status == "Low Risk" ~  percentage_upper - baseline_malignancies_perc_lr_upper
+  )
+  ) %>%
+  ggplot(aes(x = as.factor(auc_target), 
+           y = percentage,
+           fill = auc_target)) +
+  geom_col(color = "black", linewidth = 0.3) +
+  geom_errorbar(aes(ymin = percentage_lower, 
+                    ymax = percentage_upper),
+                width = 0.2) +
+  facet_grid(risk_status ~ cohort_type,
+             labeller = labeller(
+               cohort_type = function(x) x,
+               risk_status = function(x) paste0("Risk: ", x)
+             )) +
+  labs(
+    title = "Difference in Expected Lifetime Malignancies by Cohort Type and Risk Status Compared to Baseline",
+    x = "AUC Target",
+    y = "Expected Additional Lifetime Malignancies Compared to Baseline (%)",
+    fill = "AUC Target",
+    caption = "Pairwise chi-squared tests; * p<0.05, ** p<0.01, *** p<0.001, ns = not significant"
+  ) +
+  scale_y_continuous(labels = function(x) paste0(x, "%"),
+                     expand = expansion(mult = c(0, 0.25))) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+    strip.background = element_rect(fill = "lightblue", color = "black"),
+    strip.text = element_text(face = "bold", size = 10),
+    panel.border = element_rect(color = "grey80", fill = NA, linewidth = 0.5),
+    panel.spacing = unit(0.5, "lines"),
+    legend.position = "bottom"
+  )
+```
+\newpage
+
 # 8. Economic Costs - All Patients
 ```{r}
 source("Model/8. Economic Costs - All Patients.R")
@@ -484,6 +639,52 @@ summary_df_full_cost_data %>% group_by(auc_label) %>% ggplot(aes(x = auc_label, 
     title = "Annual Cost for EAU Follow-Up of those with Clinically Significant Disease",
     x = "Cohort Type",
     y = "Annual Cost of Follow-up (£ Millions)",
+    fill = "Risk Status"
+  )
+```
+\newpage
+
+## Plot cost compared to baseline by cohort_type within risk groups - facet by FU type
+```{r}
+baseline_costs <- summary_df_full_cost_data %>%
+  filter(auc_label == "AUC 0.55") %>%
+  filter(cohort_type == "Minimum FU, XR") %>%
+  mutate(auc_label == "Baseline")
+
+baseline_cost_all <- baseline_costs %>%
+  filter(risk_status == "All") %>%
+  select(total_cost)
+baseline_cost_all <- baseline_cost_all$total_cost
+
+baseline_cost_hr <- baseline_costs %>%
+  filter(risk_status == "High Risk") %>%
+  select(total_cost)
+baseline_cost_hr <- baseline_cost_hr$total_cost
+
+baseline_cost_lr <- baseline_costs %>%
+  filter(risk_status == "Low Risk") %>%
+  select(total_cost)
+baseline_cost_lr <- baseline_cost_lr$total_cost
+
+summary_df_full_cost_data %>%
+  mutate(total_cost = case_when(
+    risk_status == "All" ~ (baseline_cost_all - total_cost),
+    risk_status == "High Risk" ~ (baseline_cost_hr - total_cost),
+    risk_status == "Low Risk" ~ (baseline_cost_lr - total_cost),
+  )) %>%
+  group_by(auc_label) %>%
+  ggplot(aes(x = auc_label, y = total_cost, fill = risk_status)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.7, color = "black") +
+  facet_wrap(~ cohort_type) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(size = 10)
+  ) +
+  labs(
+    title = "Annual Cost Difference for EAU Follow-Up of those with Clinically Significant Disease",
+    x = "Cohort Type",
+    y = "Annual Cost Difference compared to baseline (£ Millions)",
     fill = "Risk Status"
   )
 ```
@@ -551,7 +752,9 @@ source("Model/9. Economic Costs - Recurrence only.R")
 
 ## Plot total cost by cohort_type within risk groups - facet by FU type
 ```{r}
-summary_df_rec_only %>% group_by(auc_label) %>% ggplot(aes(x = auc_label, y = total_cost, fill = risk_status)) +
+summary_df_rec_only %>% 
+  group_by(auc_label) %>% 
+  ggplot(aes(x = auc_label, y = total_cost, fill = risk_status)) +
   geom_col(position = position_dodge(width = 0.8), width = 0.7, color = "black") +
   facet_wrap(~ cohort_type) +
   theme_bw() +
@@ -567,6 +770,51 @@ summary_df_rec_only %>% group_by(auc_label) %>% ggplot(aes(x = auc_label, y = to
   )
 ```
 \newpage
+
+## Plot cost compared to baseline by cohort_type within risk groups - facet by FU type
+```{r}
+baseline_costs_rec_only <- summary_df_rec_only %>%
+  filter(auc_label == "AUC 0.55") %>%
+  filter(cohort_type == "Minimum FU, XR") %>%
+  mutate(auc_label == "Baseline")
+
+baseline_cost_all_rec_only <- baseline_costs_rec_only %>%
+  filter(risk_status == "All") %>%
+  select(total_cost)
+baseline_cost_all_rec_only <- baseline_cost_all_rec_only$total_cost
+
+baseline_cost_hr_rec_only <- baseline_costs_rec_only %>%
+  filter(risk_status == "High Risk") %>%
+  select(total_cost)
+baseline_cost_hr_rec_only <- baseline_cost_hr_rec_only$total_cost
+
+baseline_cost_lr_rec_only <- baseline_costs_rec_only %>%
+  filter(risk_status == "Low Risk") %>%
+  select(total_cost)
+baseline_cost_lr_rec_only <- baseline_cost_lr_rec_only$total_cost
+
+summary_df_rec_only %>%
+  mutate(total_cost = case_when(
+    risk_status == "All" ~ (baseline_cost_all_rec_only - total_cost),
+    risk_status == "High Risk" ~ (baseline_cost_hr_rec_only - total_cost),
+    risk_status == "Low Risk" ~ (baseline_cost_lr_rec_only - total_cost),
+  )) %>%
+  group_by(auc_label) %>%
+  ggplot(aes(x = auc_label, y = total_cost, fill = risk_status)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.7, color = "black") +
+  facet_wrap(~ cohort_type) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(size = 10)
+  ) +
+  labs(
+    title = "Annual Cost Difference for EAU Follow-Up of those with Clinically Significant Disease - Recurrence Only",
+    x = "Cohort Type",
+    y = "Annual Cost Difference compared to baseline (£ Millions)",
+    fill = "Risk Status"
+  )
+```
 
 ## Plot total cost by cohort_type within risk groups - facet by auc
 ```{r}
@@ -657,6 +905,53 @@ summary_df_appts %>% group_by(auc_label) %>% ggplot(aes(x = auc_label, y = total
     fill = "Risk Status"
   )
 ```
+\newpage
+
+## Plot  number of appointments for 2020 compared to baseline by cohort_type within risk groups - facet by FU type
+```{r}
+baseline_appts <- summary_df_appts %>%
+  filter(auc_label == "AUC 0.55") %>%
+  filter(cohort_type == "Minimum FU, XR") %>%
+  mutate(auc_label == "Baseline")
+
+baseline_appt_all <- baseline_appts %>%
+  filter(risk_status == "All") %>%
+  select(total_appts)
+baseline_appt_all <- baseline_appt_all$total_appts
+
+baseline_appt_hr <- baseline_appts %>%
+  filter(risk_status == "High Risk") %>%
+  select(total_appts)
+baseline_appt_hr <- baseline_appt_hr$total_appts
+
+baseline_appt_lr <- baseline_appts %>%
+  filter(risk_status == "Low Risk") %>%
+  select(total_appts)
+baseline_appt_lr <- baseline_appt_lr$total_appts
+
+summary_df_appts %>%
+  mutate(total_appts = case_when(
+    risk_status == "All" ~ (baseline_appt_all - total_appts),
+    risk_status == "High Risk" ~ (baseline_appt_hr - total_appts),
+    risk_status == "Low Risk" ~ (baseline_appt_lr - total_appts),
+  )) %>%
+  group_by(auc_label) %>%
+  ggplot(aes(x = auc_label, y = total_appts, fill = risk_status)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.7, color = "black") +
+  facet_wrap(~ cohort_type) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(size = 10)
+  ) +
+  labs(
+    title = "Annual Number of Appointments Difference for EAU Follow-Up of those with Clinically Significant Disease",
+    x = "Cohort Type",
+    y = "Annual Number of Appointments Difference compared to baseline (n)",
+    fill = "Risk Status"
+  )
+```
+
 
 ## Tabulate number of appointments
 ```{r}
@@ -710,3 +1005,4 @@ summary_df_full_qol_data %>%
 source("Model/12. Calculate ICER.R")
 ```
 \newpage
+
