@@ -3,23 +3,225 @@
 global_rec_rate
 
 ### 4.2 Test Score simulation + ROC #### 
-simulate_and_plot_roc <- function(auc_targets, 
-                                  noise_sds,  
+simulate_and_plot_roc <- function(auc_targets,
+                                  noise_sds,
                                   event_rate = global_rec_rate,
-                                  bins = 100, 
+                                  bins = 100,
                                   year,
                                   total_or_clinically_significant = c("clinically_significant", "total"),
-                                  seed = 123) {
+                                  seed = 123,
+                                  max_iterations = 100,
+                                  tolerance = 0.001,
+                                  monte_carlo = TRUE,
+                                  mc_iterations = 1000,
+                                  return_individual_scores = TRUE) {
   set.seed(seed)
+  
+  # Helper function to calculate AUC given normal distribution parameters
+  calculate_auc_from_normal <- function(mean_event, sd_event, mean_nonevent, sd_nonevent,
+                                        n_events, n_nonevents, temp_seed = NULL) {
+    if (!is.null(temp_seed)) set.seed(temp_seed)
+    scores_event_temp <- rnorm(n_events, mean = mean_event, sd = sd_event)
+    scores_nonevent_temp <- rnorm(n_nonevents, mean = mean_nonevent, sd = sd_nonevent)
+    
+    # Clip scores to [0, 1] range
+    scores_event_temp <- pmax(0, pmin(1, scores_event_temp))
+    scores_nonevent_temp <- pmax(0, pmin(1, scores_nonevent_temp))
+    
+    labels_temp <- c(rep(1, n_events), rep(0, n_nonevents))
+    scores_temp <- c(scores_event_temp, scores_nonevent_temp)
+    wilcox_result <- suppressWarnings(wilcox.test(scores_event_temp, scores_nonevent_temp))
+    auc_temp <- wilcox_result$statistic / (n_events * n_nonevents)
+    return(as.numeric(auc_temp))
+  }
+  
+  # Optimization function to find best normal distribution parameters
+  optimize_normal_params <- function(target_auc, base_sd, n_events, n_nonevents) {
+    
+    # Objective function to minimize
+    objective <- function(params) {
+      mean_event <- params[1]
+      sd_event <- params[2]
+      mean_nonevent <- params[3]
+      sd_nonevent <- params[4]
+      
+      # Ensure parameters are valid
+      if (any(params[c(2, 4)] <= 0.01)) return(1000)  # SDs must be positive
+      if (mean_event < 0 || mean_event > 1) return(1000)
+      if (mean_nonevent < 0 || mean_nonevent > 1) return(1000)
+      if (mean_event <= mean_nonevent) return(1000)  # Event mean should be higher
+      
+      # Calculate AUC with these parameters
+      auc_calc <- calculate_auc_from_normal(mean_event, sd_event, mean_nonevent, sd_nonevent,
+                                            n_events, n_nonevents, temp_seed = seed + 999)
+      
+      # Return squared difference from target
+      return((auc_calc - target_auc)^2)
+    }
+    
+    # Initial parameter guess based on target AUC
+    # Separation between means increases with target AUC
+    separation_factor <- 2 * (target_auc - 0.5)
+    
+    initial_params <- c(
+      mean_event = 0.5 + separation_factor * 0.25,      # Higher mean for events
+      sd_event = base_sd,
+      mean_nonevent = 0.5 - separation_factor * 0.25,   # Lower mean for non-events
+      sd_nonevent = base_sd
+    )
+    
+    # Optimize using optim
+    result <- optim(par = initial_params,
+                    fn = objective,
+                    method = "L-BFGS-B",
+                    lower = c(0, 0.01, 0, 0.01),
+                    upper = c(1, 0.5, 1, 0.5),
+                    control = list(maxit = max_iterations))
+    
+    return(list(
+      mean_event = result$par[1],
+      sd_event = result$par[2],
+      mean_nonevent = result$par[3],
+      sd_nonevent = result$par[4],
+      final_error = sqrt(result$value),
+      convergence = result$convergence
+    ))
+  }
+  
+  # Monte Carlo simulation function
+  run_monte_carlo <- function(mean_event, sd_event, mean_nonevent, sd_nonevent,
+                              n_events_sf, n_events_less4, n_events_more4,
+                              non_events_sf, non_events_less4, non_events_more4,
+                              mc_iterations, base_seed) {
+    
+    mc_results <- list()
+    individual_scores_all <- list()
+    
+    total_individuals <- n_events_sf + n_events_less4 + n_events_more4 +
+      non_events_sf + non_events_less4 + non_events_more4
+    
+    # Create individual IDs and fixed characteristics
+    individual_data <- tibble(
+      individual_id = 1:total_individuals,
+      stone_free_status = c(rep("SF", n_events_sf + non_events_sf),
+                            rep("less4", n_events_less4 + non_events_less4),
+                            rep("more4", n_events_more4 + non_events_more4)),
+      true_outcome = c(rep(1, n_events_sf), rep(0, non_events_sf),
+                       rep(1, n_events_less4), rep(0, non_events_less4),
+                       rep(1, n_events_more4), rep(0, non_events_more4)),
+      group = c(rep("event", n_events_sf + n_events_less4 + n_events_more4),
+                rep("nonevent", non_events_sf + non_events_less4 + non_events_more4))
+    )
+    
+    # Store scores for each individual across all MC iterations
+    if (return_individual_scores) {
+      individual_scores_matrix <- matrix(nrow = total_individuals, ncol = mc_iterations)
+    }
+    
+    cat("Running Monte Carlo simulation with", mc_iterations, "iterations...\n")
+    pb <- txtProgressBar(min = 0, max = mc_iterations, style = 3)
+    
+    for (iter in 1:mc_iterations) {
+      set.seed(base_seed + iter)
+      
+      # Generate scores for this iteration from normal distributions
+      n_events_total <- n_events_sf + n_events_less4 + n_events_more4
+      n_nonevents_total <- non_events_sf + non_events_less4 + non_events_more4
+      
+      scores_event <- rnorm(n_events_total, mean = mean_event, sd = sd_event)
+      scores_nonevent <- rnorm(n_nonevents_total, mean = mean_nonevent, sd = sd_nonevent)
+      
+      # Clip to [0, 1] range
+      scores_event <- pmax(0, pmin(1, scores_event))
+      scores_nonevent <- pmax(0, pmin(1, scores_nonevent))
+      
+      all_scores <- c(scores_event, scores_nonevent)
+      all_labels <- c(rep(1, n_events_total), rep(0, n_nonevents_total))
+      
+      # Store individual scores
+      if (return_individual_scores) {
+        individual_scores_matrix[, iter] <- all_scores
+      }
+      
+      # Calculate AUC for this iteration
+      roc_obj_iter <- pROC::roc(response = all_labels, predictor = all_scores, quiet = TRUE)
+      auc_iter <- as.numeric(roc_obj_iter$auc)
+      
+      # Get optimal threshold and calculate metrics
+      best_thresh_iter <- coords(roc_obj_iter, "best", ret = "threshold", best.method = "youden")$threshold[1]
+      predictions_iter <- ifelse(all_scores > best_thresh_iter, 1, 0)
+      
+      # Calculate performance metrics
+      conf_matrix_iter <- confusionMatrix(as.factor(predictions_iter), as.factor(all_labels), positive = "1")
+      
+      mc_results[[iter]] <- list(
+        iteration = iter,
+        auc = auc_iter,
+        threshold = best_thresh_iter,
+        sensitivity = conf_matrix_iter$byClass["Sensitivity"],
+        specificity = conf_matrix_iter$byClass["Specificity"],
+        ppv = conf_matrix_iter$byClass["Pos Pred Value"],
+        npv = conf_matrix_iter$byClass["Neg Pred Value"],
+        accuracy = conf_matrix_iter$overall["Accuracy"],
+        scores_mean_event = mean(scores_event),
+        scores_mean_nonevent = mean(scores_nonevent),
+        scores_sd_event = sd(scores_event),
+        scores_sd_nonevent = sd(scores_nonevent)
+      )
+      
+      setTxtProgressBar(pb, iter)
+    }
+    close(pb)
+    
+    # Compile MC results into summary statistics
+    mc_summary <- bind_rows(mc_results) %>%
+      summarise(
+        iterations = n(),
+        auc_mean = mean(auc, na.rm = TRUE),
+        auc_sd = sd(auc, na.rm = TRUE),
+        auc_median = median(auc, na.rm = TRUE),
+        auc_q25 = quantile(auc, 0.25, na.rm = TRUE),
+        auc_q75 = quantile(auc, 0.75, na.rm = TRUE),
+        threshold_mean = mean(threshold, na.rm = TRUE),
+        threshold_sd = sd(threshold, na.rm = TRUE),
+        sensitivity_mean = mean(sensitivity, na.rm = TRUE),
+        sensitivity_sd = sd(sensitivity, na.rm = TRUE),
+        specificity_mean = mean(specificity, na.rm = TRUE),
+        specificity_sd = sd(specificity, na.rm = TRUE),
+        accuracy_mean = mean(accuracy, na.rm = TRUE),
+        accuracy_sd = sd(accuracy, na.rm = TRUE),
+        scores_event_mean_avg = mean(scores_mean_event, na.rm = TRUE),
+        scores_nonevent_mean_avg = mean(scores_mean_nonevent, na.rm = TRUE)
+      )
+    
+    # Individual score statistics
+    individual_score_stats <- NULL
+    if (return_individual_scores) {
+      individual_score_stats <- individual_data %>%
+        mutate(
+          score_mean = rowMeans(individual_scores_matrix, na.rm = TRUE),
+          score_sd = apply(individual_scores_matrix, 1, sd, na.rm = TRUE),
+          score_median = apply(individual_scores_matrix, 1, median, na.rm = TRUE),
+          score_q25 = apply(individual_scores_matrix, 1, quantile, 0.25, na.rm = TRUE),
+          score_q75 = apply(individual_scores_matrix, 1, quantile, 0.75, na.rm = TRUE),
+          score_min = apply(individual_scores_matrix, 1, min, na.rm = TRUE),
+          score_max = apply(individual_scores_matrix, 1, max, na.rm = TRUE)
+        )
+    }
+    
+    return(list(
+      mc_summary = mc_summary,
+      mc_detailed = bind_rows(mc_results),
+      individual_scores = individual_score_stats,
+      individual_data = individual_data
+    ))
+  }
   
   results <- list()
   i <- 1
   
   for (auc_target in auc_targets) {
     for (noise_sd in noise_sds) {
-      
-      # Calculate effect size
-      delta_mu <- sqrt(2) * qnorm(auc_target) * noise_sd
       
       # Calculate n
       year_rates <- hes_data_elective_emergency %>% filter(year == !!year)
@@ -45,86 +247,147 @@ simulate_and_plot_roc <- function(auc_targets,
       n_events_sf <- round(sf_patients * sf_5yr_event_rate, digits = 0)
       n_events_less4 <- round(less4_patients * less4_5yr_event_rate, digits = 0)
       n_events_more4 <- round(more4_patients * more4_5yr_event_rate, digits = 0)
-      
       n_events_recalculated <- round((n_events_sf + n_events_less4 + n_events_more4), digits = 0)
       
       # Calculate non event rates
       non_events_sf <- sf_patients - n_events_sf
       non_events_less4 <- less4_patients - n_events_less4
       non_events_more4 <- more4_patients - n_events_more4
-      
       n_nonevents_recalculated <- non_events_sf + non_events_less4 + non_events_more4
       
-      # Simulate prediction scores
-      scores_event <- rnorm(n_events_recalculated, mean = delta_mu / 2, sd = noise_sd)
-      scores_nonevent <- rnorm(n_nonevents_recalculated, mean = -delta_mu / 2, sd = noise_sd)
+      # Optimize normal distribution parameters to achieve target AUC
+      cat("\n--- Optimizing parameters for Simulation", i, "---\n")
+      cat("Target AUC:", auc_target, ", Standard Deviation:", noise_sd, "\n")
+      cat("Optimizing normal distribution parameters...\n")
       
-      # Combine and rescale scores
+      opt_result <- optimize_normal_params(auc_target, noise_sd,
+                                           n_events_recalculated, n_nonevents_recalculated)
+      
+      mean_event <- opt_result$mean_event
+      sd_event <- opt_result$sd_event
+      mean_nonevent <- opt_result$mean_nonevent
+      sd_nonevent <- opt_result$sd_nonevent
+      
+      cat("Optimization converged:", opt_result$convergence == 0,
+          "| Final error:", round(opt_result$final_error, 4), "\n")
+      cat("Event: N(", round(mean_event, 3), ", ", round(sd_event, 3), "²)\n", sep = "")
+      cat("Non-event: N(", round(mean_nonevent, 3), ", ", round(sd_nonevent, 3), "²)\n", sep = "")
+      
+      # Run Monte Carlo simulation if requested
+      mc_results <- NULL
+      if (monte_carlo) {
+        cat("Starting Monte Carlo simulation...\n")
+        mc_results <- run_monte_carlo(mean_event, sd_event, mean_nonevent, sd_nonevent,
+                                      n_events_sf, n_events_less4, n_events_more4,
+                                      non_events_sf, non_events_less4, non_events_more4,
+                                      mc_iterations, seed)
+      }
+      
+      # Generate single realization for plotting (using original seed)
+      set.seed(seed)
+      scores_event <- rnorm(n_events_recalculated, mean = mean_event, sd = sd_event)
+      scores_nonevent <- rnorm(n_nonevents_recalculated, mean = mean_nonevent, sd = sd_nonevent)
+      
+      # Clip to [0, 1] range
+      scores_event <- pmax(0, pmin(1, scores_event))
+      scores_nonevent <- pmax(0, pmin(1, scores_nonevent))
+      
+      # Combine scores
       scores <- c(scores_event, scores_nonevent)
-      stone_free_status <- c(rep("SF", n_events_sf),
-                             rep("less4", n_events_less4),
-                             rep("more4", n_events_more4),
-                             rep("SF", non_events_sf),
-                             rep("less4", non_events_less4),
-                             rep("more4", non_events_more4))
-      labels <- c(rep(1, n_events_sf),
-                  rep(1, n_events_less4),
-                  rep(1, n_events_more4),
-                  rep(0, non_events_sf),
-                  rep(0, non_events_less4),
-                  rep(0, non_events_more4))
-      scores_rescaled <- 1 / (1 + exp(-scores))
+      stone_free_status <- c(rep("SF", n_events_sf), rep("less4", n_events_less4), rep("more4", n_events_more4),
+                             rep("SF", non_events_sf), rep("less4", non_events_less4), rep("more4", non_events_more4))
+      labels <- c(rep(1, n_events_sf), rep(1, n_events_less4), rep(1, n_events_more4),
+                  rep(0, non_events_sf), rep(0, non_events_less4), rep(0, non_events_more4))
+      
+      scores_rescaled <- scores
       
       data_for_roc <- tibble(
         labels = factor(labels),
         scores_rescaled = scores_rescaled,
         scores = scores,
-        stone_free_status = factor(stone_free_status, 
-                                   levels = c("SF", "less4", "more4"))
-      ) 
+        stone_free_status = factor(stone_free_status, levels = c("SF", "less4", "more4"))
+      )
       
       # Create ROC object
       roc_obj <- pROC::roc(response = data_for_roc$labels, predictor = data_for_roc$scores_rescaled)
-      auc_actual <- round(as.numeric(roc_obj$auc), digits = 3) 
+      auc_actual <- round(as.numeric(roc_obj$auc), digits = 3)
+      auc_error <- abs(auc_actual - auc_target)
       
-      # ROC plot with ggroc
+      # ROC plot with Monte Carlo info if available
+      annotation_text <- paste0("Target AUC = ", round(auc_target, 3),
+                                "\nSingle Run AUC = ", round(auc_actual, 3),
+                                "\nError = ", round(auc_error, 4))
+      
+      if (monte_carlo && !is.null(mc_results)) {
+        annotation_text <- paste0(annotation_text,
+                                  "\n--- Monte Carlo (n=", mc_iterations, ") ---",
+                                  "\nMean AUC = ", round(mc_results$mc_summary$auc_mean, 3),
+                                  "\nAUC SD = ", round(mc_results$mc_summary$auc_sd, 4),
+                                  "\nAUC 95% CI = [", round(mc_results$mc_summary$auc_q25, 3),
+                                  ", ", round(mc_results$mc_summary$auc_q75, 3), "]")
+      }
+      
       p_roc <- ggroc(roc_obj) +
         geom_abline(intercept = 1, slope = 1, color = "gray", linetype = "dashed") +
-        ggtitle(paste0("Simulated ROC Curve (Target AUC = ", round(auc_target, 3), 
-                       ", Noise SD = ", noise_sd, ")")) +
+        ggtitle(paste0("ROC Curve with Monte Carlo Simulation (Normal Distribution)\n(Target AUC = ",
+                       round(auc_target, 3), ", SD = ", noise_sd, ")")) +
         theme_minimal() +
-        annotate("text", x = 0.6, y = 0.2, 
-                 label = paste0("Target AUC = ", round(auc_target, 3), 
-                                "\nActual AUC = ", round(auc_actual, 3)),
-                 size = 5, hjust = 0)
+        annotate("text", x = 0.6, y = 0.3, label = annotation_text, size = 3, hjust = 0)
       
-      # Get best threshold and confusion matrix
+      # Get best threshold and confusion matrix for single run
       best_thresh <- coords(roc_obj, "best", ret = "threshold", best.method = "youden") %>% slice_head(n=1)
       data_for_roc <- data_for_roc %>% mutate(predictions = ifelse(scores_rescaled > best_thresh$threshold, 1, 0))
       conf_matrix <- confusionMatrix(as.factor(data_for_roc$predictions), as.factor(data_for_roc$labels))
       
-      cat("\n--- Simulation", i, "---\n")
-      cat("Target AUC:", auc_target, "\nActual AUC:", auc_actual, "\nNoise SD:", noise_sd)
-      print(conf_matrix)
+      # Print results
+      cat("Target AUC:", auc_target, "| Single Run AUC:", auc_actual, "| Error:", round(auc_error, 4), "\n")
+      if (monte_carlo && !is.null(mc_results)) {
+        cat("Monte Carlo Results (", mc_iterations, " iterations):\n")
+        cat("  Mean AUC:", round(mc_results$mc_summary$auc_mean, 4),
+            "± SD:", round(mc_results$mc_summary$auc_sd, 4), "\n")
+        cat("  AUC Range: [", round(mc_results$mc_summary$auc_q25, 3), ", ",
+            round(mc_results$mc_summary$auc_q75, 3), "]\n")
+        cat("  Mean Accuracy:", round(mc_results$mc_summary$accuracy_mean, 4),
+            "± SD:", round(mc_results$mc_summary$accuracy_sd, 4), "\n")
+      }
       
-      # Density plot of scores by label
+      # Enhanced density plot
+      plot_title <- paste0("Target AUC: ", auc_target, " | Single Run AUC: ", auc_actual)
+      if (monte_carlo && !is.null(mc_results)) {
+        plot_title <- paste0(plot_title, " | MC Mean AUC: ", round(mc_results$mc_summary$auc_mean, 3))
+      }
+      
       p_density <- ggplot(data_for_roc, aes(x = scores, fill = labels)) +
         geom_density(alpha = 0.5) +
-        labs(title = paste0("Target AUC:", auc_target),
-             x = "Score", y = "Density") +
-        theme_minimal()
+        labs(title = plot_title,
+             subtitle = paste0("Event: N(", round(mean_event, 3), ", ", round(sd_event, 3), "²) | ",
+                               "Non-event: N(", round(mean_nonevent, 3), ", ", round(sd_nonevent, 3), "²)"),
+             x = "Score (0-1)", y = "Density") +
+        theme_minimal() +
+        xlim(0, 1)
       
       # Histogram of scores by label
       p_hist <- ggplot(data_for_roc, aes(x = scores, fill = labels)) +
         geom_histogram(position = "identity", alpha = 0.5, bins = bins) +
-        labs(title = "Histogram of Scores by Label",
-             x = "Score", y = "Count") +
-        theme_minimal()
+        labs(title = "Histogram of Scores (Normal Distribution)",
+             x = "Score (0-1)", y = "Count") +
+        theme_minimal() +
+        xlim(0, 1)
       
       results[[i]] <- list(
         scores = (data_for_roc %>% cbind(auc_target = auc_target)),
         auc_target = auc_target,
+        auc_actual = auc_actual,
+        auc_error = auc_error,
         noise_sd = noise_sd,
+        mean_event = mean_event,
+        sd_event = sd_event,
+        mean_nonevent = mean_nonevent,
+        sd_nonevent = sd_nonevent,
+        optimization_converged = opt_result$convergence == 0,
+        monte_carlo = monte_carlo,
+        mc_iterations = ifelse(monte_carlo, mc_iterations, 0),
+        mc_results = mc_results,
         roc_plot = p_roc,
         density_plot = p_density,
         histogram_plot = p_hist,
@@ -138,7 +401,6 @@ simulate_and_plot_roc <- function(auc_targets,
   
   return(results)
 }
-
 ### 4.3 Complete Population simulation ####
 simulate_complete_population_distribution <- function(total_patients,
                                                       total_sf_patients,
