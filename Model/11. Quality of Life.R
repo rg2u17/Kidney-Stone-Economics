@@ -487,7 +487,9 @@ plot_grid(na_plot, means_plot, mice_imputation_qol_plot,
 
 ### 11.2.11 Assign QOL Scores going forwards ####
 usiqol_metrics_by_age_stone_free_status <- usiqol_metrics_by_age_stone_free_status2 # Imputed scores
+
 # usiqol_metrics_by_age_stone_free_status1 # mean scores  
+
 
 ## 11.3 Functions to assign QOL scores - with MC simulation #### 
 ### 11.3.1 Assign Age helper function ####
@@ -623,63 +625,173 @@ assign_qol_chunked <- function(data,
         select(-age_fu)
     }
     
-    # Get baseline QoL by MC simulation
+    # Get baseline QoL distribution parameters (for regenerating samples when age bin changes)
     chunk <- chunk %>%
       left_join(
         baseline_qol %>% select(age_bin, stone_free_status, total_mean, total_sd),
         by = c("baseline_age_bin" = "age_bin", "stone_free_status")
       )
     
-    # Baseline QoL MC
+    # Helper function to apply QoL adjustments to individual MC samples
+    apply_qol_adjustments <- function(samples, stone_free_status, prediction, 
+                                      first_intervention_year, current_year) {
+      adjusted <- samples
+      
+      # Base adjustments
+      if (!is.na(stone_free_status) && stone_free_status != "SF") {
+        adjusted <- adjusted + 1
+      }
+      
+      if (!is.na(prediction)) {
+        if (prediction == "Yes") {
+          adjusted <- adjusted + 1
+        } else if (prediction == "No") {
+          adjusted <- adjusted - 1
+        }
+      }
+      
+      # Intervention-specific adjustments for follow-up years
+      if (!is.na(first_intervention_year) && !is.na(current_year) && current_year > 0) {
+        if (first_intervention_year < current_year + 1) {
+          if (!is.na(stone_free_status) && !is.na(prediction)) {
+            if (stone_free_status == "SF" && prediction == "No") {
+              adjusted <- adjusted + 3
+            } else if (stone_free_status != "SF" && prediction == "No") {
+              adjusted <- adjusted + 1
+            } else if (stone_free_status == "SF" && prediction == "Yes") {
+              adjusted <- adjusted + 2
+            } else if (stone_free_status != "SF" && prediction == "Yes") {
+              adjusted <- adjusted + 1
+            }
+          }
+        }
+      }
+      
+      return(adjusted)
+    }
+    
+    # Create baseline QoL samples from existing mean/lower/upper for propagation
     chunk <- chunk %>%
       mutate(
-        baseline_qol_mean = pmap_dbl(list(total_mean, total_sd), 
-                                     ~ mean(pmin(max_qol, pmax(0, rnorm(mc_reps, ..1, ..2))))),
-        baseline_qol_lower = pmap_dbl(list(total_mean, total_sd),
-                                      ~ quantile(pmin(max_qol, pmax(0, rnorm(mc_reps, ..1, ..2))), probs = alpha)),
-        baseline_qol_upper = pmap_dbl(list(total_mean, total_sd),
-                                      ~ quantile(pmin(max_qol, pmax(0, rnorm(mc_reps, ..1, ..2))), probs = 1 - alpha))
+        baseline_qol_samples = pmap(
+          list(baseline_qol_mean, baseline_qol_lower, baseline_qol_upper),
+          function(mean_val, lower_val, upper_val) {
+            if (is.na(mean_val)) return(rep(NA_real_, mc_reps))
+            
+            # Estimate SD from CI range (assuming normal distribution)
+            # CI range ≈ 2 * 1.96 * SD for 95% CI
+            estimated_sd <- (upper_val - lower_val) / (2 * qnorm(1 - alpha))
+            
+            # Generate samples
+            samples <- rnorm(mc_reps, mean_val, estimated_sd)
+            
+            # Apply bounds
+            pmin(max_qol, pmax(0, samples))
+          }
+        )
       )
     
+    # Follow-up years with adjustments
     for (fu_year in 1:5) {
       
-      prev_qol <- if (fu_year == 1) "baseline_qol_mean" else paste0("qol_mean_year_", fu_year - 1)
-      prev_qol_lower <- if (fu_year == 1) "baseline_qol_lower" else paste0("qol_lower_year_", fu_year - 1)
-      prev_qol_upper <- if (fu_year == 1) "baseline_qol_upper" else paste0("qol_upper_year_", fu_year - 1)
+      prev_qol_samples <- if (fu_year == 1) "baseline_qol_samples" else paste0("qol_samples_year_", fu_year - 1)
+      prev_qol_mean <- if (fu_year == 1) "baseline_qol_mean" else paste0("qol_mean_year_", fu_year - 1)
       prev_age_bin <- if (fu_year == 1) "baseline_age_bin" else paste0("age_bin_fu_year_", fu_year - 1)
       current_age_bin <- paste0("age_bin_fu_year_", fu_year)
       intervention_col <- paste0("colic_intervention_type_year_", fu_year)
       
+      # Join intervention change data for this year
+      chunk <- chunk %>%
+        left_join(
+          event_qol_change %>% 
+            select(intervention, stone_free_status_pre, qol_change, qol_sd) %>%
+            rename(!!paste0("intervention_qol_change_", fu_year) := qol_change,
+                   !!paste0("intervention_qol_sd_", fu_year) := qol_sd),
+          by = c(setNames("intervention", intervention_col),
+                 setNames("stone_free_status_pre", "stone_free_status1"))
+        )
+      
+      # Generate QoL samples for this year
       chunk <- chunk %>%
         mutate(
-          !!paste0("qol_mean_year_", fu_year) := case_when(
-            !is.na(.data[[intervention_col]]) & .data[[intervention_col]] != "No" &
-              first_intervention_year == fu_year ~ .data[[prev_qol]],  
-            !is.na(.data[[prev_age_bin]]) &
-              !is.na(.data[[current_age_bin]]) &
-              .data[[prev_age_bin]] == .data[[current_age_bin]] ~ .data[[prev_qol]],
-            TRUE ~ .data[[prev_qol]]  
+          !!paste0("qol_samples_year_", fu_year) := pmap(
+            list(
+              total_mean, total_sd, stone_free_status, prediction, 
+              first_intervention_year, .data[[intervention_col]],
+              .data[[prev_age_bin]], .data[[current_age_bin]],
+              .data[[prev_qol_samples]], .data[[prev_qol_mean]],
+              .data[[paste0("intervention_qol_change_", fu_year)]],
+              .data[[paste0("intervention_qol_sd_", fu_year)]]
+            ),
+            function(mean_val, sd_val, sf_status, pred, first_interv, interv_type,
+                     prev_bin, curr_bin, prev_samples, prev_mean,
+                     interv_change, interv_sd) {
+              
+              # Case 1: Intervention in this year - apply intervention-based QoL change
+              if (!is.na(interv_type) && interv_type != "No" && 
+                  !is.na(first_interv) && first_interv == fu_year) {
+                
+                # If we have intervention change data, apply it
+                if (!is.na(interv_change) && !is.na(interv_sd)) {
+                  # Generate change samples from intervention distribution
+                  change_samples <- rnorm(mc_reps, interv_change, interv_sd)
+                  
+                  # Apply change to previous QoL samples
+                  new_samples <- prev_samples + change_samples
+                  
+                  # Apply bounds
+                  return(pmin(max_qol, pmax(0, new_samples)))
+                } else {
+                  # No intervention data available - keep previous QoL
+                  return(prev_samples)
+                }
+              }
+              
+              # Case 2: Age bin hasn't changed - keep previous QoL
+              if (!is.na(prev_bin) && !is.na(curr_bin) && prev_bin == curr_bin) {
+                return(prev_samples)
+              }
+              
+              # Case 3: Age bin changed - regenerate with adjustments
+              if (is.na(mean_val) || is.na(sd_val)) return(prev_samples)
+              
+              # Generate raw samples from new age bin distribution
+              raw_samples <- rnorm(mc_reps, mean_val, sd_val)
+              
+              # Apply prediction-based adjustments
+              adjusted_samples <- apply_qol_adjustments(
+                raw_samples, sf_status, pred, first_interv, current_year = fu_year
+              )
+              
+              # Apply bounds
+              pmin(max_qol, pmax(0, adjusted_samples))
+            }
           ),
-          !!paste0("qol_lower_year_", fu_year) := case_when(
-            !is.na(.data[[intervention_col]]) & .data[[intervention_col]] != "No" &
-              first_intervention_year == fu_year ~ .data[[prev_qol_lower]],  
-            !is.na(.data[[prev_age_bin]]) &
-              !is.na(.data[[current_age_bin]]) &
-              .data[[prev_age_bin]] == .data[[current_age_bin]] ~ .data[[prev_qol_lower]],
-            TRUE ~ .data[[prev_qol_lower]]  
+          !!paste0("qol_mean_year_", fu_year) := map_dbl(
+            .data[[paste0("qol_samples_year_", fu_year)]], 
+            ~mean(.x, na.rm = TRUE)
           ),
-          !!paste0("qol_upper_year_", fu_year) := case_when(
-            !is.na(.data[[intervention_col]]) & .data[[intervention_col]] != "No" &
-              first_intervention_year == fu_year ~ .data[[prev_qol_upper]],  
-            !is.na(.data[[prev_age_bin]]) &
-              !is.na(.data[[current_age_bin]]) &
-              .data[[prev_age_bin]] == .data[[current_age_bin]] ~ .data[[prev_qol_upper]],
-            TRUE ~ .data[[prev_qol_upper]]  
+          !!paste0("qol_lower_year_", fu_year) := map_dbl(
+            .data[[paste0("qol_samples_year_", fu_year)]], 
+            ~quantile(.x, probs = alpha, na.rm = TRUE)
+          ),
+          !!paste0("qol_upper_year_", fu_year) := map_dbl(
+            .data[[paste0("qol_samples_year_", fu_year)]], 
+            ~quantile(.x, probs = 1 - alpha, na.rm = TRUE)
+          ),
+          !!paste0("qol_se_year_", fu_year) := map_dbl(
+            .data[[paste0("qol_samples_year_", fu_year)]],
+            ~sd(.x, na.rm = TRUE)
           )
-        )
+        ) %>%
+        # Clean up temporary intervention columns
+        select(-!!paste0("intervention_qol_change_", fu_year),
+               -!!paste0("intervention_qol_sd_", fu_year))
     }
     
-    
+    # Remove all sample columns to save memory (keep only summary stats)
+    sample_cols <- c("baseline_qol_samples", paste0("qol_samples_year_", 1:5))
+    chunk <- chunk %>% select(-any_of(sample_cols))
     
     results_list[[i]] <- chunk
     
@@ -694,10 +806,95 @@ assign_qol_chunked <- function(data,
   bind_rows(results_list)
 }
 
+### 11.3.5 Pre-assign baseline scores per unique id #### 
+# Scores will then be altered by recurrence status, risk status and age
+assign_baseline_qol <- function(df,
+                                baseline_qol = usiqol_metrics_by_age_stone_free_status,
+                                n_sim = 1000) {
+  
+  # Clean age bins 
+  baseline_qol1 <- baseline_qol %>%
+    mutate(
+      age_bin = str_replace(age_bin, "Aged ", ""),
+      age_bin = str_replace(age_bin, " to ", "-"),
+      age_bin = case_when(
+        age_bin == "90 and over" ~ ">90",
+        TRUE ~ age_bin
+      ),
+      age_bin = as.factor(age_bin)
+    )
+  
+  # Filter baseline cohort
+  df1 <- df %>% filter(auc_target == 0.55)
+  
+  df1$age_band <- as.factor(df1$age_band)
+  age_list <- levels(df1$age_band)
+  sf_levels <- levels(df1$stone_free_status)
+  
+  df_out <- list()
+  counter <- 1
+  
+  for (age_b in age_list) {
+    for (sf_level in sf_levels) {
+      
+      baseline_row <- baseline_qol1 %>%
+        filter(age_bin == age_b,
+               stone_free_status == sf_level)
+      
+      if (nrow(baseline_row) == 0) next
+      
+      qol_mean <- baseline_row$total_mean
+      qol_sd   <- baseline_row$total_sd
+      
+      df_sub <- df1 %>%
+        filter(age_band == age_b,
+               stone_free_status == sf_level)
+      
+      n_subgroup <- nrow(df_sub)
+      if (n_subgroup == 0) next
+      
+      # MC simulation for USIQoL score assignment
+      mc_draws <- replicate(
+        n = n_sim,
+        expr = {
+          vals <- rnorm(n_subgroup, mean = qol_mean, sd = qol_sd)
+          # Clip to min/max USIQOL scores
+          pmin(pmax(vals, 15), 60)
+        }
+      )
+
+      # Summarise MC sim for each individual
+      baseline_qol_mean  <- rowMeans(mc_draws)
+      baseline_qol_lower <- apply(mc_draws, 1, quantile, probs = 0.025)
+      baseline_qol_upper <- apply(mc_draws, 1, quantile, probs = 0.975)
+      
+      df_assigned <- df_sub %>%
+        mutate(
+          baseline_qol_mean  = round(baseline_qol_mean, 1),
+          baseline_qol_lower = round(baseline_qol_lower, 1),
+          baseline_qol_upper = round(baseline_qol_upper, 1)
+        ) %>%
+        select(id, baseline_qol_mean, baseline_qol_lower, baseline_qol_upper)
+      
+      df_out[[counter]] <- df_assigned
+      counter <- counter + 1
+    }
+    
+    message("Assigned baseline QoL for age band: ", age_b, ". ", n_sim, " MC simulations")
+  }
+  
+  df_assignments <- bind_rows(df_out)
+  
+  # Merge assigned QoL back into main dataset
+  df_final <- df %>%
+    left_join(df_assignments, by = "id")
+  
+  return(df_final)
+}
 
 
 
-## 11.4 Function to calculate scores over years #### 
+### 11.3.6 Function to calculate scores over years #### 
 calculate_qol <- function(complete_pop_yr_fu,
                           cutpoints_yr,
                           start_year,
@@ -784,172 +981,6 @@ calculate_qol <- function(complete_pop_yr_fu,
     ) %>%
       as_tibble() %>%
       mutate(
-        baseline_qol_mean = case_when(
-          stone_free_status1 != "SF" ~ baseline_qol_mean + 1,
-          prediction == "Yes" ~ baseline_qol_mean + 1,
-          prediction == "No" ~ baseline_qol_mean - 1,
-          TRUE ~ baseline_qol_mean
-        ),
-        qol_mean_year_1 = case_when(
-          stone_free_status1 != "SF" ~ qol_mean_year_1 + 1,
-          prediction == "Yes" ~ qol_mean_year_1 + 1,
-          prediction == "No" ~ qol_mean_year_1 - 1,
-          first_intervention_year == 1 & stone_free_status1 == "SF" & prediction == "No" ~ qol_mean_year_1 + 3,
-          first_intervention_year == 1 & stone_free_status1 != "SF" & prediction == "No" ~ qol_mean_year_1 + 1,
-          first_intervention_year == 1 & stone_free_status1 == "SF" & prediction == "Yes" ~ qol_mean_year_1 + 2,
-          first_intervention_year == 1 & stone_free_status1 != "SF" & prediction == "Yes" ~ qol_mean_year_1 + 1,
-          TRUE ~ qol_mean_year_1
-        ),
-        qol_mean_year_2 = case_when(
-          stone_free_status1 != "SF" ~ qol_mean_year_2 + 1,
-          prediction == "Yes" ~ qol_mean_year_2 + 1,
-          prediction == "No" ~ qol_mean_year_2 - 1,
-          first_intervention_year < 3 & stone_free_status1 == "SF" & prediction == "No" ~ qol_mean_year_2 + 3,
-          first_intervention_year < 3 & stone_free_status1 != "SF" & prediction == "No" ~ qol_mean_year_2 + 1,
-          first_intervention_year < 3 & stone_free_status1 == "SF" & prediction == "Yes" ~ qol_mean_year_2 + 2,
-          first_intervention_year < 3 & stone_free_status1 != "SF" & prediction == "Yes" ~ qol_mean_year_2 + 1,
-          TRUE ~ qol_mean_year_2
-        ),
-        qol_mean_year_3 = case_when(
-          stone_free_status1 != "SF" ~ qol_mean_year_3 + 1,
-          prediction == "Yes" ~ qol_mean_year_3 + 1,
-          prediction == "No" ~ qol_mean_year_3 - 1,
-          first_intervention_year < 4 & stone_free_status1 == "SF" & prediction == "No" ~ qol_mean_year_3 + 3,
-          first_intervention_year < 4 & stone_free_status1 != "SF" & prediction == "No" ~ qol_mean_year_3 + 1,
-          first_intervention_year < 4 & stone_free_status1 == "SF" & prediction == "Yes" ~ qol_mean_year_3 + 2,
-          first_intervention_year < 4 & stone_free_status1 != "SF" & prediction == "Yes" ~ qol_mean_year_3 + 1,
-          TRUE ~ qol_mean_year_3
-        ),
-        qol_mean_year_4 = case_when(
-          stone_free_status1 != "SF" ~ qol_mean_year_4 + 1,
-          prediction == "Yes" ~ qol_mean_year_4 + 1,
-          prediction == "No" ~ qol_mean_year_4 - 1,
-          first_intervention_year < 5 & stone_free_status1 == "SF" & prediction == "No" ~ qol_mean_year_4 + 3,
-          first_intervention_year < 5 & stone_free_status1 != "SF" & prediction == "No" ~ qol_mean_year_4 + 1,
-          first_intervention_year < 5 & stone_free_status1 == "SF" & prediction == "Yes" ~ qol_mean_year_4 + 2,
-          first_intervention_year < 5 & stone_free_status1 != "SF" & prediction == "Yes" ~ qol_mean_year_4 + 1,
-          TRUE ~ qol_mean_year_4
-        ),
-        qol_mean_year_5 = case_when(
-          stone_free_status1 != "SF" ~ qol_mean_year_5 + 1,
-          prediction == "Yes" ~ qol_mean_year_5 + 1,
-          prediction == "No" ~ qol_mean_year_5 - 1,
-          first_intervention_year < 6 & stone_free_status1 == "SF" & prediction == "No" ~ qol_mean_year_5 + 3,
-          first_intervention_year < 6 & stone_free_status1 != "SF" & prediction == "No" ~ qol_mean_year_5 + 1,
-          first_intervention_year < 6 & stone_free_status1 == "SF" & prediction == "Yes" ~ qol_mean_year_5 + 2,
-          first_intervention_year < 6 & stone_free_status1 != "SF" & prediction == "Yes" ~ qol_mean_year_5 + 1,
-          TRUE ~ qol_mean_year_5
-        ),
-        baseline_qol_lower = case_when(
-          stone_free_status1 != "SF" ~ baseline_qol_lower + 1,
-          prediction == "Yes" ~ baseline_qol_lower + 1,
-          prediction == "No" ~ baseline_qol_lower - 1,
-          TRUE ~ baseline_qol_lower
-        ),
-        qol_lower_year_1 = case_when(
-          stone_free_status1 != "SF" ~ qol_lower_year_1 + 1,
-          prediction == "Yes" ~ qol_lower_year_1 + 1,
-          prediction == "No" ~ qol_lower_year_1 - 1,
-          first_intervention_year == 1 & stone_free_status1 == "SF" & prediction == "No" ~ qol_lower_year_1 + 3,
-          first_intervention_year == 1 & stone_free_status1 != "SF" & prediction == "No" ~ qol_lower_year_1 + 1,
-          first_intervention_year == 1 & stone_free_status1 == "SF" & prediction == "Yes" ~ qol_lower_year_1 + 2,
-          first_intervention_year == 1 & stone_free_status1 != "SF" & prediction == "Yes" ~ qol_lower_year_1 + 1,
-          TRUE ~ qol_lower_year_1
-        ),
-        qol_lower_year_2 = case_when(
-          stone_free_status1 != "SF" ~ qol_lower_year_2 + 1,
-          prediction == "Yes" ~ qol_lower_year_2 + 1,
-          prediction == "No" ~ qol_lower_year_2 - 1,
-          first_intervention_year < 3 & stone_free_status1 == "SF" & prediction == "No" ~ qol_lower_year_2 + 3,
-          first_intervention_year < 3 & stone_free_status1 != "SF" & prediction == "No" ~ qol_lower_year_2 + 1,
-          first_intervention_year < 3 & stone_free_status1 == "SF" & prediction == "Yes" ~ qol_lower_year_2 + 2,
-          first_intervention_year < 3 & stone_free_status1 != "SF" & prediction == "Yes" ~ qol_lower_year_2 + 1,
-          TRUE ~ qol_lower_year_2
-        ),
-        qol_lower_year_3 = case_when(
-          stone_free_status1 != "SF" ~ qol_lower_year_3 + 1,
-          prediction == "Yes" ~ qol_lower_year_3 + 1,
-          prediction == "No" ~ qol_lower_year_3 - 1,
-          first_intervention_year < 4 & stone_free_status1 == "SF" & prediction == "No" ~ qol_lower_year_3 + 3,
-          first_intervention_year < 4 & stone_free_status1 != "SF" & prediction == "No" ~ qol_lower_year_3 + 1,
-          first_intervention_year < 4 & stone_free_status1 == "SF" & prediction == "Yes" ~ qol_lower_year_3 + 2,
-          first_intervention_year < 4 & stone_free_status1 != "SF" & prediction == "Yes" ~ qol_lower_year_3 + 1,
-          TRUE ~ qol_lower_year_3
-        ),
-        qol_lower_year_4 = case_when(
-          stone_free_status1 != "SF" ~ qol_lower_year_4 + 1,
-          prediction == "Yes" ~ qol_lower_year_4 + 1,
-          prediction == "No" ~ qol_lower_year_4 - 1,
-          first_intervention_year < 5 & stone_free_status1 == "SF" & prediction == "No" ~ qol_lower_year_4 + 3,
-          first_intervention_year < 5 & stone_free_status1 != "SF" & prediction == "No" ~ qol_lower_year_4 + 1,
-          first_intervention_year < 5 & stone_free_status1 == "SF" & prediction == "Yes" ~ qol_lower_year_4 + 2,
-          first_intervention_year < 5 & stone_free_status1 != "SF" & prediction == "Yes" ~ qol_lower_year_4 + 1,
-          TRUE ~ qol_lower_year_4
-        ),
-        qol_lower_year_5 = case_when(
-          stone_free_status1 != "SF" ~ qol_lower_year_5 + 1,
-          prediction == "Yes" ~ qol_lower_year_5 + 1,
-          prediction == "No" ~ qol_lower_year_5 - 1,
-          first_intervention_year < 6 & stone_free_status1 == "SF" & prediction == "No" ~ qol_lower_year_5 + 3,
-          first_intervention_year < 6 & stone_free_status1 != "SF" & prediction == "No" ~ qol_lower_year_5 + 1,
-          first_intervention_year < 6 & stone_free_status1 == "SF" & prediction == "Yes" ~ qol_lower_year_5 + 2,
-          first_intervention_year < 6 & stone_free_status1 != "SF" & prediction == "Yes" ~ qol_lower_year_5 + 1,
-          TRUE ~ qol_lower_year_5
-        ),
-        baseline_qol_upper = case_when(
-          stone_free_status1 != "SF" ~ baseline_qol_upper + 1,
-          prediction == "Yes" ~ baseline_qol_upper + 1,
-          prediction == "No" ~ baseline_qol_upper - 1,
-          TRUE ~ baseline_qol_upper
-        ),
-        qol_upper_year_1 = case_when(
-          stone_free_status1 != "SF" ~ qol_upper_year_1 + 1,
-          prediction == "Yes" ~ qol_upper_year_1 + 1,
-          prediction == "No" ~ qol_upper_year_1 - 1,
-          first_intervention_year == 1 & stone_free_status1 == "SF" & prediction == "No" ~ qol_upper_year_1 + 3,
-          first_intervention_year == 1 & stone_free_status1 != "SF" & prediction == "No" ~ qol_upper_year_1 + 1,
-          first_intervention_year == 1 & stone_free_status1 == "SF" & prediction == "Yes" ~ qol_upper_year_1 + 2,
-          first_intervention_year == 1 & stone_free_status1 != "SF" & prediction == "Yes" ~ qol_upper_year_1 + 1,
-          TRUE ~ qol_upper_year_1
-        ),
-        qol_upper_year_2 = case_when(
-          stone_free_status1 != "SF" ~ qol_upper_year_2 + 1,
-          prediction == "Yes" ~ qol_upper_year_2 + 1,
-          prediction == "No" ~ qol_upper_year_2 - 1,
-          first_intervention_year < 3 & stone_free_status1 == "SF" & prediction == "No" ~ qol_upper_year_2 + 3,
-          first_intervention_year < 3 & stone_free_status1 != "SF" & prediction == "No" ~ qol_upper_year_2 + 1,
-          first_intervention_year < 3 & stone_free_status1 == "SF" & prediction == "Yes" ~ qol_upper_year_2 + 2,
-          first_intervention_year < 3 & stone_free_status1 != "SF" & prediction == "Yes" ~ qol_upper_year_2 + 1,
-          TRUE ~ qol_upper_year_2
-        ),
-        qol_upper_year_3 = case_when(
-          stone_free_status1 != "SF" ~ qol_upper_year_3 + 1,
-          prediction == "Yes" ~ qol_upper_year_3 + 1,
-          prediction == "No" ~ qol_upper_year_3 - 1,
-          first_intervention_year < 4 & stone_free_status1 == "SF" & prediction == "No" ~ qol_upper_year_3 + 3,
-          first_intervention_year < 4 & stone_free_status1 != "SF" & prediction == "No" ~ qol_upper_year_3 + 1,
-          first_intervention_year < 4 & stone_free_status1 == "SF" & prediction == "Yes" ~ qol_upper_year_3 + 2,
-          first_intervention_year < 4 & stone_free_status1 != "SF" & prediction == "Yes" ~ qol_upper_year_3 + 1,
-          TRUE ~ qol_upper_year_3
-        ),
-        qol_upper_year_4 = case_when(
-          stone_free_status1 != "SF" ~ qol_upper_year_4 + 1,
-          prediction == "Yes" ~ qol_upper_year_4 + 1,
-          prediction == "No" ~ qol_upper_year_4 - 1,
-          first_intervention_year < 5 & stone_free_status1 == "SF" & prediction == "No" ~ qol_upper_year_4 + 3,
-          first_intervention_year < 5 & stone_free_status1 != "SF" & prediction == "No" ~ qol_upper_year_4 + 1,
-          first_intervention_year < 5 & stone_free_status1 == "SF" & prediction == "Yes" ~ qol_upper_year_4 + 2,
-          first_intervention_year < 5 & stone_free_status1 != "SF" & prediction == "Yes" ~ qol_upper_year_4 + 1,          TRUE ~ qol_upper_year_4
-        ),
-        qol_upper_year_5 = case_when(
-          stone_free_status1 != "SF" ~ qol_upper_year_5 + 1,
-          prediction == "Yes" ~ qol_upper_year_5 + 1,
-          prediction == "No" ~ qol_upper_year_5 - 1,
-          first_intervention_year < 6 & stone_free_status1 == "SF" & prediction == "No" ~ qol_upper_year_5 + 3,
-          first_intervention_year < 6 & stone_free_status1 != "SF" & prediction == "No" ~ qol_upper_year_5 + 1,
-          first_intervention_year < 6 & stone_free_status1 == "SF" & prediction == "Yes" ~ qol_upper_year_5 + 2,
-          first_intervention_year < 6 & stone_free_status1 != "SF" & prediction == "Yes" ~ qol_upper_year_5 + 1,          TRUE ~ qol_upper_year_5
-        ),
         auc_target = auc_target,
         cutpoint = cutpoint,
         post_op_imaging = post_op_imaging,
@@ -1018,8 +1049,10 @@ calculate_qol <- function(complete_pop_yr_fu,
 
 ## 11.4 Run QoL function ####
 ### 11.4.1 2016 ####
+complete_pop_2016_fu_baseline_qol <- assign_baseline_qol(df = complete_pop_2016_fu)
+
 qol_2016_xr_min <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2016_fu,
+  complete_pop_yr_fu = complete_pop_2016_fu_baseline_qol,
   cutpoints_yr = cutpoints_2016,
   start_year = 2016,
   years = c(1,2,3,4,5),
@@ -1029,7 +1062,7 @@ qol_2016_xr_min <- calculate_qol(
 )
 
 qol_2016_xr_max <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2016_fu,
+  complete_pop_yr_fu = complete_pop_2016_fu_baseline_qol,
   cutpoints_yr = cutpoints_2016,
   start_year = 2016,
   years = c(1,2,3,4,5),
@@ -1039,7 +1072,7 @@ qol_2016_xr_max <- calculate_qol(
 )
 
 qol_2016_xr_us_min <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2016_fu,
+  complete_pop_yr_fu = complete_pop_2016_fu_baseline_qol,
   cutpoints_yr = cutpoints_2016,
   start_year = 2016,
   years = c(1,2,3,4,5),
@@ -1049,7 +1082,7 @@ qol_2016_xr_us_min <- calculate_qol(
 )
 
 qol_2016_xr_us_max <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2016_fu,
+  complete_pop_yr_fu = complete_pop_2016_fu_baseline_qol,
   cutpoints_yr = cutpoints_2016,
   start_year = 2016,
   years = c(1,2,3,4,5),
@@ -1059,7 +1092,7 @@ qol_2016_xr_us_max <- calculate_qol(
 )
 
 qol_2016_ct_min <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2016_fu,
+  complete_pop_yr_fu = complete_pop_2016_fu_baseline_qol,
   cutpoints_yr = cutpoints_2016,
   start_year = 2016,
   years = c(1,2,3,4,5),
@@ -1069,7 +1102,7 @@ qol_2016_ct_min <- calculate_qol(
 )
 
 qol_2016_ct_max <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2016_fu,
+  complete_pop_yr_fu = complete_pop_2016_fu_baseline_qol,
   cutpoints_yr = cutpoints_2016,
   start_year = 2016,
   years = c(1,2,3,4,5),
@@ -1079,8 +1112,10 @@ qol_2016_ct_max <- calculate_qol(
 )
 
 ### 11.4.2 2017 ####
+complete_pop_2017_fu_baseline_qol <- assign_baseline_qol(df = complete_pop_2017_fu)
+
 qol_2017_xr_min <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2017_fu,
+  complete_pop_yr_fu = complete_pop_2017_fu_baseline_qol,
   cutpoints_yr = cutpoints_2017,
   start_year = 2017,
   years = c(1,2,3,4,5),
@@ -1090,7 +1125,7 @@ qol_2017_xr_min <- calculate_qol(
 )
 
 qol_2017_xr_max <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2017_fu,
+  complete_pop_yr_fu = complete_pop_2017_fu_baseline_qol,
   cutpoints_yr = cutpoints_2017,
   start_year = 2017,
   years = c(1,2,3,4,5),
@@ -1100,7 +1135,7 @@ qol_2017_xr_max <- calculate_qol(
 )
 
 qol_2017_xr_us_min <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2017_fu,
+  complete_pop_yr_fu = complete_pop_2017_fu_baseline_qol,
   cutpoints_yr = cutpoints_2017,
   start_year = 2017,
   years = c(1,2,3,4,5),
@@ -1110,7 +1145,7 @@ qol_2017_xr_us_min <- calculate_qol(
 )
 
 qol_2017_xr_us_max <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2017_fu,
+  complete_pop_yr_fu = complete_pop_2017_fu_baseline_qol,
   cutpoints_yr = cutpoints_2017,
   start_year = 2017,
   years = c(1,2,3,4,5),
@@ -1120,7 +1155,7 @@ qol_2017_xr_us_max <- calculate_qol(
 )
 
 qol_2017_ct_min <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2017_fu,
+  complete_pop_yr_fu = complete_pop_2017_fu_baseline_qol,
   cutpoints_yr = cutpoints_2017,
   start_year = 2017,
   years = c(1,2,3,4,5),
@@ -1130,7 +1165,7 @@ qol_2017_ct_min <- calculate_qol(
 )
 
 qol_2017_ct_max <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2017_fu,
+  complete_pop_yr_fu = complete_pop_2017_fu_baseline_qol,
   cutpoints_yr = cutpoints_2017,
   start_year = 2017,
   years = c(1,2,3,4,5),
@@ -1140,8 +1175,10 @@ qol_2017_ct_max <- calculate_qol(
 )
 
 ### 11.4.3 2018 ####
+complete_pop_2018_fu_baseline_qol <- assign_baseline_qol(df = complete_pop_2018_fu)
+
 qol_2018_xr_min <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2018_fu,
+  complete_pop_yr_fu = complete_pop_2018_fu_baseline_qol,
   cutpoints_yr = cutpoints_2018,
   start_year = 2018,
   years = c(1,2,3,4,5),
@@ -1151,7 +1188,7 @@ qol_2018_xr_min <- calculate_qol(
 )
 
 qol_2018_xr_max <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2018_fu,
+  complete_pop_yr_fu = complete_pop_2018_fu_baseline_qol,
   cutpoints_yr = cutpoints_2018,
   start_year = 2018,
   years = c(1,2,3,4,5),
@@ -1161,7 +1198,7 @@ qol_2018_xr_max <- calculate_qol(
 )
 
 qol_2018_xr_us_min <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2018_fu,
+  complete_pop_yr_fu = complete_pop_2018_fu_baseline_qol,
   cutpoints_yr = cutpoints_2018,
   start_year = 2018,
   years = c(1,2,3,4,5),
@@ -1171,7 +1208,7 @@ qol_2018_xr_us_min <- calculate_qol(
 )
 
 qol_2018_xr_us_max <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2018_fu,
+  complete_pop_yr_fu = complete_pop_2018_fu_baseline_qol,
   cutpoints_yr = cutpoints_2018,
   start_year = 2018,
   years = c(1,2,3,4,5),
@@ -1181,7 +1218,7 @@ qol_2018_xr_us_max <- calculate_qol(
 )
 
 qol_2018_ct_min <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2018_fu,
+  complete_pop_yr_fu = complete_pop_2018_fu_baseline_qol,
   cutpoints_yr = cutpoints_2018,
   start_year = 2018,
   years = c(1,2,3,4,5),
@@ -1191,7 +1228,7 @@ qol_2018_ct_min <- calculate_qol(
 )
 
 qol_2018_ct_max <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2018_fu,
+  complete_pop_yr_fu = complete_pop_2018_fu_baseline_qol,
   cutpoints_yr = cutpoints_2018,
   start_year = 2018,
   years = c(1,2,3,4,5),
@@ -1201,8 +1238,11 @@ qol_2018_ct_max <- calculate_qol(
 )
 
 ### 11.4.4 2019 ####
+complete_pop_2019_fu_baseline_qol <- assign_baseline_qol(df = complete_pop_2019_fu)
+
+
 qol_2019_xr_min <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2019_fu,
+  complete_pop_yr_fu = complete_pop_2019_fu_baseline_qol,
   cutpoints_yr = cutpoints_2019,
   start_year = 2019,
   years = c(1,2,3,4,5),
@@ -1212,7 +1252,7 @@ qol_2019_xr_min <- calculate_qol(
 )
 
 qol_2019_xr_max <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2019_fu,
+  complete_pop_yr_fu = complete_pop_2019_fu_baseline_qol,
   cutpoints_yr = cutpoints_2019,
   start_year = 2019,
   years = c(1,2,3,4,5),
@@ -1222,7 +1262,7 @@ qol_2019_xr_max <- calculate_qol(
 )
 
 qol_2019_xr_us_min <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2019_fu,
+  complete_pop_yr_fu = complete_pop_2019_fu_baseline_qol,
   cutpoints_yr = cutpoints_2019,
   start_year = 2019,
   years = c(1,2,3,4,5),
@@ -1232,7 +1272,7 @@ qol_2019_xr_us_min <- calculate_qol(
 )
 
 qol_2019_xr_us_max <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2019_fu,
+  complete_pop_yr_fu = complete_pop_2019_fu_baseline_qol,
   cutpoints_yr = cutpoints_2019,
   start_year = 2019,
   years = c(1,2,3,4,5),
@@ -1242,7 +1282,7 @@ qol_2019_xr_us_max <- calculate_qol(
 )
 
 qol_2019_ct_min <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2019_fu,
+  complete_pop_yr_fu = complete_pop_2019_fu_baseline_qol,
   cutpoints_yr = cutpoints_2019,
   start_year = 2019,
   years = c(1,2,3,4,5),
@@ -1252,7 +1292,7 @@ qol_2019_ct_min <- calculate_qol(
 )
 
 qol_2019_ct_max <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2019_fu,
+  complete_pop_yr_fu = complete_pop_2019_fu_baseline_qol,
   cutpoints_yr = cutpoints_2019,
   start_year = 2019,
   years = c(1,2,3,4,5),
@@ -1262,8 +1302,10 @@ qol_2019_ct_max <- calculate_qol(
 )
 
 ### 11.4.5 2020 ####
+complete_pop_2020_fu_baseline_qol <- assign_baseline_qol(df = complete_pop_2020_fu)
+
 qol_2020_xr_min <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2020_fu,
+  complete_pop_yr_fu = complete_pop_2020_fu_baseline_qol,
   cutpoints_yr = cutpoints_2020,
   start_year = 2020,
   years = c(1,2,3,4,5),
@@ -1273,7 +1315,7 @@ qol_2020_xr_min <- calculate_qol(
 )
 
 qol_2020_xr_max <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2020_fu,
+  complete_pop_yr_fu = complete_pop_2020_fu_baseline_qol,
   cutpoints_yr = cutpoints_2020,
   start_year = 2020,
   years = c(1,2,3,4,5),
@@ -1283,7 +1325,7 @@ qol_2020_xr_max <- calculate_qol(
 )
 
 qol_2020_xr_us_min <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2020_fu,
+  complete_pop_yr_fu = complete_pop_2020_fu_baseline_qol,
   cutpoints_yr = cutpoints_2020,
   start_year = 2020,
   years = c(1,2,3,4,5),
@@ -1293,7 +1335,7 @@ qol_2020_xr_us_min <- calculate_qol(
 )
 
 qol_2020_xr_us_max <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2020_fu,
+  complete_pop_yr_fu = complete_pop_2020_fu_baseline_qol,
   cutpoints_yr = cutpoints_2020,
   start_year = 2020,
   years = c(1,2,3,4,5),
@@ -1303,7 +1345,7 @@ qol_2020_xr_us_max <- calculate_qol(
 )
 
 qol_2020_ct_min <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2020_fu,
+  complete_pop_yr_fu = complete_pop_2020_fu_baseline_qol,
   cutpoints_yr = cutpoints_2020,
   start_year = 2020,
   years = c(1,2,3,4,5),
@@ -1313,7 +1355,7 @@ qol_2020_ct_min <- calculate_qol(
 )
 
 qol_2020_ct_max <- calculate_qol(
-  complete_pop_yr_fu = complete_pop_2020_fu,
+  complete_pop_yr_fu = complete_pop_2020_fu_baseline_qol,
   cutpoints_yr = cutpoints_2020,
   start_year = 2020,
   years = c(1,2,3,4,5),
@@ -1602,3 +1644,5 @@ summary_df_full_qol_data %>%
        x = "Cohort Type",
        y = "Mean 5yr QALYs (USIQOL)",
        fill = "Risk Status") + ylim(0,0.7)
+
+
