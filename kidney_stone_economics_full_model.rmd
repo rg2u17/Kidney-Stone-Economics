@@ -32,6 +32,7 @@ library(cutpointr)
 library(ggsignif)
 library(ggpubr)
 library(broom)
+library(patchwork)
 ```
 \newpage
 
@@ -63,7 +64,7 @@ source("Model/4. Model - Beta Distribution for Scores.R")
 ## 4.2 Normal Distribution - e.g modelling a blood test output
 <br> **uncomment to run** <br>
 ```{r}
-source("Model/4. Model - Normal Distribution for Scores.R")
+#source("Model/4. Model - Normal Distribution for Scores.R")
 ```
 \newpage
 
