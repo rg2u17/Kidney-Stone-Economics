@@ -63,7 +63,7 @@ source("Model/4. Model - Beta Distribution for Scores.R")
 ## 4.2 Normal Distribution - e.g modelling a blood test output
 <br> **uncomment to run** <br>
 ```{r}
-#source("Model/4. Model - Normal Distribution for Scores.R")
+source("Model/4. Model - Normal Distribution for Scores.R")
 ```
 \newpage
 
@@ -572,7 +572,7 @@ baseline_malignancies_perc_lr_lower <- (baseline_malignancies_perc %>%
                                filter(risk_status == "Low Risk"))$percentage_lower
   
 
-malignancy_plot_data %>%
+baseline_malignancies_perc_plot <- malignancy_plot_data %>%
   mutate(percentage = case_when(
     risk_status == "High Risk" ~  percentage - baseline_malignancies_perc_hr,
     risk_status == "Low Risk" ~  percentage - baseline_malignancies_perc_lr
@@ -616,6 +616,8 @@ malignancy_plot_data %>%
     panel.spacing = unit(0.5, "lines"),
     legend.position = "bottom"
   )
+
+baseline_malignancies_perc_plot
 ```
 \newpage
 
@@ -666,11 +668,11 @@ baseline_cost_lr <- baseline_costs %>%
   select(total_cost)
 baseline_cost_lr <- baseline_cost_lr$total_cost
 
-summary_df_full_cost_data %>%
+summary_df_full_cost_plot <- summary_df_full_cost_data %>%
   mutate(total_cost = case_when(
-    risk_status == "All" ~ (baseline_cost_all - total_cost),
-    risk_status == "High Risk" ~ (baseline_cost_hr - total_cost),
-    risk_status == "Low Risk" ~ (baseline_cost_lr - total_cost),
+    risk_status == "All" ~ (total_cost - baseline_cost_all),
+    risk_status == "High Risk" ~ (total_cost - baseline_cost_hr),
+    risk_status == "Low Risk" ~ (total_cost - baseline_cost_lr),
   )) %>%
   group_by(auc_label) %>%
   ggplot(aes(x = auc_label, y = total_cost, fill = risk_status)) +
@@ -682,9 +684,9 @@ summary_df_full_cost_data %>%
     strip.text = element_text(size = 10)
   ) +
   labs(
-    title = "Annual Cost Difference for EAU Follow-Up of those with Clinically Significant Disease",
+    title = "Annual Cost Difference",
     x = "Cohort Type",
-    y = "Annual Cost Difference compared to baseline (£ Millions)",
+    y = "Cost Difference (£ Millions)",
     fill = "Risk Status"
   )
 ```
@@ -929,11 +931,11 @@ baseline_appt_lr <- baseline_appts %>%
   select(total_appts)
 baseline_appt_lr <- baseline_appt_lr$total_appts
 
-summary_df_appts %>%
+summary_df_appts_plot <- summary_df_appts %>%
   mutate(total_appts = case_when(
-    risk_status == "All" ~ (baseline_appt_all - total_appts),
-    risk_status == "High Risk" ~ (baseline_appt_hr - total_appts),
-    risk_status == "Low Risk" ~ (baseline_appt_lr - total_appts),
+    risk_status == "All" ~ (total_appts - baseline_appt_all),
+    risk_status == "High Risk" ~ (total_appts - baseline_appt_hr),
+    risk_status == "Low Risk" ~ (total_appts - baseline_appt_lr),
   )) %>%
   group_by(auc_label) %>%
   ggplot(aes(x = auc_label, y = total_appts, fill = risk_status)) +
@@ -945,9 +947,9 @@ summary_df_appts %>%
     strip.text = element_text(size = 10)
   ) +
   labs(
-    title = "Annual Number of Appointments Difference for EAU Follow-Up of those with Clinically Significant Disease",
+    title = "Annual Number of Appointments Difference",
     x = "Cohort Type",
-    y = "Annual Number of Appointments Difference compared to baseline (n)",
+    y = "Appointments Difference (n, 000s)",
     fill = "Risk Status"
   )
 ```
@@ -999,6 +1001,87 @@ summary_df_full_qol_data %>%
 ```
 \newpage
 
+## Plot QALYs vs baseline
+```{r}
+baseline_qaly_all1 <- summary_df_full_qol_data %>%
+  filter(auc_label == "AUC 0.55") %>%
+  filter(cohort_type == "Minimum FU, XR") %>%
+  select(
+    risk_status,
+    mean_qaly_5yr,
+    lower_qaly_5yr,
+    upper_qaly_5yr
+  )
+
+baseline_qaly_all <- (baseline_qaly_all1 %>%
+  filter(risk_status == "All"))$mean_qaly_5yr 
+baseline_qaly_hr <- (baseline_qaly_all1 %>%
+  filter(risk_status == "High Risk"))$mean_qaly_5yr 
+baseline_qaly_lr <- (baseline_qaly_all1 %>%
+  filter(risk_status == "Low Risk"))$mean_qaly_5yr 
+
+baseline_qaly_all_upper <- (baseline_qaly_all1 %>%
+  filter(risk_status == "All"))$upper_qaly_5yr 
+baseline_qaly_hr_upper <- (baseline_qaly_all1 %>%
+  filter(risk_status == "High Risk"))$upper_qaly_5yr 
+baseline_qaly_lr_upper <- (baseline_qaly_all1 %>%
+  filter(risk_status == "Low Risk"))$upper_qaly_5yr 
+
+baseline_qaly_all_lower <- (baseline_qaly_all1 %>%
+  filter(risk_status == "All"))$lower_qaly_5yr 
+baseline_qaly_hr_lower <- (baseline_qaly_all1 %>%
+  filter(risk_status == "High Risk"))$lower_qaly_5yr 
+baseline_qaly_lr_lower <- (baseline_qaly_all1 %>%
+  filter(risk_status == "Low Risk"))$lower_qaly_5yr 
+
+
+summary_df_full_qol_plot <- summary_df_full_qol_data %>% 
+  mutate(
+    mean_qaly_5yr_comp = case_when(
+      risk_status == "All" ~ (mean_qaly_5yr - baseline_qaly_all),
+      risk_status == "High Risk" ~ (mean_qaly_5yr - baseline_qaly_hr),
+      risk_status == "Low Risk" ~ (mean_qaly_5yr - baseline_qaly_lr),
+      TRUE ~ NA_integer_
+    ),
+    lower_qaly_5yr_comp = case_when(
+      risk_status == "All" ~ (upper_qaly_5yr - baseline_qaly_all_upper),
+      risk_status == "High Risk" ~ (upper_qaly_5yr - baseline_qaly_hr_upper),
+      risk_status == "Low Risk" ~ (upper_qaly_5yr - baseline_qaly_lr_upper),
+      TRUE ~ NA_integer_
+    ),
+    upper_qaly_5yr_comp = case_when(
+      risk_status == "All" ~ (lower_qaly_5yr - baseline_qaly_all_lower),
+      risk_status == "High Risk" ~ (lower_qaly_5yr - baseline_qaly_hr_lower),
+      risk_status == "Low Risk" ~ (lower_qaly_5yr - baseline_qaly_lr_lower),
+      TRUE ~ NA_integer_
+    ),
+    .keep = "all"
+  ) %>%
+  group_by(auc_label) %>%
+  ggplot(aes(x = auc_label, y = mean_qaly_5yr_comp, fill = risk_status)) +
+  geom_col(
+    position = position_dodge(width = 0.8),
+    width = 0.7,
+    color = "black"
+  ) +
+  geom_errorbar(
+    aes(ymin = lower_qaly_5yr_comp, ymax = upper_qaly_5yr_comp),
+    position = position_dodge(width = 0.8),
+    width = 0.3
+  ) +
+  facet_wrap(~ cohort_type) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size = 10)) +
+  labs(title = "QALYS compared to Baseline",
+       x = "Cohort Type",
+       y = "Mean QALYs (USIQOL/5yrs)",
+       fill = "Risk Status") + ylim(-0.008,0.008)
+
+summary_df_full_qol_plot
+```
+\newpage
+
 
 # 12. Calculate ICER 
 ```{r}
@@ -1006,3 +1089,23 @@ source("Model/12. Calculate ICER.R")
 ```
 \newpage
 
+# 13. CO2 Emissions
+```{r}
+source("Model/13. Calculate CO2 emissions.R")
+```
+\newpage
+
+# 14. Summary plot
+```{r}
+cowplot::plot_grid(
+  summary_df_full_cost_plot,
+  summary_df_appts_plot,
+  baseline_malignancies_perc_plot,
+  summary_df_full_qol_plot,
+  nrow = 2,
+  ncol = 2,
+  labels = c("A", "B", "C", "D")
+)
+
+```
+\newpage
