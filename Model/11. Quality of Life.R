@@ -245,43 +245,43 @@ usiqol_change_with_rx %>%
 
 ### 11.2.7 Get final tibble for score assignment by age_band and sf_status ####
 
-usiqol_metrics_by_age_stone_free_status <-  
-  usiqol_metrics_aggregated  %>%
-  subset(select = c(age_bin,
-                    total_pre,
-                    total_post_1,
-                    stone_free_status_pre,
-                    stone_free_status_post
-  )) %>% 
-  pivot_longer(cols = c(total_pre,total_post_1),
-               names_to = "scored_when",
-               values_to = "usiqol_scores") %>%
-  mutate(
-    stone_free_status = case_when(
-      scored_when == "total_pre" ~ stone_free_status_pre,
-      scored_when == "total_post_1" ~ stone_free_status_post,
-      TRUE ~ NA_character_
-    ) %>% as.factor()
-  ) %>%
-  subset(select = -c(
-    stone_free_status_pre,
-    stone_free_status_post,
-    scored_when
-  )) %>%
-  group_by(age_bin, stone_free_status) %>%
-  summarise(
-    n = sum(!is.na(usiqol_scores)),
-    total_mean = mean(usiqol_scores, na.rm = TRUE),
-    total_sd   = sd(usiqol_scores, na.rm = TRUE),
-    total_se = total_sd / sqrt(n),
-    total_ci_lower = total_mean - 1.96 * total_se,
-    total_ci_upper = total_mean + 1.96 * total_se
-  ) %>% 
-  select(-n) %>%
-  ungroup()
+#usiqol_metrics_by_age_stone_free_status <-  
+#  usiqol_metrics_aggregated  %>%
+#  subset(select = c(age_bin,
+#                    total_pre,
+#                    total_post_1,
+#                    stone_free_status_pre,
+#                    stone_free_status_post
+#  )) %>% 
+#  pivot_longer(cols = c(total_pre,total_post_1),
+#               names_to = "scored_when",
+#               values_to = "usiqol_scores") %>%
+#  mutate(
+#    stone_free_status = case_when(
+#      scored_when == "total_pre" ~ stone_free_status_pre,
+#      scored_when == "total_post_1" ~ stone_free_status_post,
+#      TRUE ~ NA_character_
+#    ) %>% as.factor()
+#  ) %>%
+#  subset(select = -c(
+#    stone_free_status_pre,
+#    stone_free_status_post,
+#    scored_when
+#  )) %>%
+#  group_by(age_bin, stone_free_status) %>%
+#  summarise(
+#    n = sum(!is.na(usiqol_scores)),
+#    total_mean = mean(usiqol_scores, na.rm = TRUE),
+#    total_sd   = sd(usiqol_scores, na.rm = TRUE),
+#    total_se = total_sd / sqrt(n),
+#    total_ci_lower = total_mean - 1.96 * total_se,
+#    total_ci_upper = total_mean + 1.96 * total_se
+#  ) %>% 
+#  select(-n) %>%
+#  ungroup()
 
-write.csv(usiqol_metrics_by_age_stone_free_status,
-          "usiqol_metrics_by_age_stone_free_status.csv")
+#write.csv(usiqol_metrics_by_age_stone_free_status,
+#          "usiqol_metrics_by_age_stone_free_status.csv")
 
 usiqol_metrics_by_age_stone_free_status <- fread("Inputs/usiqol_metrics_by_age_stone_free_status.csv") %>%
   as_tibble() %>%
@@ -398,52 +398,63 @@ usiqol_metrics_by_age_stone_free_status2 <- usiqol_metrics_by_age_stone_free_sta
   ) %>% drop_na(stone_free_status)
 
 #### 11.2.8.2 Imputation ####
-usiqol_long <- usiqol_metrics_aggregated %>%
-  select(age_bin,
-         total_pre,
-         total_post_1,
-         stone_free_status_pre,
-         stone_free_status_post
-  ) %>%
-  pivot_longer(
-    cols = c(total_pre, total_post_1),
-    names_to = "scored_when",
-    values_to = "usiqol_scores"
-  ) %>%
+#usiqol_long <- usiqol_metrics_aggregated %>%
+#  select(age_bin,
+#         total_pre,
+#         total_post_1,
+#         stone_free_status_pre,
+#         stone_free_status_post
+#  ) %>%
+#  pivot_longer(
+#    cols = c(total_pre, total_post_1),
+#    names_to = "scored_when",
+#    values_to = "usiqol_scores"
+#  ) %>%
+#  mutate(
+#    stone_free_status = case_when(
+#      scored_when == "total_pre"  ~ stone_free_status_pre,
+#      scored_when == "total_post_1" ~ stone_free_status_post,
+#      TRUE ~ NA_character_
+#    ) %>% as.factor()
+#  ) %>%
+#  select(-stone_free_status_pre, -stone_free_status_post, -scored_when) %>%
+#  complete(age_bin, stone_free_status = c("more4", "less4", "SF"), 
+#           fill = list(usiqol_scores = NA)) %>%
+#  filter(age_bin != "Aged 1 to 4") %>%
+#  drop_na(stone_free_status)
+
+#ini <- mice(usiqol_long, m = 5, maxit = 0, print = FALSE)
+#meth <- ini$method
+#meth["usiqol_scores"] <- "lasso.norm"  
+
+#post <- ini$post
+#post["usiqol_scores"] <- "imp[[j]] <- pmax(pmin(imp[[j]], 60), 15)"
+
+#imputed <- mice(usiqol_long, method = meth, m = 5, post = post, print = FALSE)
+
+#usiqol_metrics_by_age_stone_free_status1 <- complete(imputed) %>%
+#  group_by(age_bin, stone_free_status) %>%
+#  summarise(
+#    n = sum(!is.na(usiqol_scores)),
+#    total_mean = mean(usiqol_scores, na.rm = TRUE),
+#    total_sd   = sd(usiqol_scores, na.rm = TRUE),
+#    total_se   = total_sd / sqrt(n),
+#    total_ci_lower = total_mean - 1.96 * total_se,
+#    total_ci_upper = total_mean + 1.96 * total_se
+#  ) %>%
+#  select(-n) %>%
+#  ungroup()
+
+#write.csv(usiqol_metrics_by_age_stone_free_status1,
+#          "usiqol_metrics_by_age_stone_free_status1.csv")
+
+usiqol_metrics_by_age_stone_free_status1 <- fread("Inputs/usiqol_metrics_by_age_stone_free_status1.csv") %>%
+  select(-V1) %>%
   mutate(
-    stone_free_status = case_when(
-      scored_when == "total_pre"  ~ stone_free_status_pre,
-      scored_when == "total_post_1" ~ stone_free_status_post,
-      TRUE ~ NA_character_
-    ) %>% as.factor()
-  ) %>%
-  select(-stone_free_status_pre, -stone_free_status_post, -scored_when) %>%
-  complete(age_bin, stone_free_status = c("more4", "less4", "SF"), 
-           fill = list(usiqol_scores = NA)) %>%
-  filter(age_bin != "Aged 1 to 4") %>%
-  drop_na(stone_free_status)
-
-ini <- mice(usiqol_long, m = 5, maxit = 0, print = FALSE)
-meth <- ini$method
-meth["usiqol_scores"] <- "lasso.norm"  # your original method
-
-post <- ini$post
-post["usiqol_scores"] <- "imp[[j]] <- pmax(pmin(imp[[j]], 60), 15)"
-
-imputed <- mice(usiqol_long, method = meth, m = 5, post = post, print = FALSE)
-
-usiqol_metrics_by_age_stone_free_status1 <- complete(imputed) %>%
-  group_by(age_bin, stone_free_status) %>%
-  summarise(
-    n = sum(!is.na(usiqol_scores)),
-    total_mean = mean(usiqol_scores, na.rm = TRUE),
-    total_sd   = sd(usiqol_scores, na.rm = TRUE),
-    total_se   = total_sd / sqrt(n),
-    total_ci_lower = total_mean - 1.96 * total_se,
-    total_ci_upper = total_mean + 1.96 * total_se
-  ) %>%
-  select(-n) %>%
-  ungroup()
+    age_bin = as.factor(age_bin),
+    stone_free_status = as.factor(stone_free_status)
+  )
+  
 
 usiqol_metrics_by_age_stone_free_status1 <- usiqol_metrics_by_age_stone_free_status1 %>%
   mutate(
@@ -513,9 +524,9 @@ plot_grid(na_plot, means_plot, mice_imputation_qol_plot,
                      "C"))
 
 ### 11.2.11 Assign QOL Scores going forwards ####
-usiqol_metrics_by_age_stone_free_status <- usiqol_metrics_by_age_stone_free_status2 # Imputed scores
+usiqol_metrics_by_age_stone_free_status <- usiqol_metrics_by_age_stone_free_status2 # Mean scores
 
-# usiqol_metrics_by_age_stone_free_status1 # mean scores  
+# usiqol_metrics_by_age_stone_free_status1 # imputed scores  
 
 
 ## 11.3 Functions to assign QOL scores - with MC simulation #### 
