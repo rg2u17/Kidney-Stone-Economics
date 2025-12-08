@@ -1179,21 +1179,6 @@ source("Model/13. Calculate CO2 emissions.R")
 ## Paper 1
 ### Collate data
 ```{r}
-# Designate comparisons
-compare_to_minXR <- list(
-  c("Minimum FU, XR", "Minimum FU, XR + US"),
-  c("Minimum FU, XR", "Minimum FU, CT"),
-  c("Minimum FU, XR", "Maximum FU, XR"),
-  c("Minimum FU, XR", "Maximum FU, XR + US"),
-  c("Minimum FU, XR", "Maximum FU, CT")
-)
-
-compare_to_minXR_malig <- list(
-  c("Minimum FU, XR", "Maximum FU, XR"),
-  c("Minimum FU, XR", "Minimum FU, CT"),
-  c("Minimum FU, XR", "Maximum FU, CT")
-)
-
 # Costs
 summary_df_full_cost_plot_paper1 <- summary_df_full_cost_data %>%
   filter(auc_label == "AUC 0.55") %>%
@@ -1226,11 +1211,6 @@ summary_df_full_cost_plot_paper1 <- summary_df_full_cost_data %>%
     x = "Cohort Type",
     y = "Cost Difference (£ Millions)",
     fill = "Risk Status"
-  ) + geom_signif(
-    comparisons = compare_to_minXR,
-    map_signif_level = TRUE,
-    step_increase = 0.1,
-    textsize = 3
   )
 
 
@@ -1266,12 +1246,7 @@ summary_df_appts_plot_paper1 <- summary_df_appts %>%
     x = "Cohort Type",
     y = "Appointments Difference (n, 000s)",
     fill = "Risk Status"
-  ) + geom_signif(
-    comparisons = compare_to_minXR,
-    map_signif_level = TRUE,
-    step_increase = 0.1,
-    textsize = 3
-  )
+  ) 
 
 
 
@@ -1339,12 +1314,7 @@ baseline_malignancies_perc_plot_paper1 <- malignancy_plot_data %>%
   ) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        strip.text = element_text(size = 10)) + geom_signif(
-    comparisons = compare_to_minXR_malig,
-    map_signif_level = TRUE,
-    step_increase = 0.1,
-    textsize = 3
-  )
+        strip.text = element_text(size = 10)) 
 
 
 # QoL
@@ -1398,12 +1368,7 @@ summary_df_full_qol_plot_paper1 <- summary_df_full_qol_data %>%
   labs(title = "Quality of Life",
        x = "Cohort Type",
        y = "5yr QALYs Difference",
-       fill = "Risk Status") + ylim(-0.015,0.015) + geom_signif(
-    comparisons = compare_to_minXR,
-    map_signif_level = TRUE,
-    step_increase = 0.1,
-    textsize = 3
-  )
+       fill = "Risk Status") + ylim(-0.015,0.015) 
 ```
 \newpage
 
