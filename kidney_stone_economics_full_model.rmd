@@ -616,57 +616,68 @@ baseline_malignancies_perc_all_lower <- (baseline_malignancies_perc %>%
   
 
 baseline_malignancies_perc_plot <- malignancy_plot_data %>%
+  rbind(all_malignancies) %>%
   mutate(
     auc_target = as.factor(paste0("AUC ", auc_target)),
-    cohort_type = factor(cohort_type,
-                         levels = c(
-                           "Minimum FU, XR",
-                           "Maximum FU, XR",
-                           "Minimum FU, CT",
-                           "Maximum FU, CT"
-                         )),
+    cohort_type = factor(
+      cohort_type,
+      levels = c(
+        "Minimum FU, XR",
+        "Maximum FU, XR",
+        "Minimum FU, CT",
+        "Maximum FU, CT"
+      )
+    ),
+    risk_status = factor(risk_status,
+                         levels = c("All",
+                                    "Low Risk",
+                                    "High Risk")),
     percentage = case_when(
-    risk_status == "High Risk" ~  percentage - baseline_malignancies_perc_hr,
-    risk_status == "Low Risk" ~  percentage - baseline_malignancies_perc_lr
-  ),
-  percentage_lower = case_when(
-    risk_status == "High Risk" ~ percentage_lower - baseline_malignancies_perc_hr_lower,
-    risk_status == "Low Risk" ~ percentage_lower - baseline_malignancies_perc_lr_lower
-  ),
-  percentage_upper = case_when(
-    risk_status == "High Risk" ~ percentage_upper - baseline_malignancies_perc_hr_upper,
-    risk_status == "Low Risk" ~  percentage_upper - baseline_malignancies_perc_lr_upper
-  )
+      risk_status == "High Risk" ~ percentage - baseline_malignancies_perc_hr,
+      risk_status == "Low Risk" ~ percentage - baseline_malignancies_perc_lr,
+      risk_status == "All" ~ percentage - baseline_malignancies_perc_all,
+    ),
+    percentage_lower = case_when(
+      risk_status == "High Risk" ~ percentage_lower - baseline_malignancies_perc_hr_lower,
+      risk_status == "Low Risk" ~ percentage_lower - baseline_malignancies_perc_lr_lower,
+      risk_status == "All" ~ percentage_lower - baseline_malignancies_perc_all_lower
+    ),
+    percentage_upper = case_when(
+      risk_status == "High Risk" ~ percentage_upper - baseline_malignancies_perc_hr_upper,
+      risk_status == "Low Risk" ~ percentage_upper - baseline_malignancies_perc_lr_upper,
+      risk_status == "All" ~ percentage_upper - baseline_malignancies_perc_all_upper
+    )
   ) %>%
-  ggplot(aes(x = as.factor(auc_target), 
-           y = percentage,
-           fill = auc_target)) +
-  geom_col(color = "black", linewidth = 0.3) +
-  geom_errorbar(aes(ymin = percentage_lower, 
+  ggplot(aes(
+    x = as.factor(auc_target),
+    y = percentage,
+    fill = risk_status
+  )) +
+  geom_col(color = "black") +
+  geom_errorbar(aes(ymin = percentage_lower,
                     ymax = percentage_upper),
                 width = 0.2) +
-  facet_grid(risk_status ~ cohort_type,
-             labeller = labeller(
-               cohort_type = function(x) x,
-               risk_status = function(x) paste0("Risk: ", x)
-             )) +
-  labs(
-    title = "Additional Expected Lifetime Malignancies vs Baseline",
-    x = "AUC Target",
-    y = "Additional Malignancies vs Baseline (%)",
-    fill = "AUC Target"
+  facet_grid(
+    risk_status ~ cohort_type,
+    labeller = labeller(
+      cohort_type = function(x)
+        x,
+      risk_status = function(x)
+        x
+    )
   ) +
-  scale_y_continuous(labels = function(x) paste0(x, "%"),
-                     expand = expansion(mult = c(0, 0.25))) +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
-    strip.background = element_rect(fill = "lightblue", color = "black"),
-    strip.text = element_text(face = "bold", size = 10),
-    panel.border = element_rect(color = "grey80", fill = NA, linewidth = 0.5),
-    panel.spacing = unit(0.5, "lines"),
-    legend.position = "bottom"
-  )
+  labs(title = "Lifetime Malignancies",
+       x = "AUC Target",
+       y = "Additional Malignancies vs Baseline (%)",
+       fill = "Risk Status") +
+  scale_y_continuous(
+    labels = function(x)
+      paste0(x, "%"),
+    expand = expansion(mult = c(0, 0.25))
+  ) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size = 10))
 
 baseline_malignancies_perc_plot
 ```
@@ -745,11 +756,13 @@ summary_df_full_cost_plot <- summary_df_full_cost_data %>%
     strip.text = element_text(size = 10)
   ) +
   labs(
-    title = "Annual Cost Difference",
+    title = "Annual Cost",
     x = "Cohort Type",
     y = "Cost Difference (£ Millions)",
     fill = "Risk Status"
   )
+
+summary_df_full_cost_plot
 ```
 \newpage
 
@@ -1018,7 +1031,7 @@ summary_df_appts_plot <- summary_df_appts %>%
     strip.text = element_text(size = 10)
   ) +
   labs(
-    title = "Annual Number of Appointments Difference",
+    title = "Annual Appointments",
     x = "Cohort Type",
     y = "Appointments Difference (n, 000s)",
     fill = "Risk Status"
@@ -1153,9 +1166,9 @@ summary_df_full_qol_plot <- summary_df_full_qol_data %>%
   theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
         strip.text = element_text(size = 10)) +
-  labs(title = "QALYS compared to Baseline",
+  labs(title = "Quality of Life",
        x = "Cohort Type",
-       y = "Mean QALYs (USIQOL/5yrs)",
+       y = "5yr QALYs Difference",
        fill = "Risk Status") + ylim(-0.015,0.015)
 
 summary_df_full_qol_plot
@@ -1390,15 +1403,17 @@ paper_1_plot
 
 ## Paper 2
 ```{r}
-cowplot::plot_grid(
-  summary_df_full_cost_plot,
-  summary_df_appts_plot,
-  baseline_malignancies_perc_plot,
-  summary_df_full_qol_plot,
-  nrow = 2,
-  ncol = 2,
-  labels = c("A", "B", "C", "D")
-)
+paper_2_plot <- (
+  summary_df_full_cost_plot +
+    summary_df_appts_plot +
+    baseline_malignancies_perc_plot +
+    summary_df_full_qol_plot
+) +
+  plot_layout(nrow = 2, ncol = 2) +
+  plot_annotation(tag_levels = "A",
+                  title = "Variations in Length/Imaging Modality of Follow-up Compared to Current Minimum Standard of Care") + plot_layout(axis_titles = "collect",
+                                                                                                                                           guides = "collect")
 
+paper_2_plot
 ```
 \newpage
