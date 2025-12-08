@@ -1249,7 +1249,6 @@ summary_df_appts_plot_paper1 <- summary_df_appts %>%
   ) 
 
 
-
 # Malignancies
 baseline_malignancies_perc_plot_paper1 <- malignancy_plot_data %>%
   rbind(all_malignancies) %>%
@@ -1294,7 +1293,7 @@ baseline_malignancies_perc_plot_paper1 <- malignancy_plot_data %>%
     y = percentage,
     fill = risk_status
   )) +
-  geom_col(color = "black", linewidth = 0.3) +
+  geom_col(color = "black") +
   geom_errorbar(aes(
     ymin = percentage_lower,
     ymax = percentage_upper
@@ -1314,7 +1313,7 @@ baseline_malignancies_perc_plot_paper1 <- malignancy_plot_data %>%
   ) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        strip.text = element_text(size = 10)) 
+        strip.text = element_text(size = 10))
 
 
 # QoL
@@ -1368,7 +1367,7 @@ summary_df_full_qol_plot_paper1 <- summary_df_full_qol_data %>%
   labs(title = "Quality of Life",
        x = "Cohort Type",
        y = "5yr QALYs Difference",
-       fill = "Risk Status") + ylim(-0.015,0.015) 
+       fill = "Risk Status") + ylim(-0.01,0.003) 
 ```
 \newpage
 
@@ -1376,15 +1375,14 @@ summary_df_full_qol_plot_paper1 <- summary_df_full_qol_data %>%
 ```{r}
 paper_1_plot <- (
   summary_df_full_cost_plot_paper1 +
-  summary_df_appts_plot_paper1 +
-  baseline_malignancies_perc_plot_paper1 +
-  summary_df_full_qol_plot_paper1
+    summary_df_appts_plot_paper1 +
+    baseline_malignancies_perc_plot_paper1 +
+    summary_df_full_qol_plot_paper1
 ) +
   plot_layout(nrow = 2, ncol = 2) +
   plot_annotation(tag_levels = "A",
                   title = "Variations in Length/Imaging Modality of Follow-up Compared to Current Minimum Standard of Care") + plot_layout(axis_titles = "collect",
-                                            guides = "collect") +
-  geom_signif()
+                                                                                                                                           guides = "collect")
 
 paper_1_plot
 ```
