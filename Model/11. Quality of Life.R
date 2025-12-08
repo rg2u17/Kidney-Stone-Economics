@@ -15,138 +15,154 @@ library(cowplot)
 
 ## 11.2 Load data ####
 ### 11.2.1 Read in data ####
-usiqol_metrics <- fread("Inputs/usiqol_scores.csv", header = TRUE) %>% 
-  janitor::clean_names() %>%
-  as_tibble() %>%
-  subset(select = c(date_of_birth,
-                    age,
-                    trial_number,
-                    date_completed,
-                    total_pre,
-                    date_completed_2,
-                    total_post_1,
-                    date_completed_3,
-                    total_post_2))
 
-usiqol_stone_sizes_pre_post <- fread("Inputs/stone_free_statuses_usiqol_2.csv", header = TRUE) %>% 
-  janitor::clean_names() %>%
-  as_tibble()
+# The commented code has been included for transparency as to how 
+# the USIQoL data has been summarised - summarised datasets have been 
+# saved for replication
+
+#usiqol_metrics <- fread("Inputs/usiqol_scores.csv", header = TRUE) %>% 
+#  janitor::clean_names() %>%
+#  as_tibble() %>%
+#  subset(select = c(date_of_birth,
+#                    age,
+#                    trial_number,
+#                    date_completed,
+#                    total_pre,
+#                    date_completed_2,
+#                    total_post_1,
+#                    date_completed_3,
+#                    total_post_2))
+
+#usiqol_stone_sizes_pre_post <- fread("Inputs/stone_free_statuses_usiqol_2.csv", header = TRUE) %>% 
+#  janitor::clean_names() %>%
+#  as_tibble()
 
 ### 11.2.3 Define data ####
 
-usiqol_metrics$date_of_birth <- as.POSIXct(usiqol_metrics$date_of_birth, format = "%d/%m/%Y")
-usiqol_metrics$age <- as.integer(usiqol_metrics$age)
-usiqol_metrics$trial_number <- as.integer(usiqol_metrics$trial_number)
-usiqol_metrics$date_completed <- as.POSIXct(usiqol_metrics$date_completed, format = "%d/%m/%Y")
-usiqol_metrics$total_pre <- as.integer(usiqol_metrics$total_pre)
-usiqol_metrics$date_completed_2 <- as.POSIXct(usiqol_metrics$date_completed_2, format = "%d/%m/%Y")
-usiqol_metrics$total_post_1 <- as.integer(usiqol_metrics$total_post_1)
-usiqol_metrics$date_completed_3 <- as.POSIXct(usiqol_metrics$date_completed_3, format = "%d/%m/%Y")
-usiqol_metrics$total_post_2 <- as.integer(usiqol_metrics$total_post_2)
+#usiqol_metrics$date_of_birth <- as.POSIXct(usiqol_metrics$date_of_birth, format = "%d/%m/%Y")
+#usiqol_metrics$age <- as.integer(usiqol_metrics$age)
+#usiqol_metrics$trial_number <- as.integer(usiqol_metrics$trial_number)
+#usiqol_metrics$date_completed <- as.POSIXct(usiqol_metrics$date_completed, format = "%d/%m/%Y")
+#usiqol_metrics$total_pre <- as.integer(usiqol_metrics$total_pre)
+#usiqol_metrics$date_completed_2 <- as.POSIXct(usiqol_metrics$date_completed_2, format = "%d/%m/%Y")
+#usiqol_metrics$total_post_1 <- as.integer(usiqol_metrics$total_post_1)
+#usiqol_metrics$date_completed_3 <- as.POSIXct(usiqol_metrics$date_completed_3, format = "%d/%m/%Y")
+#usiqol_metrics$total_post_2 <- as.integer(usiqol_metrics$total_post_2)
 
-usiqol_stone_sizes_pre_post$sex <- as.factor(usiqol_stone_sizes_pre_post$sex)
-usiqol_stone_sizes_pre_post$intervention <- as.factor(usiqol_stone_sizes_pre_post$intervention)
-usiqol_stone_sizes_pre_post$successful <- as.factor(usiqol_stone_sizes_pre_post$successful)
-usiqol_stone_sizes_pre_post$pre_op_stone_free_status <- as.integer(usiqol_stone_sizes_pre_post$pre_op_stone_free_status)
-usiqol_stone_sizes_pre_post$post_op_stone_free_status <- as.integer(usiqol_stone_sizes_pre_post$post_op_stone_free_status)
+#usiqol_stone_sizes_pre_post$sex <- as.factor(usiqol_stone_sizes_pre_post$sex)
+#usiqol_stone_sizes_pre_post$intervention <- as.factor(usiqol_stone_sizes_pre_post$intervention)
+#usiqol_stone_sizes_pre_post$successful <- as.factor(usiqol_stone_sizes_pre_post$successful)
+#usiqol_stone_sizes_pre_post$pre_op_stone_free_status <- as.integer(usiqol_stone_sizes_pre_post$pre_op_stone_free_status)
+#usiqol_stone_sizes_pre_post$post_op_stone_free_status <- as.integer(usiqol_stone_sizes_pre_post$post_op_stone_free_status)
 
 ### 11.2.4 Assign age bands ####
 
-usiqol_metrics <- usiqol_metrics %>%
-  mutate(
-    age_1 = age,
-    age_2 = as.numeric(difftime(date_completed_2, date_of_birth, units = "days")) / 365.25,
-    age_3 = as.numeric(difftime(date_completed_3, date_of_birth, units = "days")) / 365.25,
-    age_bin = case_when(
-      age_1 < 5 ~ "Aged 1 to 4", 
-      age_1 >4 & age_1 < 10 ~ "Aged 5 to 9",
-      age_1 >9 & age_1 < 15 ~ "Aged 10-14",
-      age_1 >14 & age_1 < 20 ~ "Aged 15-19",
-      age_1 >19 & age_1 < 25 ~ "Aged 20-24" ,     
-      age_1 >24 & age_1 < 30 ~ "Aged 25-29",
-      age_1 >29 & age_1 < 35 ~ "Aged 30-34", 
-      age_1 >34 & age_1 < 40 ~ "Aged 35-39", 
-      age_1 >39 & age_1 < 45 ~ "Aged 40-44",      
-      age_1 >44 & age_1 < 50 ~ "Aged 45-49",   
-      age_1 >49 & age_1 < 55 ~ "Aged 50-54",   
-      age_1 >54 & age_1 < 60 ~ "Aged 55-59",      
-      age_1 >59 & age_1 < 65 ~ "Aged 60-64",
-      age_1 >64 & age_1 < 70 ~ "Aged 65-69", 
-      age_1 >69 & age_1 < 75 ~ "Aged 70-74",  
-      age_1 >74 & age_1 < 80 ~ "Aged 75-79",      
-      age_1 >79 & age_1 < 85 ~ "Aged 80-84",
-      age_1 >84 & age_1 < 90 ~ "Aged 85-89",
-      age_1 >89 ~ "Aged 90 and over"
-    ),
-    age_bin = factor(age_bin, levels = c("Aged 1 to 4",
-                                          "Aged 5 to 9",
-                                          "Aged 10-14",
-                                          "Aged 15-19",
-                                          "Aged 20-24",
-                                          "Aged 25-29",
-                                          "Aged 30-34",
-                                          "Aged 35-39",
-                                          "Aged 40-44",      
-                                          "Aged 45-49",
-                                          "Aged 50-54",
-                                          "Aged 55-59",      
-                                          "Aged 60-64",
-                                          "Aged 65-69",
-                                          "Aged 70-74",
-                                          "Aged 75-79",      
-                                          "Aged 80-84",
-                                          "Aged 85-89",
-                                          "Aged 90 and over")),
-    .keep = "all"
-  ) %>% 
-  drop_na(trial_number)
+#usiqol_metrics <- usiqol_metrics %>%
+#  mutate(
+#    age_1 = age,
+#    age_2 = as.numeric(difftime(date_completed_2, date_of_birth, units = "days")) / 365.25,
+#    age_3 = as.numeric(difftime(date_completed_3, date_of_birth, units = "days")) / 365.25,
+#    age_bin = case_when(
+#      age_1 < 5 ~ "Aged 1 to 4", 
+#      age_1 >4 & age_1 < 10 ~ "Aged 5 to 9",
+#      age_1 >9 & age_1 < 15 ~ "Aged 10-14",
+#      age_1 >14 & age_1 < 20 ~ "Aged 15-19",
+#      age_1 >19 & age_1 < 25 ~ "Aged 20-24" ,     
+#      age_1 >24 & age_1 < 30 ~ "Aged 25-29",
+#      age_1 >29 & age_1 < 35 ~ "Aged 30-34", 
+#      age_1 >34 & age_1 < 40 ~ "Aged 35-39", 
+#      age_1 >39 & age_1 < 45 ~ "Aged 40-44",      
+#      age_1 >44 & age_1 < 50 ~ "Aged 45-49",   
+#      age_1 >49 & age_1 < 55 ~ "Aged 50-54",   
+#      age_1 >54 & age_1 < 60 ~ "Aged 55-59",      
+#      age_1 >59 & age_1 < 65 ~ "Aged 60-64",
+#      age_1 >64 & age_1 < 70 ~ "Aged 65-69", 
+#      age_1 >69 & age_1 < 75 ~ "Aged 70-74",  
+#      age_1 >74 & age_1 < 80 ~ "Aged 75-79",      
+#      age_1 >79 & age_1 < 85 ~ "Aged 80-84",
+#      age_1 >84 & age_1 < 90 ~ "Aged 85-89",
+#      age_1 >89 ~ "Aged 90 and over"
+#    ),
+#    age_bin = factor(age_bin, levels = c("Aged 1 to 4",
+#                                         "Aged 5 to 9",
+#                                         "Aged 10-14",
+#                                         "Aged 15-19",
+#                                         "Aged 20-24",
+#                                         "Aged 25-29",
+#                                         "Aged 30-34",
+#                                         "Aged 35-39",
+#                                         "Aged 40-44",      
+#                                         "Aged 45-49",
+#                                         "Aged 50-54",
+#                                         "Aged 55-59",      
+#                                         "Aged 60-64",
+#                                         "Aged 65-69",
+#                                         "Aged 70-74",
+#                                         "Aged 75-79",      
+#                                         "Aged 80-84",
+#                                         "Aged 85-89",
+#                                         "Aged 90 and over")),
+#    .keep = "all"
+#  ) %>% 
+#  drop_na(trial_number)
 
-usiqol_stone_sizes_pre_post <- usiqol_stone_sizes_pre_post %>%
-  subset(select = c(
-    trial_number,
-    pre_op_stone_free_status,
-    post_op_stone_free_status,
-    intervention,
-    successful
-  )) %>% 
-  drop_na(trial_number)
+#usiqol_stone_sizes_pre_post <- usiqol_stone_sizes_pre_post %>%
+#  subset(select = c(
+#    trial_number,
+#    pre_op_stone_free_status,
+#    post_op_stone_free_status,
+#    intervention,
+#    successful
+#  )) %>% 
+#  drop_na(trial_number)
 
 ### 11.2.5 Assign stone free status ####
 
-usiqol_metrics_aggregated <- usiqol_metrics %>%
-  left_join(usiqol_stone_sizes_pre_post,
-            by = c("trial_number" = "trial_number")) %>%
-  mutate(stone_free_status_pre = case_when(
-    pre_op_stone_free_status == 0 ~ "SF",
-    pre_op_stone_free_status >=4 ~ "more4",
-    pre_op_stone_free_status < 4 ~ "less4",
-    TRUE ~ NA_character_
-  ),
-  stone_free_status_post = case_when(
-    post_op_stone_free_status == 0 ~ "SF",
-    post_op_stone_free_status >=4 ~ "more4",
-    post_op_stone_free_status < 4 ~ "less4",
-    TRUE ~ NA_character_
-  )) 
+#usiqol_metrics_aggregated <- usiqol_metrics %>%
+#  left_join(usiqol_stone_sizes_pre_post,
+#            by = c("trial_number" = "trial_number")) %>%
+#  mutate(stone_free_status_pre = case_when(
+#    pre_op_stone_free_status == 0 ~ "SF",
+#    pre_op_stone_free_status >=4 ~ "more4",
+#    pre_op_stone_free_status < 4 ~ "less4",
+#    TRUE ~ NA_character_
+#  ),
+#  stone_free_status_post = case_when(
+#    post_op_stone_free_status == 0 ~ "SF",
+#    post_op_stone_free_status >=4 ~ "more4",
+#    post_op_stone_free_status < 4 ~ "less4",
+#    TRUE ~ NA_character_
+#  )) 
 
 ### 11.2.6 Get change with treatment ####
 
-usiqol_change_with_rx <- usiqol_metrics_aggregated %>%
-  group_by(intervention, stone_free_status_pre) %>%
-  summarise(
-    n = sum(!is.na(total_post_1 - total_pre)),
-    qol_change = mean(total_post_1 - total_pre, na.rm = TRUE),
-    qol_sd = sd(total_post_1 - total_pre, na.rm = TRUE),
-    qol_se = qol_sd / sqrt(n)
-  ) %>% 
-  ungroup() %>% 
-  subset(select = c(
-    intervention,
-    stone_free_status_pre,
-    qol_change,
-    qol_sd,
-    qol_se
-  ))
+#usiqol_change_with_rx <- usiqol_metrics_aggregated %>%
+#  group_by(intervention, stone_free_status_pre) %>%
+#  summarise(
+#    n = sum(!is.na(total_post_1 - total_pre)),
+#    qol_change = mean(total_post_1 - total_pre, na.rm = TRUE),
+#    qol_sd = sd(total_post_1 - total_pre, na.rm = TRUE),
+#    qol_se = qol_sd / sqrt(n)
+#  ) %>% 
+#  ungroup() %>% 
+#  subset(select = c(
+#    intervention,
+#    stone_free_status_pre,
+#    qol_change,
+#    qol_sd,
+#    qol_se
+#  ))
+
+#write.csv(usiqol_change_with_rx,
+#          "usiqol_change_with_rx.csv")
+
+usiqol_change_with_rx <- fread("Inputs/usiqol_change_with_rx.csv") %>% 
+  as_tibble() %>%
+  select(-V1) %>%
+  mutate(
+    intervention = as.factor(intervention),
+    stone_free_status_pre = as.factor(stone_free_status_pre)
+  )
 
 mean_change_se_1 <- usiqol_change_with_rx %>% 
   select(qol_se) %>%
@@ -228,7 +244,7 @@ usiqol_change_with_rx %>%
 
 
 ### 11.2.7 Get final tibble for score assignment by age_band and sf_status ####
-  
+
 usiqol_metrics_by_age_stone_free_status <-  
   usiqol_metrics_aggregated  %>%
   subset(select = c(age_bin,
@@ -236,7 +252,7 @@ usiqol_metrics_by_age_stone_free_status <-
                     total_post_1,
                     stone_free_status_pre,
                     stone_free_status_post
-                    )) %>% 
+  )) %>% 
   pivot_longer(cols = c(total_pre,total_post_1),
                names_to = "scored_when",
                values_to = "usiqol_scores") %>%
@@ -263,6 +279,17 @@ usiqol_metrics_by_age_stone_free_status <-
   ) %>% 
   select(-n) %>%
   ungroup()
+
+write.csv(usiqol_metrics_by_age_stone_free_status,
+          "usiqol_metrics_by_age_stone_free_status.csv")
+
+usiqol_metrics_by_age_stone_free_status <- fread("Inputs/usiqol_metrics_by_age_stone_free_status.csv") %>%
+  as_tibble() %>%
+  select(-V1) %>%
+  mutate(
+    age_bin = as.factor(age_bin),
+    stone_free_status = as.factor(stone_free_status)
+  )
 
 str(usiqol_metrics_by_age_stone_free_status)
 
@@ -329,7 +356,7 @@ usiqol_metrics_by_age_stone_free_status2 <- usiqol_metrics_by_age_stone_free_sta
     )
   ) %>%
   select(-is_after_40_45, -bins_after)
-  
+
 
 
 # CIs for some are either very wide or missing - amend to assign as average of those with reasonable values
@@ -337,8 +364,8 @@ usiqol_metrics_by_age_stone_free_status2 <- usiqol_metrics_by_age_stone_free_sta
 mean_se <- usiqol_metrics_by_age_stone_free_status %>%
   subset(select = c(total_ci_lower, total_se)) %>%
   mutate(total_ci_lower_se = ifelse(total_ci_lower < 0,
-                                 NA,
-                                 total_se)) %>%
+                                    NA,
+                                    total_se)) %>%
   drop_na(total_ci_lower_se) %>%
   summarise(mean_se = mean(total_ci_lower_se))
 
@@ -862,7 +889,7 @@ assign_baseline_qol <- function(df,
           pmin(pmax(vals, 15), 60)
         }
       )
-
+      
       # Summarise MC sim for each individual
       baseline_qol_mean  <- rowMeans(mc_draws)
       baseline_qol_lower <- apply(mc_draws, 1, quantile, probs = 0.025)
@@ -1505,7 +1532,7 @@ combine_auc_data <- function(data, auc_label) {
            annual_qol_upper,
            qaly_5yr,
            true_rec_5yr
-           )
+    )
 }
 
 auc_list <- list(
@@ -1644,5 +1671,3 @@ summary_df_full_qol_data %>%
        x = "Cohort Type",
        y = "Mean 5yr QALYs (USIQOL)",
        fill = "Risk Status") + ylim(0,0.7)
-
-
