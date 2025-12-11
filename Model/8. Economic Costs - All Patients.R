@@ -1032,9 +1032,19 @@ combine_auc_data <- function(data, auc_label) {
         year == 2017 ~ cost_year_4,
         year == 2016 ~ cost_year_5,
         TRUE ~ NA_real_
-      )
+      ),
+      total_cost_per_patient = cost_year_1 + cost_year_2 + cost_year_3 + 
+        cost_year_4 + cost_year_5
     ) %>%
-    select(auc_label, cohort_type, stone_free_status, risk_status, annual_costs, true_rec_5yr)
+    select(id, 
+           auc_label, 
+           cohort_type, 
+           stone_free_status,
+           risk_status, 
+           annual_costs, 
+           true_rec_5yr,
+           total_cost_per_patient,
+           year)
 }
 
 # Combine all AUC datasets and filter cohort_types
@@ -1048,12 +1058,20 @@ data_for_plot <- bind_rows(
   combine_auc_data(auc_0.85, "AUC 0.85"),
   combine_auc_data(auc_0.9,  "AUC 0.9"),
   combine_auc_data(auc_0.95, "AUC 0.95")
-)
+) 
+
+
 
 data_for_plot$auc_label <- as.factor(data_for_plot$auc_label)
 data_for_plot$cohort_type <- as.factor(data_for_plot$cohort_type)
 data_for_plot$risk_status <- as.factor(data_for_plot$risk_status)
 data_for_plot$true_rec_5yr <- as.factor(data_for_plot$true_rec_5yr)
+
+overall_cost_data <- data_for_plot
+
+data_for_plot <- data_for_plot %>%
+  select(-c(id, 
+            total_cost_per_patient))
 
 # Summarise mean and SD by auc_label, risk_status, cohort_type
 summary_df <- data_for_plot %>%
