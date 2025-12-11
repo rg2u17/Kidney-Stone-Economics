@@ -1039,9 +1039,22 @@ calculate_qol <- function(complete_pop_yr_fu,
     message("Calculating QALYs for AUC:", target_auc)
     combined_result <- combined_result %>%
       mutate(
-        qaly_5yr = rowSums(select(., starts_with("qol_mean_year_")), na.rm = TRUE) / 60,
-        qaly_5yr_lower = rowSums(select(., starts_with("qol_lower_year_")), na.rm = TRUE) / 60,
-        qaly_5yr_upper = rowSums(select(., starts_with("qol_upper_year_")), na.rm = TRUE) / 60,
+        qaly_5yr = 
+          (qol_mean_year_1 / 60) + 
+          (qol_mean_year_2 / 60) + 
+          (qol_mean_year_3 / 60) +
+          (qol_mean_year_4 / 60) +
+          (qol_mean_year_5 / 60),
+        qaly_5yr_lower = (qol_lower_year_1 / 60) + 
+          (qol_lower_year_2 / 60) + 
+          (qol_lower_year_3 / 60) +
+          (qol_lower_year_4 / 60) +
+          (qol_lower_year_5 / 60),
+        qaly_5yr_upper = (qol_upper_year_1 / 60) + 
+          (qol_upper_year_2 / 60) + 
+          (qol_upper_year_3 / 60) +
+          (qol_upper_year_4 / 60) +
+          (qol_upper_year_5 / 60),
         risk_status = case_when(prediction == "No" ~ "Low Risk",
                                 prediction == "Yes" ~ "High Risk",
                                 TRUE ~ NA_character_),
@@ -1542,7 +1555,8 @@ combine_auc_data <- function(data, auc_label) {
       ),
       stone_free_status = stone_free_status_original
     ) %>%
-    select(auc_label,
+    select(id,
+           auc_label,
            cohort_type,
            stone_free_status,
            risk_status,
@@ -1550,6 +1564,8 @@ combine_auc_data <- function(data, auc_label) {
            annual_qol_lower,
            annual_qol_upper,
            qaly_5yr,
+           qaly_5yr_lower,
+           qaly_5yr_upper,
            true_rec_5yr
     )
 }
@@ -1583,6 +1599,19 @@ data_for_plot_qol$auc_label <- as.factor(data_for_plot_qol$auc_label)
 data_for_plot_qol$cohort_type <- as.factor(data_for_plot_qol$cohort_type)
 data_for_plot_qol$risk_status <- as.factor(data_for_plot_qol$risk_status)
 data_for_plot_qol$true_rec_5yr <- as.factor(data_for_plot_qol$true_rec_5yr)
+
+overall_qol_data <- data_for_plot_qol %>%
+  subset(select(
+    id,
+    auc_label,
+    cohort_type,
+    stone_free_status,
+    risk_status,
+    qaly_5yr,
+    qaly_5yr_lower,
+    qaly_5yr_upper,
+    true_rec_5yr
+  ))
 
 # Summarise mean and SD by auc_label, risk_status, cohort_type
 summary_df_qol <- data_for_plot_qol %>%
