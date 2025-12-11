@@ -1566,7 +1566,8 @@ combine_auc_data <- function(data, auc_label) {
            qaly_5yr,
            qaly_5yr_lower,
            qaly_5yr_upper,
-           true_rec_5yr
+           true_rec_5yr,
+           year
     )
 }
 
@@ -1610,7 +1611,8 @@ overall_qol_data <- data_for_plot_qol %>%
     qaly_5yr,
     qaly_5yr_lower,
     qaly_5yr_upper,
-    true_rec_5yr
+    true_rec_5yr,
+    year
   ))
 
 # Summarise mean and SD by auc_label, risk_status, cohort_type
@@ -1719,4 +1721,5 @@ summary_df_full_qol_data %>%
        x = "Cohort Type",
        y = "Mean QALYs over 5yrs follow-up",
        fill = "Risk Status") + ylim(0,3.2)
+
 
