@@ -691,7 +691,9 @@ source("Model/8. Economic Costs - All Patients.R")
 
 ## Plot total cost by cohort_type within risk groups - facet by FU type
 ```{r}
-summary_df_full_cost_data %>% group_by(auc_label) %>% ggplot(aes(x = auc_label, y = total_cost, fill = risk_status)) +
+summary_df_full_cost_data %>% 
+  group_by(auc_label) %>% 
+  ggplot(aes(x = auc_label, y = total_cost, fill = risk_status)) +
   geom_col(position = position_dodge(width = 0.8), width = 0.7, color = "black") +
   facet_wrap(~ cohort_type) +
   theme_bw() +
@@ -1081,7 +1083,7 @@ summary_df_full_qol_data %>%
   labs(title = "Mean USIQoL Adjusted Life Years for EAU Follow-Up of those with Clinically Significant Disease",
        x = "Cohort Type",
        y = "Mean 5yr QALYs (USIQOL)",
-       fill = "Risk Status") + ylim(0,0.7)
+       fill = "Risk Status") + ylim(0,3.2)
 ```
 \newpage
 
@@ -1169,7 +1171,7 @@ summary_df_full_qol_plot <- summary_df_full_qol_data %>%
   labs(title = "Quality of Life",
        x = "Cohort Type",
        y = "5yr QALYs Difference",
-       fill = "Risk Status") + ylim(-0.015,0.015)
+       fill = "Risk Status") + ylim(-0.08,0.07)
 
 summary_df_full_qol_plot
 ```
@@ -1380,7 +1382,7 @@ summary_df_full_qol_plot_paper1 <- summary_df_full_qol_data %>%
   labs(title = "Quality of Life",
        x = "Cohort Type",
        y = "5yr QALYs Difference",
-       fill = "Risk Status") + ylim(-0.01,0.003) 
+       fill = "Risk Status") + ylim(-0.1,0.1) 
 ```
 \newpage
 
