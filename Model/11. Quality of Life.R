@@ -1601,7 +1601,7 @@ data_for_plot_qol$risk_status <- as.factor(data_for_plot_qol$risk_status)
 data_for_plot_qol$true_rec_5yr <- as.factor(data_for_plot_qol$true_rec_5yr)
 
 overall_qol_data <- data_for_plot_qol %>%
-  subset(select(
+  subset(select = c(
     id,
     auc_label,
     cohort_type,
