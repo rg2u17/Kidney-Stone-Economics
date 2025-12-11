@@ -1715,7 +1715,8 @@ summary_df_full_qol_data %>%
   theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
         strip.text = element_text(size = 10)) +
-  labs(title = "Mean USIQoL Adjusted Life Years for EAU Follow-Up of those with Clinically Significant Disease",
+  labs(title = "USIQoL Adjusted Life Years for EAU Follow-Up of those with Clinically Significant Disease",
        x = "Cohort Type",
-       y = "Mean 5yr QALYs (USIQOL)",
-       fill = "Risk Status") + ylim(0,0.7)
+       y = "Mean QALYs over 5yrs follow-up",
+       fill = "Risk Status") + ylim(0,3.2)
+
