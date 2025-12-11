@@ -865,6 +865,14 @@ assign_baseline_qol <- function(df,
   # Filter baseline cohort
   df1 <- df %>% filter(auc_target == 0.55)
   
+  df1 <- df1 %>%
+    mutate(
+      age_band = case_when(
+       age < 15 ~ "15-19",
+       TRUE ~ age_band
+      )
+    )
+  
   df1$age_band <- as.factor(df1$age_band)
   age_list <- levels(df1$age_band)
   sf_levels <- levels(df1$stone_free_status)
@@ -1031,9 +1039,9 @@ calculate_qol <- function(complete_pop_yr_fu,
     message("Calculating QALYs for AUC:", target_auc)
     combined_result <- combined_result %>%
       mutate(
-        qaly_5yr = rowSums(select(., starts_with("qol_mean_year_")), na.rm = TRUE) / (60*5),
-        qaly_5yr_lower = rowSums(select(., starts_with("qol_lower_year_")), na.rm = TRUE) / (60*5),
-        qaly_5yr_upper = rowSums(select(., starts_with("qol_upper_year_")), na.rm = TRUE) / (60*5),
+        qaly_5yr = rowSums(select(., starts_with("qol_mean_year_")), na.rm = TRUE) / 60,
+        qaly_5yr_lower = rowSums(select(., starts_with("qol_lower_year_")), na.rm = TRUE) / 60,
+        qaly_5yr_upper = rowSums(select(., starts_with("qol_upper_year_")), na.rm = TRUE) / 60,
         risk_status = case_when(prediction == "No" ~ "Low Risk",
                                 prediction == "Yes" ~ "High Risk",
                                 TRUE ~ NA_character_),
