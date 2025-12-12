@@ -460,7 +460,7 @@ monte_carlo_icer_parallel <- function(data,
     
     results_df <- future_map2_dfr(
       1:n_iterations,
-      1:n_iterations,    # dummy second argument
+      1:n_iterations,    
       ~ run_single_iteration(.x, baseline_data, intervention_data),
       .progress = TRUE,
       .options = furrr::furrr_options(seed = TRUE)
