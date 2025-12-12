@@ -503,7 +503,7 @@ icer_0.55 <- monte_carlo_icer_parallel(auc_0.55_for_icer,
 icer_0.55$cohort_type <- as.factor(icer_0.55$cohort_type)
 
 #### 12.5.5.1 AUC = 0.6 ####
-icer_0.6 <- monte_carlo_icer_verbose(
+icer_0.6 <- monte_carlo_icer_parallel(
   auc_0.6_for_icer,
   n_iterations = 1000
 )
@@ -511,14 +511,14 @@ icer_0.6 <- monte_carlo_icer_verbose(
 icer_0.6$cohort_type <- as.factor(icer_0.6$cohort_type)
 
 #### 12.5.5.3 AUC = 0.65 ####
-icer_0.65 <- monte_carlo_icer_verbose(
+icer_0.65 <- monte_carlo_icer_parallel(
   auc_0.65_for_icer,
   n_iterations = 1000
 )
 icer_0.65$cohort_type <- as.factor(icer_0.65$cohort_type)
 
 #### 12.5.5.4 AUC = 0.7 ####
-icer_0.7 <- monte_carlo_icer_verbose(
+icer_0.7 <- monte_carlo_icer_parallel(
   auc_0.7_for_icer,
   n_iterations = 1000
 )
@@ -526,14 +526,14 @@ icer_0.7 <- monte_carlo_icer_verbose(
 icer_0.7$cohort_type <- as.factor(icer_0.7$cohort_type)
 
 #### 12.5.5.5 AUC = 0.75 ####
-icer_0.75 <- monte_carlo_icer_verbose(
+icer_0.75 <- monte_carlo_icer_parallel(
   auc_0.75_for_icer,
   n_iterations = 1000
 )
 icer_0.75$cohort_type <- as.factor(icer_0.75$cohort_type)
 
 #### 12.5.5.6 AUC = 0.8 ####
-icer_0.8 <- monte_carlo_icer_verbose(
+icer_0.8 <- monte_carlo_icer_parallel(
   auc_0.8_for_icer,
   n_iterations = 1000
 )
@@ -541,14 +541,14 @@ icer_0.8 <- monte_carlo_icer_verbose(
 icer_0.8$cohort_type <- as.factor(icer_0.8$cohort_type)
 
 #### 12.5.5.7 AUC = 0.85 ####
-icer_0.85 <- monte_carlo_icer_verbose(
+icer_0.85 <- monte_carlo_icer_parallel(
   auc_0.85_for_icer,
   n_iterations = 1000
 )
 icer_0.85$cohort_type <- as.factor(icer_0.85$cohort_type)
 
 #### 12.5.5.8 AUC = 0.9 ####
-icer_0.9 <- monte_carlo_icer_verbose(
+icer_0.9 <- monte_carlo_icer_parallel(
   auc_0.9_for_icer,
   n_iterations = 1000
 )
@@ -556,7 +556,7 @@ icer_0.9 <- monte_carlo_icer_verbose(
 icer_0.9$cohort_type <- as.factor(icer_0.9$cohort_type)
 
 #### 12.5.5.9 AUC = 0.95 ####
-icer_0.95 <- monte_carlo_icer_verbose(
+icer_0.95 <- monte_carlo_icer_parallel(
   auc_0.95_for_icer,
   n_iterations = 1000
 )
