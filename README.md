@@ -36,7 +36,7 @@ At present, each file that is required is stored in the Inputs folder. We recomm
 <br>
 The output should be: <br>
 <br>
-_Kidney-Stone-Economics/Inputs_ <br>
+.../Kidney-Stone-Economics <br>
 <br>
 Otherwise you will need to use:
 <br>
