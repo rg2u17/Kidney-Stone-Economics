@@ -38,9 +38,9 @@ The output should be: <br>
 <br>
 .../Kidney-Stone-Economics <br>
 <br>
-Otherwise you will need to use:
+Otherwise you will need to assign the working directory to where the file is stored, for example:
 <br>
-```setwd('File/Path/To/Kidney-Stone-Economics')``` <br>
+```setwd('~/Desktop/Kidney-Stone-Economics')``` <br>
 <br>
 To set the working working directory to an appropriate place <br>
 This will ensure the scripts run without having to alter the file path
