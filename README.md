@@ -132,13 +132,16 @@ These tables details the assumptions made by the model and the reference for tho
 
 ### Stone Free Rates
 **Renal Stones**
+<br>
 | Treatment | Stone-Free Rate | Reference            |
 | --------- | --------------: | -------------------- |
 | PCNL      |             74% | Geraghty et al. 2024 |
 | URS       |             60% | Ghani & Wolf 2015    |
 | ESWL      |             50% | Brain et al. 2023    |
 <br>
+
 **Ureteric Stones**
+<br>
 | Treatment           | Stone-Free Rate | Reference            |
 | ------------------- | --------------: | -------------------- |
 | URS                 |       89% (PP2) | Dasgupta et al. 2021 |
