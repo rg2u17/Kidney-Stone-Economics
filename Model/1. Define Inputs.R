@@ -788,8 +788,8 @@ more4_1yr_colic <- 0.01 / 5
 ### 1.8 Radiation doses ####
 xr_dose <- 0.7
 us_dose <- 0
-ct_dose <- 10
-uldct_dose <- 1.8
+normal_ct_dose <- 10
+ct_dose <- 1.8 # Ultra-low dose CT
 
 pcnl_dose <- 6.6
 urs_dose <- 2.1
