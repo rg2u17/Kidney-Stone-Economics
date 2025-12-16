@@ -1,14 +1,20 @@
 # Discrete Event Simulation of EAU Follow-up Algorithm
 ## General Information
 This repository details the underpinning data and R code used to model the European Association of Urology Follow-up Algorithm (see figure 1). <br>
+The model examines differing types of imaging modality (X-ray, ultrasound and CT) and lengths of follow-up (as determined by the EAU Urolithiasis guidelines): <br>
+<br>
+**Low risk** - 3-5 years <br>
+**High risk** - at least 5 years <br>
+<br>
 
 <img width="760" height="320" alt="image" src="https://github.com/user-attachments/assets/eee4aa40-d19e-4c0a-8518-ad3c1417d280" /> <br>
 Figure 1. EAU follow-up algorithm for patients with kidney stones following treatment.
 <br>
 
 The model examines both the current standard of care (see below), and multiple theoretical diagnostic accuracy thresholds for prediction of recurrence for follow-up following first stone event (see below for definition). <br>
-The model only examines **1** subsequent stone event (a single recurrence) <br>
-The model examines differing types of imaging modality and lengths of follow-up. <br>
+<br>
+At present, the model only examines **1** subsequent stone event (a single recurrence) <br>
+
 
 Ascertainment of the current standard of care is detailed below:
 
