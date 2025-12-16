@@ -46,9 +46,11 @@ To set the working working directory to an appropriate place <br>
 This will ensure the scripts run without having to alter the file path
 
 ## Ascertainment of Current Standard of Care
-We utilised UK Biobank to ascertain the prognostic accuracy of the current standard of care (EAU risk stratification - Table 3.3: ) <br>
+We utilised UK Biobank to ascertain the prognostic accuracy of the current standard of care (EAU risk stratification - Table 3.3: https://uroweb.org/guidelines/urolithiasis/chapter/guidelines) <br>
 The methodology to do this is detailed in the following link: <br>
 ```https://github.com/rg2u17/Recurrence_ML``` <br>
+Then selecting the following script: <br>
+*5. Ascertain Past medical history for kidney stone formers*
 <br>
 We examined **stone event** rates at both 5 and 10 years and these are detailed below: <br>
 
@@ -59,17 +61,17 @@ We examined **stone event** rates at both 5 and 10 years and these are detailed 
 
 ### 5 Year Stone event rates
 
-[EAU Risk stratification counts UKB.tiff](https://github.com/user-attachments/files/24189808/EAU.Risk.stratification.counts.UKB.tiff)
+<img width="760" height="320" alt="image" src="https://github.com/user-attachments/files/24189808/EAU.Risk.stratification.counts.UKB.tiff" /> <br>
 Figure 2. Counts of stone events over 5 years subdivided by EAU risk stratification <br>
 
-[EAU Risk stratification percentages UKB.tiff](https://github.com/user-attachments/files/24189807/EAU.Risk.stratification.percentages.UKB.tiff)
-Figure 3. Proportions of stone events over 5 years subdivided by EAU risk stratification
+[EAU Risk stratification percentages UKB.tiff](https://github.com/user-attachments/files/24189807/EAU.Risk.stratification.percentages.UKB.tiff) <br>
+Figure 3. Proportions of stone events over 5 years subdivided by EAU risk stratification <br>
 
-<img width="592" height="414" alt="image" src="https://github.com/user-attachments/assets/4089a5d7-f10e-40c6-b2d5-8a514dbf2c75" />
-Figure 4. Kaplan Meier plot of 1st -> 2nd stone event (symptomatic recurrence) 
+<img width="592" height="414" alt="image" src="https://github.com/user-attachments/assets/4089a5d7-f10e-40c6-b2d5-8a514dbf2c75" /> <br>
+Figure 4. Kaplan Meier plot of 1st -> 2nd stone event (symptomatic recurrence) <br>
 
 ### 10 Year Stone event rates
 
-[EAU risk stratification 10 year counts.tiff](https://github.com/user-attachments/files/24189857/EAU.risk.stratification.10.year.counts.tiff)
+[EAU risk stratification 10 year counts.tiff](https://github.com/user-attachments/files/24189857/EAU.risk.stratification.10.year.counts.tiff) <br>
 Figure 5. Counts of stone events over 10 years subdivided by EAU risk stratification <br>
 
