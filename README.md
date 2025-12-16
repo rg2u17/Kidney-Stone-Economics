@@ -8,15 +8,15 @@ The model examines differing types of imaging modality (X-ray, ultrasound and CT
 <br>
 
 <img width="760" height="320" alt="image" src="https://github.com/user-attachments/assets/eee4aa40-d19e-4c0a-8518-ad3c1417d280" /> <br>
-Figure 1. EAU follow-up algorithm for patients with kidney stones following treatment.
+**Figure 1.** EAU follow-up algorithm for patients with kidney stones following treatment (see https://uroweb.org/guidelines/urolithiasis/chapter/followup-of-urinary-stones).
 <br>
 
-The model examines both the current standard of care (see below), and multiple theoretical diagnostic accuracy thresholds for prediction of recurrence for follow-up following first stone event (see below for definition). <br>
+The model examines both the current standard of care (see below), and multiple theoretical prognostic accuracy thresholds for prediction of recurrence for follow-up following first stone event (see below for definition). <br>
 <br>
-At present, the model only examines **1** subsequent stone event (a single recurrence) <br>
+At present, the model only examines **one subsequent stone event** (i.e a single recurrence) <br>
 
 
-Ascertainment of the current standard of care is detailed below:
+Ascertainment of the current standard of care is detailed below: <br>
 
 ## Ascertainment of Current Standard of Care
 We utilised UK Biobank to ascertain the prognostic accuracy of the current standard of care (EAU risk stratification - Table 3.3: https://uroweb.org/guidelines/urolithiasis/chapter/guidelines) <br>
