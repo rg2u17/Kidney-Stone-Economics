@@ -14,7 +14,6 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
     
     # Get cutpoint for current AUC target
     cutpoint <- (cutpoints_yr %>% filter(auc_target == !!auc_target))$cutpoint
-    imaging <- sym(paste0(imaging_fu_type, "_dose"))
     complete_pop_yr_fu <- complete_pop_yr_fu %>% mutate(
       risk_status = ifelse(score < cutpoint, "LR", "HR")
     )
@@ -29,6 +28,9 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
     
     # Distribute SF status as determined by imaging
     if (imaging_fu_type == "xr") {
+      imaging1 <- xr_dose
+      imaging2 <- xr_dose
+      
       # Generate random numbers once
       rand_sens <- runif(nrow(complete_pop_yr_fu))
       rand_spec <- runif(nrow(complete_pop_yr_fu))
@@ -38,8 +40,8 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
           stone_free_status_original = stone_free_status,
           stone_free_status1 = case_when(
             stone_free_status_original %in% c("less4", "more4") & rand_sens <= xr_sens ~ stone_free_status_original,
-            stone_free_status_original %in% c("less4", "more4") & rand_sens > xr_sens ~ "SF", # FIXED: uppercase
-            stone_free_status_original == "sf" & rand_spec <= xr_spec ~ "SF", # FIXED: uppercase
+            stone_free_status_original %in% c("less4", "more4") & rand_sens > xr_sens ~ "SF", 
+            stone_free_status_original == "sf" & rand_spec <= xr_spec ~ "SF", 
             stone_free_status_original == "sf" & rand_spec > xr_spec ~ ifelse(
               runif(n()) <= less4_prob, "less4", "more4"
             ),
@@ -48,6 +50,9 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
           .keep = "all"
         )
     } else if (imaging_fu_type == "xr_us") {
+      imaging1 <- xr_dose
+      imaging2 <- us_dose
+      
       rand_sens <- runif(nrow(complete_pop_yr_fu))
       rand_spec <- runif(nrow(complete_pop_yr_fu))
       
@@ -56,8 +61,8 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
           stone_free_status_original = stone_free_status,
           stone_free_status1 = case_when(
             stone_free_status_original %in% c("less4", "more4") & rand_sens <= us_sens ~ stone_free_status_original,
-            stone_free_status_original %in% c("less4", "more4") & rand_sens > us_sens ~ "SF", # FIXED: uppercase
-            stone_free_status_original == "sf" & rand_spec <= us_spec ~ "SF", # FIXED: uppercase
+            stone_free_status_original %in% c("less4", "more4") & rand_sens > us_sens ~ "SF", 
+            stone_free_status_original == "sf" & rand_spec <= us_spec ~ "SF", 
             stone_free_status_original == "sf" & rand_spec > us_spec ~ ifelse(
               runif(n()) <= less4_prob, "less4", "more4"
             ),
@@ -67,6 +72,9 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
         )
     } else {
       # For CT imaging, no sensitivity/specificity adjustment needed
+      imaging1 <- ct_dose
+      imaging2 <- ct_dose
+        
       complete_pop_yr_fu1 <- complete_pop_yr_fu %>%
         mutate(
           stone_free_status_original = stone_free_status,
@@ -86,7 +94,8 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
           ),
           
           rad_dose_year_1 = case_when(
-            death_year_1 == "No" & recurrence_year_1 == "No" ~ !!imaging * 2,
+            death_year_1 == "No" & recurrence_year_1 == "No" & lucency == "no" ~ imaging1 * 2,
+            death_year_1 == "No" & recurrence_year_1 == "No" & lucency == "yes" ~ imaging2 * 2,
             death_year_1 == "Yes" ~ 0,
             # Recurrence
             death_year_1 == "No" & colic_intervention_type_year_1 == "Colic" ~ ct_dose + urs_dose, #Minimum radiation would be 1o URS
@@ -99,7 +108,8 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
           rad_dose_year_2 = case_when(
             # Separate Yr 2 FU into High / Low risk
             death_year_2 == "No" & recurrence_year_2 == "No" & risk_status == "LR" ~ 0,
-            death_year_2 == "No" & recurrence_year_2 == "No" & risk_status == "HR" ~ !!imaging,
+            death_year_2 == "No" & recurrence_year_2 == "No" & risk_status == "HR" & lucency == "no" ~ imaging1,
+            death_year_2 == "No" & recurrence_year_2 == "No" & risk_status == "HR" & lucency == "yes" ~ imaging2,
             # Death
             death_year_2 == "Yes" | death_year_1 == "Yes" ~ 0,
             # Recurrence
@@ -108,14 +118,17 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
             death_year_2 == "No" & colic_intervention_type_year_2 == "URS" & recurrence_year_1 == "No" ~ ct_dose + urs_dose,
             death_year_2 == "No" & colic_intervention_type_year_2 == "PCNL" & recurrence_year_1 == "No" ~ ct_dose + pcnl_dose,
             # FU Yr 1 for those with recurrence - Presumed to be SF
-            death_year_2 == "No" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" ~ !!imaging * 2,
+            death_year_2 == "No" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & lucency == "no" ~ imaging1 * 2,
+            death_year_2 == "No" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & lucency == "yes" ~ imaging2 * 2,
             TRUE ~ NA_real_
           ),
           
           rad_dose_year_3 = case_when(
             # Separate Yr 3 FU into High / Low risk
-            death_year_3 == "No" & recurrence_year_3 == "No" & risk_status == "LR" ~ !!imaging,
-            death_year_3 == "No" & recurrence_year_3 == "No" & risk_status == "HR" ~ !!imaging,
+            death_year_3 == "No" & recurrence_year_3 == "No" & risk_status == "LR" & lucency == "no" ~ imaging1,
+            death_year_3 == "No" & recurrence_year_3 == "No" & risk_status == "LR" & lucency == "yes" ~ imaging2,
+            death_year_3 == "No" & recurrence_year_3 == "No" & risk_status == "HR" & lucency == "no" ~ imaging1,
+            death_year_3 == "No" & recurrence_year_3 == "No" & risk_status == "HR" & lucency == "yes" ~ imaging2,
             # Death
             death_year_3 == "Yes" | death_year_2 == "Yes" | death_year_1 == "Yes" ~ 0,
             # Recurrence
@@ -124,17 +137,21 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
             death_year_3 == "No" & colic_intervention_type_year_3 == "URS" & recurrence_year_1 == "No" & recurrence_year_2 == "No" ~ ct_dose + urs_dose,
             death_year_3 == "No" & colic_intervention_type_year_3 == "PCNL" & recurrence_year_1 == "No" & recurrence_year_2 == "No" ~ ct_dose + pcnl_dose,
             # FU Yr 1 for those with recurrence
-            death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" ~ !!imaging * 2,
+            death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & lucency == "no" ~ imaging1 * 2,
+            death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & lucency == "yes" ~ imaging2 * 2,
             # FU Yr 2 for those with recurrence
-            death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & risk_status == "LR" ~ 0,
-            death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & risk_status == "HR" ~ !!imaging,
+            death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & risk_status == "LR" & lucency == "no" ~ imaging1,
+            death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & risk_status == "LR" & lucency == "yes" ~ imaging2,
+            death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & risk_status == "HR" & lucency == "no" ~ imaging1,
+            death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & risk_status == "HR" & lucency == "yes" ~ imaging2,
             TRUE ~ NA_real_
           ),
           
           rad_dose_year_4 = case_when(
             # Separate Yr 4 FU into High / Low risk
             death_year_4 == "No" & recurrence_year_4 == "No" & risk_status == "LR" ~ 0,
-            death_year_4 == "No" & recurrence_year_4 == "No" & risk_status == "HR" ~ !!imaging,
+            death_year_4 == "No" & recurrence_year_4 == "No" & risk_status == "HR" & lucency == "no" ~ imaging1,
+            death_year_4 == "No" & recurrence_year_4 == "No" & risk_status == "HR" & lucency == "yes" ~ imaging2,
             # Death
             death_year_4 == "Yes" | death_year_3 == "Yes" | death_year_2 == "Yes" | death_year_1 == "Yes" ~ 0,
             # Recurrence
@@ -148,22 +165,29 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
               recurrence_year_1 == "No" & recurrence_year_2 == "No" & recurrence_year_3 == "No" ~ ct_dose + pcnl_dose,
             # FU Yr 1 for those with recurrence
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
-              recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" ~ !!imaging * 2,
+              recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & lucency == "no" ~ imaging1 * 2,
+            death_year_4 == "No" & recurrence_year_4 == "Yes" &
+              recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & lucency == "yes" ~ imaging2 * 2,
             # FU Yr 2 for those with recurrence
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & risk_status == "LR" ~ 0,
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
-              recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & risk_status == "HR" ~ !!imaging,
+              recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & risk_status == "HR" & lucency == "no" ~ imaging1,
+            death_year_4 == "No" & recurrence_year_4 == "Yes" &
+              recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & risk_status == "HR" & lucency == "yes" ~ imaging2,
             # FU Yr 3 for those with recurrence
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
-              recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" ~ !!imaging,
+              recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & lucency == "no" ~ imaging1,
+            death_year_4 == "No" & recurrence_year_4 == "Yes" &
+              recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & lucency == "yes" ~ imaging2,
             TRUE ~ NA_real_
           ),
           
           rad_dose_year_5 = case_when(
             # Separate Yr 5 FU into High / Low risk
             death_year_5 == "No" & recurrence_year_5 == "No" & risk_status == "LR" ~ 0,
-            death_year_5 == "No" & recurrence_year_5 == "No" & risk_status == "HR" ~ !!imaging,
+            death_year_5 == "No" & recurrence_year_5 == "No" & risk_status == "HR" & lucency == "no" ~ imaging1,
+            death_year_5 == "No" & recurrence_year_5 == "No" & risk_status == "HR" & lucency == "yes" ~ imaging2,
             # Death
             death_year_5 == "Yes" |death_year_4 == "Yes" | death_year_3 == "Yes" | death_year_2 == "Yes" | death_year_1 == "Yes" ~ 0,
             # Recurrence
@@ -177,18 +201,26 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
               recurrence_year_1 == "No" & recurrence_year_2 == "No" & recurrence_year_3 == "No" & recurrence_year_4 == "No" ~ ct_dose + pcnl_dose,
             # FU Yr 1 for those with recurrence
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
-              recurrence_year_4 == "Yes" & recurrence_year_3 == "No" & recurrence_year_2 == "No" & recurrence_year_1 == "No" ~ !!imaging * 2,
+              recurrence_year_4 == "Yes" & recurrence_year_3 == "No" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & lucency == "no" ~ imaging1 * 2,
+            death_year_5 == "No" & recurrence_year_5 == "Yes" &
+              recurrence_year_4 == "Yes" & recurrence_year_3 == "No" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & lucency == "yes" ~ imaging2 * 2,
             # FU Yr 2 for those with recurrence
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
               recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & risk_status == "LR" ~ 0,
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
-              recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & risk_status == "HR" ~ !!imaging,
+              recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & risk_status == "HR" & lucency == "no" ~ imaging1,
+            death_year_5 == "No" & recurrence_year_5 == "Yes" &
+              recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & risk_status == "HR" & lucency == "yes" ~ imaging2,
             # FU Yr 3 for those with recurrence
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
-              recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" ~ !!imaging,
+              recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & lucency == "no" ~ imaging1,
+            death_year_5 == "No" & recurrence_year_5 == "Yes" &
+              recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & lucency == "yes" ~ imaging2,
             # FU Yr 4 for those with recurrence
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
-              recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" ~ !!imaging,
+              recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & lucency == "no" ~ imaging1,
+            death_year_5 == "No" & recurrence_year_5 == "Yes" &
+              recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & lucency == "yes" ~ imaging2,
             TRUE ~ NA_real_
           )
         )
@@ -204,7 +236,8 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
           
           rad_dose_year_1 = case_when(
             # FU Yr 1
-            death_year_1 == "No" & recurrence_year_1 == "No" ~ !!imaging * 2,
+            death_year_1 == "No" & recurrence_year_1 == "No" & lucency == "no" ~ imaging1 * 2,
+            death_year_1 == "No" & recurrence_year_1 == "No" & lucency == "yes" ~ imaging2 * 2,
             # Death
             death_year_1 == "Yes" ~ 0,
             # Recurrence
@@ -218,7 +251,8 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
           rad_dose_year_2 = case_when(
             # Separate Yr 2 FU into High / Low risk
             death_year_2 == "No" & recurrence_year_2 == "No" & risk_status == "LR" ~ 0,
-            death_year_2 == "No" & recurrence_year_2 == "No" & risk_status == "HR" ~ !!imaging,
+            death_year_2 == "No" & recurrence_year_2 == "No" & risk_status == "HR" & lucency == "no" ~ imaging1,
+            death_year_2 == "No" & recurrence_year_2 == "No" & risk_status == "HR" & lucency == "yes" ~ imaging2,
             # Death
             death_year_2 == "Yes" | death_year_1 == "Yes" ~ 0,
             # Recurrence
@@ -227,13 +261,15 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
             death_year_2 == "No" & colic_intervention_type_year_2 == "URS" & recurrence_year_1 == "No" ~ ct_dose + urs_dose,
             death_year_2 == "No" & colic_intervention_type_year_2 == "PCNL" & recurrence_year_1 == "No" ~ ct_dose + pcnl_dose,
             # FU Yr 1 for those with recurrence
-            death_year_2 == "No" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" ~ !!imaging * 2,
+            death_year_2 == "No" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & lucency == "no" ~ imaging1 * 2,
+            death_year_2 == "No" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & lucency == "yes" ~ imaging1 * 2,
             TRUE ~ NA_real_
           ),
           
           rad_dose_year_3 = case_when(
             # Separate Yr 3 FU into High / Low risk
-            death_year_3 == "No" & recurrence_year_3 == "No" ~ !!imaging,
+            death_year_3 == "No" & recurrence_year_3 == "No" & lucency == "no" ~ imaging1,
+            death_year_3 == "No" & recurrence_year_3 == "No" & lucency == "yes" ~ imaging2,
             # Death
             death_year_3 == "Yes" | death_year_2 == "Yes" | death_year_1 == "Yes" ~ 0,
             # Recurrence
@@ -242,16 +278,19 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
             death_year_3 == "No" & colic_intervention_type_year_3 == "URS" & recurrence_year_1 == "No" & recurrence_year_2 == "No" ~ ct_dose + urs_dose,
             death_year_3 == "No" & colic_intervention_type_year_3 == "PCNL" & recurrence_year_1 == "No" & recurrence_year_2 == "No" ~ ct_dose + pcnl_dose,
             # FU Yr 1 for those with recurrence
-            death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" ~ !!imaging * 2,
+            death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & lucency == "no" ~ imaging1 * 2,
+            death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & lucency == "yes" ~ imaging2 * 2,
             # FU Yr 2 for those with recurrence
             death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & risk_status == "LR" ~ 0,
-            death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & risk_status == "HR" ~ !!imaging,
+            death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & risk_status == "HR" & lucency == "no" ~ imaging1,
+            death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & risk_status == "HR" & lucency == "yes" ~ imaging2,
             TRUE ~ NA_real_
           ),
           
           rad_dose_year_4 = case_when(
             # Separate Yr 4 FU into High / Low risk
-            death_year_4 == "No" & recurrence_year_4 == "No" ~ !!imaging,
+            death_year_4 == "No" & recurrence_year_4 == "No" & lucency == "no" ~ imaging1,
+            death_year_4 == "No" & recurrence_year_4 == "No" & lucency == "yes" ~ imaging2,
             # Death
             death_year_4 == "Yes" | death_year_3 == "Yes" | death_year_2 == "Yes" | death_year_1 == "Yes" ~ 0,
             # Recurrence
@@ -265,21 +304,28 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
               recurrence_year_1 == "No" & recurrence_year_2 == "No" & recurrence_year_3 == "No" ~ ct_dose + pcnl_dose,
             # FU Yr 1 for those with recurrence
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
-              recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" ~ !!imaging * 2,
+              recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & lucency == "no" ~ imaging1 * 2,
+            death_year_4 == "No" & recurrence_year_4 == "Yes" &
+              recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & lucency == "yes" ~ imaging2 * 2,
             # FU Yr 2 for those with recurrence
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & risk_status == "LR" ~ 0,
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
-              recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & risk_status == "HR" ~ !!imaging,
+              recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & risk_status == "HR" & lucency == "no" ~ imaging1,
+            death_year_4 == "No" & recurrence_year_4 == "Yes" &
+              recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & risk_status == "HR" & lucency == "yes" ~ imaging2,
             # FU Yr 3 for those with recurrence
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
-              recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" ~ !!imaging,
+              recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & lucency == "no" ~ imaging1,
+            death_year_4 == "No" & recurrence_year_4 == "Yes" &
+              recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & lucency == "yes" ~ imaging2,
             TRUE ~ NA_real_
           ),
           
           rad_dose_year_5 = case_when(
             # Separate Yr 5 FU into High / Low risk
-            death_year_5 == "No" & recurrence_year_5 == "No" ~ !!imaging,
+            death_year_5 == "No" & recurrence_year_5 == "No" & lucency == "no" ~ imaging1,
+            death_year_5 == "No" & recurrence_year_5 == "No" & lucency == "yes" ~ imaging2,
             # Death
             death_year_5 == "Yes" |death_year_4 == "Yes" | death_year_3 == "Yes" | death_year_2 == "Yes" | death_year_1 == "Yes" ~ 0,
             # Recurrence
@@ -293,18 +339,26 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
               recurrence_year_1 == "No" & recurrence_year_2 == "No" & recurrence_year_3 == "No" & recurrence_year_4 == "No" ~ ct_dose + pcnl_dose,
             # FU Yr 1 for those with recurrence
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
-              recurrence_year_4 == "Yes" & recurrence_year_3 == "No" & recurrence_year_2 == "No" & recurrence_year_1 == "No" ~ !!imaging * 2,
+              recurrence_year_4 == "Yes" & recurrence_year_3 == "No" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & lucency == "no" ~ imaging1 * 2,
+            death_year_5 == "No" & recurrence_year_5 == "Yes" &
+              recurrence_year_4 == "Yes" & recurrence_year_3 == "No" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & lucency == "yes" ~ imaging2 * 2,
             # FU Yr 2 for those with recurrence
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
               recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & risk_status == "LR" ~ 0,
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
-              recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & risk_status == "HR" ~ !!imaging,
+              recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & risk_status == "HR" & lucency == "no" ~ imaging1,
+            death_year_5 == "No" & recurrence_year_5 == "Yes" &
+              recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & risk_status == "HR" & lucency == "yes" ~ imaging2,
             # FU Yr 3 for those with recurrence
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
-              recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" ~ !!imaging,
+              recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & lucency == "no" ~ imaging1,
+            death_year_5 == "No" & recurrence_year_5 == "Yes" &
+              recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & lucency == "yes" ~ imaging2,
             # FU Yr 4 for those with recurrence
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
-              recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" ~ !!imaging,
+              recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & lucency == "no" ~ imaging1,
+            death_year_5 == "No" & recurrence_year_5 == "Yes" &
+              recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & lucency == "yes" ~ imaging2,
             TRUE ~ NA_real_
           )
         )
@@ -320,7 +374,8 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
         ),
         
         rad_dose_year_1 = case_when(
-          death_year_1 == "No" & recurrence_year_1 == "No" ~ !!imaging * 2,
+          death_year_1 == "No" & recurrence_year_1 == "No" & lucency == "no" ~ imaging1 * 2,
+          death_year_1 == "No" & recurrence_year_1 == "No" & lucency == "yes" ~ imaging2 * 2,
           # Death
           death_year_1 == "Yes" ~ 0,
           # Recurrence
@@ -332,7 +387,8 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
         ),
         
         rad_dose_year_2 = case_when(
-          death_year_2 == "No" & recurrence_year_2 == "No" ~ !!imaging,
+          death_year_2 == "No" & recurrence_year_2 == "No" & lucency == "no" ~ imaging1,
+          death_year_2 == "No" & recurrence_year_2 == "No" & lucency == "yes" ~ imaging2,
           # Death
           death_year_2 == "Yes" | death_year_1 == "Yes" ~ 0,
           # Recurrence
@@ -341,12 +397,14 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
           death_year_2 == "No" & colic_intervention_type_year_2 == "URS" & recurrence_year_1 == "No" ~ ct_dose + urs_dose,
           death_year_2 == "No" & colic_intervention_type_year_2 == "PCNL" & recurrence_year_1 == "No" ~ ct_dose + pcnl_dose,
           # Yr 1 FU for those with recurrence
-          death_year_2 == "No" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" ~ !!imaging * 2,
+          death_year_2 == "No" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & lucency == "no" ~ imaging1 * 2,
+          death_year_2 == "No" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & lucency == "yes" ~ imaging2 * 2,
           TRUE ~ NA_real_
         ),
         
         rad_dose_year_3 = case_when(
-          death_year_3 == "No" & recurrence_year_3 == "No" ~ !!imaging,
+          death_year_3 == "No" & recurrence_year_3 == "No" & lucency == "no" ~ imaging1,
+          death_year_3 == "No" & recurrence_year_3 == "No" & lucency == "yes" ~ imaging2,
           # Death
           death_year_3 == "Yes" | death_year_2 == "Yes" | death_year_1 == "Yes" ~ 0,
           # Recurrence
@@ -355,15 +413,18 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
           death_year_3 == "No" & colic_intervention_type_year_3 == "URS" & recurrence_year_1 == "No" & recurrence_year_2 == "No" ~ ct_dose + urs_dose,
           death_year_3 == "No" & colic_intervention_type_year_3 == "PCNL" & recurrence_year_1 == "No" & recurrence_year_2 == "No" ~ ct_dose + pcnl_dose,
           # Yr 1 FU for those with recurrence
-          death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" ~ !!imaging * 2,
+          death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & lucency == "no" ~ imaging1 * 2,
+          death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & lucency == "yes" ~ imaging2 * 2,
           # Yr 2 FU for those with recurrence
           death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & risk_status == "LR" ~ 0,
-          death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & risk_status == "HR" ~ !!imaging,
+          death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & risk_status == "HR" & lucency == "no" ~ imaging1,
+          death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & risk_status == "HR" & lucency == "yes" ~ imaging2,
           TRUE ~ NA_real_
         ),
         
         rad_dose_year_4 = case_when(
-          death_year_4 == "No" & recurrence_year_4 == "No" ~ !!imaging,
+          death_year_4 == "No" & recurrence_year_4 == "No" & lucency == "no" ~ imaging1,
+          death_year_4 == "No" & recurrence_year_4 == "No" & lucency == "yes" ~ imaging2,
           # Death
           death_year_4 == "Yes" | death_year_3 == "Yes" | death_year_2 == "Yes" | death_year_1 == "Yes" ~ 0,
           # Recurrence
@@ -377,20 +438,27 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
             recurrence_year_1 == "No" & recurrence_year_2 == "No" & recurrence_year_3 == "No" ~ ct_dose + pcnl_dose,
           # Yr 1 FU for those with recurrence
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
-            recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" ~ !!imaging * 2,
+            recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & lucency == "no" ~ imaging1 * 2,
+          death_year_4 == "No" & recurrence_year_4 == "Yes" &
+            recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & lucency == "yes" ~ imaging2 * 2,
           # Yr 2 FU for those with recurrence
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & risk_status == "LR" ~ 0,
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
-            recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & risk_status == "HR" ~ !!imaging,
+            recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & risk_status == "HR" & lucency == "no" ~ imaging1,
+          death_year_4 == "No" & recurrence_year_4 == "Yes" &
+            recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & risk_status == "HR" & lucency == "yes" ~ imaging2,
           # Yr 3 FU for those with recurrence
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
-            recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" ~ !!imaging,
+            recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & lucency == "no" ~ imaging1,
+          death_year_4 == "No" & recurrence_year_4 == "Yes" &
+            recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & lucency == "yes" ~ imaging2,
           TRUE ~ NA_real_
         ),
         
         rad_dose_year_5 = case_when(
-          death_year_5 == "No" & recurrence_year_5 == "No" ~ !!imaging,
+          death_year_5 == "No" & recurrence_year_5 == "No" & lucency == "no" ~ imaging1,
+          death_year_5 == "No" & recurrence_year_5 == "No" & lucency == "yes" ~ imaging2,
           # Death
           death_year_5 == "Yes" | death_year_4 == "Yes" | death_year_3 == "Yes" | death_year_2 == "Yes" | death_year_1 == "Yes" ~ 0,
           # Recurrence
@@ -404,18 +472,26 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
             recurrence_year_1 == "No" & recurrence_year_2 == "No" & recurrence_year_3 == "No" & recurrence_year_4 == "No" ~ ct_dose + pcnl_dose,
           # Yr 1 FU for those with recurrence
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
-            recurrence_year_4 == "Yes" & recurrence_year_3 == "No" & recurrence_year_2 == "No" & recurrence_year_1 == "No" ~ !!imaging * 2,
+            recurrence_year_4 == "Yes" & recurrence_year_3 == "No" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & lucency == "no" ~ imaging1 * 2,
+          death_year_5 == "No" & recurrence_year_5 == "Yes" &
+            recurrence_year_4 == "Yes" & recurrence_year_3 == "No" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & lucency == "yes" ~ imaging2 * 2,
           # Yr 2 FU for those with recurrence
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & risk_status == "LR" ~ 0,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
-            recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & risk_status == "HR" ~ !!imaging,
+            recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & risk_status == "HR" & lucency == "no" ~ imaging1,
+          death_year_5 == "No" & recurrence_year_5 == "Yes" &
+            recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & risk_status == "HR" & lucency == "yes" ~ imaging2,
           # Yr 3 FU for those with recurrence
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
-            recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" ~ !!imaging,
+            recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & lucency == "no" ~ imaging1,
+          death_year_5 == "No" & recurrence_year_5 == "Yes" &
+            recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & lucency == "yes" ~ imaging2,
           # Yr 4 FU for those with recurrence
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
-            recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" ~ !!imaging,
+            recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & lucency == "no" ~ imaging1,
+          death_year_5 == "No" & recurrence_year_5 == "Yes" &
+            recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & lucency == "yes" ~ imaging2,
           TRUE ~ NA_real_
         )
       )
@@ -430,7 +506,8 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
         ),
         
         rad_dose_year_1 = case_when(
-          death_year_1 == "No" & recurrence_year_1 == "No" ~ !!imaging * 2,
+          death_year_1 == "No" & recurrence_year_1 == "No" & lucency == "no" ~ imaging1 * 2,
+          death_year_1 == "No" & recurrence_year_1 == "No" & lucency == "yes" ~ imaging2 * 2,
           # Death
           death_year_1 == "Yes" ~ 0,
           # Recurrence
@@ -442,7 +519,8 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
         ),
         
         rad_dose_year_2 = case_when(
-          death_year_2 == "No" & recurrence_year_2 == "No" ~ !!imaging * 2,
+          death_year_2 == "No" & recurrence_year_2 == "No" & lucency == "no" ~ imaging1 * 2,
+          death_year_2 == "No" & recurrence_year_2 == "No" & lucency == "yes" ~ imaging2 * 2,
           # Death
           death_year_2 == "Yes" | death_year_1 == "Yes" ~ 0,
           # Recurrence
@@ -451,12 +529,14 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
           death_year_2 == "No" & colic_intervention_type_year_2 == "URS" & recurrence_year_1 == "No" ~ ct_dose + urs_dose,
           death_year_2 == "No" & colic_intervention_type_year_2 == "PCNL" & recurrence_year_1 == "No" ~ ct_dose + pcnl_dose,
           # Yr 1 of FU for those with recurrence
-          death_year_2 == "No" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" ~ !!imaging * 2,
+          death_year_2 == "No" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & lucency == "no" ~ imaging1 * 2,
+          death_year_2 == "No" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & lucency == "yes" ~ imaging2 * 2,
           TRUE ~ NA_real_
         ),
         
         rad_dose_year_3 = case_when(
-          death_year_3 == "No" & recurrence_year_3 == "No" ~ !!imaging,
+          death_year_3 == "No" & recurrence_year_3 == "No" & lucency == "no" ~ imaging1,
+          death_year_3 == "No" & recurrence_year_3 == "No" & lucency == "yes" ~ imaging2,
           # Death
           death_year_3 == "Yes" | death_year_2 == "Yes" | death_year_1 == "Yes" ~ 0,
           # Recurrence
@@ -465,15 +545,18 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
           death_year_3 == "No" & colic_intervention_type_year_3 == "URS" & recurrence_year_1 == "No" & recurrence_year_2 == "No" ~ ct_dose + urs_dose,
           death_year_3 == "No" & colic_intervention_type_year_3 == "PCNL" & recurrence_year_1 == "No" & recurrence_year_2 == "No" ~ ct_dose + pcnl_dose,
           # Yr 1 FU for those with recurrence
-          death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" ~ !!imaging * 2,
+          death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & lucency == "no" ~ imaging1 * 2,
+          death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & lucency == "yes" ~ imaging2 * 2,
           # Yr 2 FU for those with recurrence
           death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & risk_status == "LR" ~ 0,
-          death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & risk_status == "HR" ~ !!imaging,
+          death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & risk_status == "HR" & lucency == "no" ~ imaging1,
+          death_year_3 == "No" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & risk_status == "HR" & lucency == "yes" ~ imaging2,
           TRUE ~ NA_real_
         ),
         
         rad_dose_year_4 = case_when(
-          death_year_4 == "No" & recurrence_year_4 == "No" ~ !!imaging,
+          death_year_4 == "No" & recurrence_year_4 == "No" & lucency == "no" ~ imaging1,
+          death_year_4 == "No" & recurrence_year_4 == "No" & lucency == "yes" ~ imaging2,
           # Death
           death_year_4 == "Yes" | death_year_3 == "Yes" | death_year_2 == "Yes" | death_year_1 == "Yes" ~ 0,
           # Recurrence
@@ -487,20 +570,27 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
             recurrence_year_1 == "No" & recurrence_year_2 == "No" & recurrence_year_3 == "No" ~ ct_dose + pcnl_dose,
           # Yr 1 FU for those with recurrence
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
-            recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" ~ !!imaging * 2,
+            recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & lucency == "no" ~ imaging1 * 2,
+          death_year_4 == "No" & recurrence_year_4 == "Yes" &
+            recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & lucency == "yes" ~ imaging2 * 2,
           # Yr 2 FU for those with recurrence
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & risk_status == "LR" ~ 0,
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
-            recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & risk_status == "HR" ~ !!imaging,
+            recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & risk_status == "HR" & lucency == "no" ~ imaging1,
+          death_year_4 == "No" & recurrence_year_4 == "Yes" &
+            recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & risk_status == "HR" & lucency == "yes" ~ imaging2,
           # Yr 3 FU for those with recurrence
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
-            recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" ~ !!imaging,
+            recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & lucency == "no" ~ imaging1,
+          death_year_4 == "No" & recurrence_year_4 == "Yes" &
+            recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & lucency == "yes" ~ imaging2,
           TRUE ~ NA_real_
         ),
         
         rad_dose_year_5 = case_when(
-          death_year_5 == "No" & recurrence_year_5 == "No" ~ !!imaging,
+          death_year_5 == "No" & recurrence_year_5 == "No" & lucency == "no" ~ imaging1,
+          death_year_5 == "No" & recurrence_year_5 == "No" & lucency == "yes" ~ imaging2,
           # Death
           death_year_5 == "Yes" | death_year_4 == "Yes" | death_year_3 == "Yes" | death_year_2 == "Yes" | death_year_1 == "Yes" ~ 0,
           # Recurrence
@@ -514,18 +604,26 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
             recurrence_year_1 == "No" & recurrence_year_2 == "No" & recurrence_year_3 == "No" & recurrence_year_4 == "No" ~ ct_dose + pcnl_dose,
           # Yr 1 FU for those with recurrence
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
-            recurrence_year_4 == "Yes" & recurrence_year_3 == "No" & recurrence_year_2 == "No" & recurrence_year_1 == "No" ~ !!imaging * 2,
+            recurrence_year_4 == "Yes" & recurrence_year_3 == "No" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & lucency == "no" ~ imaging1 * 2,
+          death_year_5 == "No" & recurrence_year_5 == "Yes" &
+            recurrence_year_4 == "Yes" & recurrence_year_3 == "No" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & lucency == "yes" ~ imaging2 * 2,
           # Yr 2 FU for those with recurrence
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No" & risk_status == "LR" ~ 0,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
-            recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No"  & risk_status == "HR" ~ !!imaging,
+            recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No"  & risk_status == "HR" & lucency == "no" ~ imaging1,
+          death_year_5 == "No" & recurrence_year_5 == "Yes" &
+            recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "No" & recurrence_year_1 == "No"  & risk_status == "HR" & lucency == "yes" ~ imaging2,
           # Yr 3 FU for those with recurrence
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
-            recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" ~ !!imaging,
+            recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & lucency == "no" ~ imaging1,
+          death_year_5 == "No" & recurrence_year_5 == "Yes" &
+            recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "No" & lucency == "yes" ~ imaging2,
           # Yr 4 FU for those with recurrence
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
-            recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" ~ !!imaging,
+            recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & lucency == "no" ~ imaging1,
+          death_year_5 == "No" & recurrence_year_5 == "Yes" &
+            recurrence_year_4 == "Yes" & recurrence_year_3 == "Yes" & recurrence_year_2 == "Yes" & recurrence_year_1 == "Yes" & lucency == "yes" ~ imaging2,
           TRUE ~ NA_real_
         )
       )
@@ -744,6 +842,18 @@ create_radiation_dose_barplot(rad_doses_2016_cohort_max_xr,
                               title = "XR only, Maximum EAU Follow-up",
                               cohort = 2016)
 
+# Minimum follow-up XR + US
+rad_doses_2016_cohort_min_xr_us <- calculate_radiation_doses(complete_pop_2016_fu, 
+                                                          cutpoints_2016, 
+                                                          fu_type = "min",
+                                                          imaging_fu_type = "xr_us")
+
+# Maximum follow-up XR + US
+rad_doses_2016_cohort_max_xr_us <- calculate_radiation_doses(complete_pop_2016_fu, 
+                                                             cutpoints_2016, 
+                                                             fu_type = "max",
+                                                             imaging_fu_type = "xr_us")
+
 # Minimum follow-up ULDCT
 rad_doses_2016_cohort_min_ct <- calculate_radiation_doses(complete_pop_2016_fu, 
                                                           cutpoints_2016, 
@@ -777,6 +887,18 @@ rad_doses_2017_cohort_max_xr <- calculate_radiation_doses(complete_pop_2017_fu,
                                                           fu_type = "max",
                                                           imaging_fu_type = "xr")
 
+# Minimum follow-up XR + US
+rad_doses_2017_cohort_min_xr_us <- calculate_radiation_doses(complete_pop_2017_fu, 
+                                                             cutpoints_2017, 
+                                                             fu_type = "min",
+                                                             imaging_fu_type = "xr_us")
+
+# Maximum follow-up XR + US
+rad_doses_2017_cohort_max_xr_us <- calculate_radiation_doses(complete_pop_2017_fu, 
+                                                             cutpoints_2017, 
+                                                             fu_type = "max",
+                                                             imaging_fu_type = "xr_us")
+
 # Minimum follow-up ULDCT
 rad_doses_2017_cohort_min_ct <- calculate_radiation_doses(complete_pop_2017_fu, 
                                                           cutpoints_2017, 
@@ -804,6 +926,18 @@ rad_doses_2018_cohort_max_xr <- calculate_radiation_doses(complete_pop_2018_fu,
                                                           fu_type = "max",
                                                           imaging_fu_type = "xr")
 
+
+# Minimum follow-up XR + US
+rad_doses_2018_cohort_min_xr_us <- calculate_radiation_doses(complete_pop_2018_fu, 
+                                                             cutpoints_2018, 
+                                                             fu_type = "min",
+                                                             imaging_fu_type = "xr_us")
+
+# Maximum follow-up XR + US
+rad_doses_2018_cohort_max_xr_us <- calculate_radiation_doses(complete_pop_2018_fu, 
+                                                             cutpoints_2018, 
+                                                             fu_type = "max",
+                                                             imaging_fu_type = "xr_us")
 
 # Minimum follow-up ULDCT
 rad_doses_2018_cohort_min_ct <- calculate_radiation_doses(complete_pop_2018_fu, 
@@ -834,6 +968,17 @@ rad_doses_2019_cohort_max_xr <- calculate_radiation_doses(complete_pop_2019_fu,
                                                           imaging_fu_type = "xr")
 
 
+# Minimum follow-up XR + US
+rad_doses_2019_cohort_min_xr_us <- calculate_radiation_doses(complete_pop_2019_fu, 
+                                                             cutpoints_2019, 
+                                                             fu_type = "min",
+                                                             imaging_fu_type = "xr_us")
+
+# Maximum follow-up XR + US
+rad_doses_2019_cohort_max_xr_us <- calculate_radiation_doses(complete_pop_2019_fu, 
+                                                             cutpoints_2019, 
+                                                             fu_type = "max",
+                                                             imaging_fu_type = "xr_us")
 
 # Minimum follow-up ULDCT
 rad_doses_2019_cohort_min_ct <- calculate_radiation_doses(complete_pop_2019_fu, 
@@ -863,6 +1008,17 @@ rad_doses_2020_cohort_max_xr <- calculate_radiation_doses(complete_pop_2020_fu,
                                                           fu_type = "max",
                                                           imaging_fu_type = "xr")
 
+# Minimum follow-up XR + US
+rad_doses_2020_cohort_min_xr_us <- calculate_radiation_doses(complete_pop_2020_fu, 
+                                                             cutpoints_2020, 
+                                                             fu_type = "min",
+                                                             imaging_fu_type = "xr_us")
+
+# Maximum follow-up XR + US
+rad_doses_2020_cohort_max_xr_us <- calculate_radiation_doses(complete_pop_2020_fu, 
+                                                             cutpoints_2020, 
+                                                             fu_type = "max",
+                                                             imaging_fu_type = "xr_us")
 
 # Minimum follow-up ULDCT
 rad_doses_2020_cohort_min_ct <- calculate_radiation_doses(complete_pop_2020_fu, 
@@ -889,41 +1045,51 @@ aggregate_radiation_cohorts <- function(auc_target = c(1,2,3,4,5,6,7,8,9)) {
     
     message("  Loading 2016 data...")
     cohort_2016_min_xr <- rad_doses_2016_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2016_min_xr_us <- rad_doses_2016_cohort_min_xr_us[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
     cohort_2016_min_ct <- rad_doses_2016_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
     cohort_2016_max_xr <- rad_doses_2016_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2016_max_xr_us <- rad_doses_2016_cohort_max_xr_us[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     cohort_2016_max_ct <- rad_doses_2016_cohort_max_ct[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
     
     message("  Loading 2017 data...")
     cohort_2017_min_xr <- rad_doses_2017_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2017_min_xr_us <- rad_doses_2017_cohort_min_xr_us[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
     cohort_2017_min_ct <- rad_doses_2017_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
     cohort_2017_max_xr <- rad_doses_2017_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2017_max_xr_us <- rad_doses_2017_cohort_max_xr_us[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     cohort_2017_max_ct <- rad_doses_2017_cohort_max_ct[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
     
     message("  Loading 2018 data...")
     cohort_2018_min_xr <- rad_doses_2018_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2018_min_xr_us <- rad_doses_2018_cohort_min_xr_us[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
     cohort_2018_min_ct <- rad_doses_2018_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
     cohort_2018_max_xr <- rad_doses_2018_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2018_max_xr_us <- rad_doses_2018_cohort_max_xr_us[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     cohort_2018_max_ct <- rad_doses_2018_cohort_max_ct[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
     
     message("  Loading 2019 data...")
     cohort_2019_min_xr <- rad_doses_2019_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2019_min_xr_us <- rad_doses_2019_cohort_min_xr_us[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
     cohort_2019_min_ct <- rad_doses_2019_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
     cohort_2019_max_xr <- rad_doses_2019_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2019_max_xr_us <- rad_doses_2019_cohort_max_xr_us[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     cohort_2019_max_ct <- rad_doses_2019_cohort_max_ct[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
     
     message("  Loading 2020 data...")
     cohort_2020_min_xr <- rad_doses_2020_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2020_min_xr_us <- rad_doses_2020_cohort_min_xr_us[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
     cohort_2020_min_ct <- rad_doses_2020_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
     cohort_2020_max_xr <- rad_doses_2020_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2020_max_xr_us <- rad_doses_2020_cohort_max_xr_us[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     cohort_2020_max_ct <- rad_doses_2020_cohort_max_ct[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
     
     message("  Combining cohorts for AUC = ", key)
     overall_cohort <- dplyr::bind_rows(
-      cohort_2016_min_xr, cohort_2016_min_ct, cohort_2016_max_xr, cohort_2016_max_ct,
-      cohort_2017_min_xr, cohort_2017_min_ct, cohort_2017_max_xr, cohort_2017_max_ct,
-      cohort_2018_min_xr, cohort_2018_min_ct, cohort_2018_max_xr, cohort_2018_max_ct,
-      cohort_2019_min_xr, cohort_2019_min_ct, cohort_2019_max_xr, cohort_2019_max_ct,
-      cohort_2020_min_xr, cohort_2020_min_ct, cohort_2020_max_xr, cohort_2020_max_ct
+      cohort_2016_min_xr, cohort_2016_min_xr_us, cohort_2016_min_ct, cohort_2016_max_xr, cohort_2016_max_xr_us, cohort_2016_max_ct,
+      cohort_2017_min_xr, cohort_2017_min_xr_us, cohort_2017_min_ct, cohort_2017_max_xr, cohort_2017_max_xr_us, cohort_2017_max_ct,
+      cohort_2018_min_xr, cohort_2018_min_xr_us, cohort_2018_min_ct, cohort_2018_max_xr, cohort_2018_max_xr_us, cohort_2018_max_ct,
+      cohort_2019_min_xr, cohort_2019_min_xr_us, cohort_2019_min_ct, cohort_2019_max_xr, cohort_2019_max_xr_us, cohort_2019_max_ct,
+      cohort_2020_min_xr, cohort_2020_min_xr_us, cohort_2020_min_ct, cohort_2020_max_xr, cohort_2020_max_xr_us, cohort_2020_max_ct
     )
     
     all_cohorts[[key]] <- overall_cohort
@@ -988,7 +1154,7 @@ data_for_plot <- bind_rows(
   combine_auc_data(auc_0.85, "AUC 0.85"),
   combine_auc_data(auc_0.9,  "AUC 0.9"),
   combine_auc_data(auc_0.95, "AUC 0.95")
-) %>% filter(cohort_type %in% c("Maximum FU, XR", "Maximum FU, CT"))
+) %>% filter(cohort_type %in% c("Maximum FU, XR", "Maximum FU, XR + US", "Maximum FU, CT"))
 
 data_for_plot$auc_label <- as.factor(data_for_plot$auc_label)
 data_for_plot$cohort_type <- as.factor(data_for_plot$cohort_type)
@@ -1021,116 +1187,25 @@ summary_df <- bind_rows(summary_df, summary_all)
 # Factor levels for ordering
 summary_df <- summary_df %>%
   mutate(
-    cohort_type = factor(cohort_type, levels = c("Maximum FU, XR", "Maximum FU, CT")),
+    cohort_type = factor(cohort_type, levels = c("Maximum FU, XR", "Maximum FU, XR + US", "Maximum FU, CT")),
     risk_status = factor(risk_status, levels = c("All", "Low Risk", "High Risk"))
   )
 
 # Prepare data_for_plot factors similarly
 data_for_plot <- data_for_plot %>%
   mutate(
-    cohort_type = factor(cohort_type, levels = c("Maximum FU, XR", "Maximum FU, CT")),
+    cohort_type = factor(cohort_type, levels = c("Maximum FU, XR", "Maximum FU, XR + US", "Maximum FU, CT")),
     risk_status = factor(risk_status, levels = c("Low Risk", "High Risk"))
   )
 
-# Function to run t-test comparing cohorts, optionally filtering by risk_status
-run_pairwise_test <- function(df, auc_value, risk_filter = NULL) {
-  df_sub <- df %>% filter(auc_label == auc_value)
-  
-  if (!is.null(risk_filter) && risk_filter != "All") {
-    df_sub <- df_sub %>% filter(risk_status == risk_filter)
-  }
-  
-  # If risk_filter is "All", do not filter by risk_status
-  
-  df_sub <- df_sub %>% filter(cohort_type %in% c("Maximum FU, XR", "Maximum FU, CT"))
-  
-  if(length(unique(df_sub$cohort_type)) < 2) {
-    return(tibble(auc_label = auc_value, risk_status = risk_filter %||% "All",
-                  group1 = "Maximum FU, XR", group2 = "Maximum FU, CT", p.value = NA))
-  }
-  
-  test_res <- t.test(cumulative_rad_dose ~ cohort_type, data = df_sub) %>% broom::tidy()
-  
-  tibble(
-    auc_label = auc_value,
-    risk_status = risk_filter %||% "All",
-    group1 = "Maximum FU, XR",
-    group2 = "Maximum FU, CT",
-    p.value = test_res$p.value
-  )
-}
 
-# All auc values
-auc_values <- unique(data_for_plot$auc_label)
-
-# Run tests for "All", "High Risk", and "Low Risk" groups per AUC
-pvals_list <- lapply(auc_values, function(auc_val) {
-  bind_rows(
-    run_pairwise_test(data_for_plot, auc_val, risk_filter = "All"),            # All combined
-    run_pairwise_test(data_for_plot, auc_val, risk_filter = "High Risk"),
-    run_pairwise_test(data_for_plot, auc_val, risk_filter = "Low Risk")
-  )
-})
-
-pvals_df <- bind_rows(pvals_list) 
-
-# Assign y.position staggered by risk_status within each auc_label
-max_dose <- max(data_for_plot$cumulative_rad_dose, na.rm = TRUE)
-pvals_df <- pvals_df %>%
-  mutate(risk_status = factor(risk_status, levels = c("All", "Low Risk", "High Risk"))) %>%
-  group_by(auc_label) %>%
-  arrange(risk_status) %>%
-  mutate(
-    y.position = max_dose + (row_number() - 2.2) * 0.1 * max_dose
-  ) %>%
-  ungroup()
-
-# Assign xmin and xmax for pvalue brackets (always between the two cohorts)
-pvals_df <- pvals_df %>%
-  mutate(
-    xmin = case_when(
-      group1 == "Maximum FU, XR" & group2 == "Maximum FU, CT" & risk_status == "All" ~ 0.7,
-      group1 == "Maximum FU, XR" & group2 == "Maximum FU, CT" & risk_status == "Low Risk" ~ 1,
-      group1 == "Maximum FU, XR" & group2 == "Maximum FU, CT" & risk_status == "High Risk" ~ 1.3,
-      TRUE ~ NA
-    ),
-    xmax = case_when(group1 == "Maximum FU, XR" & group2 == "Maximum FU, CT" & risk_status == "All" ~ 1.8,
-    group1 == "Maximum FU, XR" & group2 == "Maximum FU, CT" & risk_status == "Low Risk" ~ 2.1,
-    group1 == "Maximum FU, XR" & group2 == "Maximum FU, CT" & risk_status == "High Risk" ~ 2.4,
-    TRUE ~ NA),
-    p.value_for_plot = case_when(
-      p.value < 0.001 ~ "***",
-      p.value < 0.01 ~ "**",
-      p.value < 0.05 ~ "*",
-      p.value > 0.5 ~ "ns",
-      TRUE ~ NA
-    ),
-    p.value_for_table = case_when(
-      p.value < 0.001 ~ "< 0.001",
-      p.value < 0.01 ~ "< 0.01",
-      p.value < 0.05 ~ "< 0.05",
-      p.value > 0.5 ~ "ns",
-      TRUE ~ NA
-    ),
-    .keep = "all"
-  )
-
-# Step 6: Plot cumulative dose by cohort_type within risk groups
+# Plot cumulative dose by cohort_type within risk groups
 summary_df %>% group_by(cohort_type) %>% ggplot(aes(x = cohort_type, y = mean_dose, fill = risk_status)) +
   geom_col(position = position_dodge(width = 0.8), width = 0.7) +
   geom_errorbar(
     aes(ymin = mean_dose - sd, ymax = mean_dose + sd),
     position = position_dodge(width = 0.8),
     width = 0.2
-  ) +
-  stat_pvalue_manual(
-    pvals_df,
-    label = "p.value_for_plot",
-    xmin = "xmin",
-    xmax = "xmax",
-    y.position = "y.position",
-    tip.length = 0.02,
-    bracket.shorten = 0.05
   ) +
   facet_wrap(~ auc_label) +
   theme_bw() +
@@ -1145,18 +1220,7 @@ summary_df %>% group_by(cohort_type) %>% ggplot(aes(x = cohort_type, y = mean_do
     fill = "Risk Status"
   )
 
-# Step 7: Create gt summary table
-pvals_for_table <- pvals_df %>% subset(select = c(
-  auc_label,
-  risk_status,
-  group1,
-  group2,
-  p.value_for_table
-))  %>% group_by(
-  auc_label) %>% pivot_wider(
-    names_from = c(group1, group2),
-    values_from = p.value_for_table)
-
+# Create gt summary table
 summary_df$mean_dose <- round(summary_df$mean_dose, digits = 1)
 summary_df$sd <- round(summary_df$sd, digits = 1)
 
@@ -1166,17 +1230,14 @@ summary_df %>%
     names_from = cohort_type,
     values_from = c(mean_dose, sd)
   ) %>%
-  left_join(
-    pvals_for_table,
-    by = c("risk_status" = "risk_status", "auc_label" = "auc_label")
-  ) %>%
   rename(
     `Risk Status` = risk_status,
     mean_dose_ct = "mean_dose_Maximum FU, CT",
+    mean_dose_xr_us = "mean_dose_Maximum FU, XR + US",
     mean_dose_xr = "mean_dose_Maximum FU, XR",
     sd_ct = "sd_Maximum FU, CT",
-    sd_xr = "sd_Maximum FU, XR",
-    "P (T-Test)" = "Maximum FU, XR_Maximum FU, CT"
+    sd_xr_us = "sd_Maximum FU, XR + US",
+    sd_xr = "sd_Maximum FU, XR"
   ) %>%
   gt() %>% cols_merge(
     columns = c(mean_dose_ct, sd_ct),
@@ -1184,11 +1245,15 @@ summary_df %>%
   ) %>% cols_merge(
     columns = c(mean_dose_xr, sd_xr),
     pattern = "{1}±{2}"
+  ) %>% cols_merge(
+    columns = c(mean_dose_xr_us, sd_xr_us),
+    pattern = "{1}±{2}"
   ) %>% cols_label(
     mean_dose_ct = "Mean Dose CT Follow-up (mSv) ± SD",
-    mean_dose_xr = "Mean Dose XR Follow-up (mSv) ± SD"
+    mean_dose_xr = "Mean Dose XR Follow-up (mSv) ± SD",
+    mean_dose_xr_us = "Mean Dose XR/US Follow-up (mSv) ± SD"
   ) %>% tab_header(
-    title = "Radiation doses over 5 years for XR or CT follow-up",
+    title = "Radiation doses over 5 years for XR, XR/US or CT follow-up",
     subtitle = "Estimated for Patients with Clinically Significant Disease ascertained from HES data"
   ) %>% tab_footnote(
     footnote = "AUC's refer to modelled diagnostic accuracy of risk stratification",
@@ -1207,7 +1272,7 @@ data_for_plot <- bind_rows(
   combine_auc_data(auc_0.85, "AUC 0.85"),
   combine_auc_data(auc_0.9,  "AUC 0.9"),
   combine_auc_data(auc_0.95, "AUC 0.95")
-) %>% filter(cohort_type %in% c("Minimum FU, XR", "Minimum FU, CT"))
+) %>% filter(cohort_type %in% c("Minimum FU, XR", "Minimum FU, XR + US", "Minimum FU, CT"))
 
 data_for_plot$auc_label <- as.factor(data_for_plot$auc_label)
 data_for_plot$cohort_type <- as.factor(data_for_plot$cohort_type)
@@ -1239,7 +1304,7 @@ summary_df <- bind_rows(summary_df, summary_all)
 # Factor levels for ordering
 summary_df <- summary_df %>%
   mutate(
-    cohort_type = factor(cohort_type, levels = c("Minimum FU, XR", "Minimum FU, CT")),
+    cohort_type = factor(cohort_type, levels = c("Minimum FU, XR", "Minimum FU, XR + US", "Minimum FU, CT")),
     risk_status = factor(risk_status, levels = c("All", "Low Risk", "High Risk"))
   )
 
@@ -1250,105 +1315,25 @@ data_for_plot <- data_for_plot %>%
     risk_status = factor(risk_status, levels = c("Low Risk", "High Risk"))
   )
 
-# Function to run t-test comparing cohorts, optionally filtering by risk_status
-run_pairwise_test <- function(df, auc_value, risk_filter = NULL) {
-  df_sub <- df %>% filter(auc_label == auc_value)
-  
-  if (!is.null(risk_filter) && risk_filter != "All") {
-    df_sub <- df_sub %>% filter(risk_status == risk_filter)
-  }
-  
-  # If risk_filter is "All", do not filter by risk_status
-  
-  df_sub <- df_sub %>% filter(cohort_type %in% c("Minimum FU, XR", "Minimum FU, CT"))
-  
-  if(length(unique(df_sub$cohort_type)) < 2) {
-    return(tibble(auc_label = auc_value, risk_status = risk_filter %||% "All",
-                  group1 = "Minimum FU, XR", group2 = "Minimum FU, CT", p.value = NA))
-  }
-  
-  test_res <- t.test(cumulative_rad_dose ~ cohort_type, data = df_sub) %>% tidy()
-  
-  tibble(
-    auc_label = auc_value,
-    risk_status = risk_filter %||% "All",
-    group1 = "Minimum FU, XR",
-    group2 = "Minimum FU, CT",
-    p.value = test_res$p.value
-  )
-}
+
 
 # All auc values
 auc_values <- unique(data_for_plot$auc_label)
 
-# Run tests for "All", "High Risk", and "Low Risk" groups per AUC
-pvals_list <- lapply(auc_values, function(auc_val) {
-  bind_rows(
-    run_pairwise_test(data_for_plot, auc_val, risk_filter = "All"),            # All combined
-    run_pairwise_test(data_for_plot, auc_val, risk_filter = "High Risk"),
-    run_pairwise_test(data_for_plot, auc_val, risk_filter = "Low Risk")
-  )
-})
 
-pvals_df <- bind_rows(pvals_list) 
 
 # Assign y.position staggered by risk_status within each auc_label
 max_dose <- max(data_for_plot$cumulative_rad_dose, na.rm = TRUE)
-pvals_df <- pvals_df %>%
-  mutate(risk_status = factor(risk_status, levels = c("All", "Low Risk", "High Risk"))) %>%
-  group_by(auc_label) %>%
-  arrange(risk_status) %>%
-  mutate(
-    y.position = max_dose + (row_number() - 2.2) * 0.1 * max_dose
-  ) %>%
-  ungroup()
 
-# Assign xmin and xmax for pvalue brackets (always between the two cohorts)
-pvals_df <- pvals_df %>%
-  mutate(
-    xmin = case_when(
-      group1 == "Minimum FU, XR" & group2 == "Minimum FU, CT" & risk_status == "All" ~ 0.7,
-      group1 == "Minimum FU, XR" & group2 == "Minimum FU, CT" & risk_status == "Low Risk" ~ 1,
-      group1 == "Minimum FU, XR" & group2 == "Minimum FU, CT" & risk_status == "High Risk" ~ 1.3,
-      TRUE ~ NA
-    ),
-    xmax = case_when(group1 == "Minimum FU, XR" & group2 == "Minimum FU, CT" & risk_status == "All" ~ 1.8,
-                     group1 == "Minimum FU, XR" & group2 == "Minimum FU, CT" & risk_status == "Low Risk" ~ 2.1,
-                     group1 == "Minimum FU, XR" & group2 == "Minimum FU, CT" & risk_status == "High Risk" ~ 2.4,
-                     TRUE ~ NA),
-    p.value_for_plot = case_when(
-      p.value < 0.001 ~ "***",
-      p.value < 0.01 ~ "**",
-      p.value < 0.05 ~ "*",
-      p.value > 0.5 ~ "ns",
-      TRUE ~ NA
-    ),
-    p.value_for_table = case_when(
-      p.value < 0.001 ~ "< 0.001",
-      p.value < 0.01 ~ "< 0.01",
-      p.value < 0.05 ~ "< 0.05",
-      p.value > 0.5 ~ "ns",
-      TRUE ~ NA
-    ),
-    .keep = "all"
-  )
 
-# Step 6: Plot cumulative dose by cohort_type within risk groups
+
+# Plot cumulative dose by cohort_type within risk groups
 summary_df %>% group_by(cohort_type) %>% ggplot(aes(x = cohort_type, y = mean_dose, fill = risk_status)) +
   geom_col(position = position_dodge(width = 0.8), width = 0.7) +
   geom_errorbar(
     aes(ymin = mean_dose - sd, ymax = mean_dose + sd),
     position = position_dodge(width = 0.8),
     width = 0.2
-  ) +
-  stat_pvalue_manual(
-    pvals_df,
-    label = "p.value_for_plot",
-    xmin = "xmin",
-    xmax = "xmax",
-    y.position = "y.position",
-    tip.length = 0.02,
-    bracket.shorten = 0.05
   ) +
   facet_wrap(~ auc_label) +
   theme_bw() +
@@ -1363,18 +1348,7 @@ summary_df %>% group_by(cohort_type) %>% ggplot(aes(x = cohort_type, y = mean_do
     fill = "Risk Status"
   )
 
-# Step 7: Create gt summary table
-pvals_for_table <- pvals_df %>% subset(select = c(
-  auc_label,
-  risk_status,
-  group1,
-  group2,
-  p.value_for_table
-))  %>% group_by(
-  auc_label) %>% pivot_wider(
-    names_from = c(group1, group2),
-    values_from = p.value_for_table)
-
+# Create gt summary table
 summary_df$mean_dose <- round(summary_df$mean_dose, digits = 1)
 summary_df$sd <- round(summary_df$sd, digits = 1)
 
@@ -1384,17 +1358,14 @@ summary_df %>%
     names_from = cohort_type,
     values_from = c(mean_dose, sd)
   ) %>%
-  left_join(
-    pvals_for_table,
-    by = c("risk_status" = "risk_status", "auc_label" = "auc_label")
-  ) %>%
   rename(
     `Risk Status` = risk_status,
     mean_dose_ct = "mean_dose_Minimum FU, CT",
     mean_dose_xr = "mean_dose_Minimum FU, XR",
+    mean_dose_xr_us = "mean_dose_Minimum FU, XR + US",
     sd_ct = "sd_Minimum FU, CT",
     sd_xr = "sd_Minimum FU, XR",
-    "P (T-Test)" = "Minimum FU, XR_Minimum FU, CT"
+    sd_xr_us = "sd_Minimum FU, XR + US",
   ) %>%
   gt() %>% cols_merge(
     columns = c(mean_dose_ct, sd_ct),
@@ -1402,9 +1373,13 @@ summary_df %>%
   ) %>% cols_merge(
     columns = c(mean_dose_xr, sd_xr),
     pattern = "{1}±{2}"
+  ) %>% cols_merge(
+    columns = c(mean_dose_xr_us, sd_xr_us),
+    pattern = "{1}±{2}"
   ) %>% cols_label(
     mean_dose_ct = "Mean Dose CT Follow-up (mSv) ± SD",
-    mean_dose_xr = "Mean Dose XR Follow-up (mSv) ± SD"
+    mean_dose_xr = "Mean Dose XR Follow-up (mSv) ± SD",
+    mean_dose_xr_us = "Mean Dose XR + US Follow-up (mSv) ± SD"
   ) %>% tab_header(
     title = "Radiation doses over 5 years for XR or CT follow-up",
     subtitle = "Minimum Follow-up as per EAU",
@@ -1469,63 +1444,11 @@ data_for_plot$cohort_type <- factor(data_for_plot$cohort_type,
                                   levels= c(
                                     "Minimum FU, XR",
                                     "Maximum FU, XR",
+                                    "Minimum FU, XR + US",
+                                    "Maximum FU, XR + US",
                                     "Minimum FU, CT",
                                     "Maximum FU, CT"
                                   ))
-
-data_for_pvals <- data_for_plot %>% filter(auc_label == "AUC 0.55")
-
-data_for_pvals1 <- data_for_pvals %>% filter(cohort_type == "Minimum FU, XR" |
-                                              cohort_type == "Maximum FU, XR")
-data_for_pvals1$cohort_type <- factor(data_for_pvals1$cohort_type,
-                                      levels = c("Minimum FU, XR",
-                                                 "Maximum FU, XR"))
-
-data_for_pvals2 <- data_for_pvals %>% filter(cohort_type == "Minimum FU, CT" |
-                                              cohort_type == "Maximum FU, CT")
-data_for_pvals2$cohort_type <- factor(data_for_pvals2$cohort_type,
-                                      levels = c("Minimum FU, CT",
-                                                 "Maximum FU, CT"))
-
-data_for_pvals3 <- data_for_pvals %>% filter(cohort_type == "Minimum FU, XR" |
-                                              cohort_type == "Minimum FU, CT")
-data_for_pvals3$cohort_type <- factor(data_for_pvals3$cohort_type,
-                                      levels = c("Minimum FU, XR",
-                                                 "Minimum FU, CT"))
-
-data_for_pvals4 <- data_for_pvals %>% filter(cohort_type == "Maximum FU, XR" |
-                                              cohort_type == "Maximum FU, CT")
-data_for_pvals4$cohort_type <- factor(data_for_pvals4$cohort_type,
-                                      levels = c("Maximum FU, XR",
-                                                 "Maximum FU, CT"))
-
-pvals_for_overall_plot <- rbind(
-  wilcox.test(cumulative_rad_dose ~ cohort_type, data = data_for_pvals1, exact = FALSE, alternative = "less") %>% tidy(),
-  wilcox.test(cumulative_rad_dose ~ cohort_type, data = data_for_pvals2, exact = FALSE, alternative = "less") %>% tidy(),
-  wilcox.test(cumulative_rad_dose ~ cohort_type, data = data_for_pvals3, exact = FALSE, alternative = "less") %>% tidy(),
-  wilcox.test(cumulative_rad_dose ~ cohort_type, data = data_for_pvals4, exact = FALSE, alternative = "less") %>% tidy()
-) %>% cbind(
-  "group1" = c("Minimum FU, XR",
-                   "Minimum FU, CT",
-                   "Minimum FU, XR",
-                   "Maximum FU, XR"),
-  "group2" = c("Maximum FU, XR",
-               "Maximum FU, CT",
-               "Minimum FU, CT",
-               "Maximum FU, CT"),
-  "xmin" = c(1, 3, 1, 2),
-  "xmax" = c(2, 4, 3, 4),
-  "y.position" = c(30, 30, 32, 34)
-) %>% mutate(
-  p.value_for_plot = case_when(
-    p.value < 0.001 ~ "***",
-    p.value < 0.01 ~ "**",
-    p.value < 0.05 ~ "*",
-    p.value > 0.5 ~ "ns",
-    TRUE ~ NA
-  )
-)
-
 
 
 data_for_plot %>% ggplot(aes(x = cohort_type, y=cumulative_rad_dose)) + geom_boxplot(
@@ -1535,20 +1458,11 @@ data_for_plot %>% ggplot(aes(x = cohort_type, y=cumulative_rad_dose)) + geom_box
     title = "Cumulative 5 Year Radiation Dose Regardless of Risk Stratification",
     x = "Follow-up Length and Type of Imaging",
     y = "Median Cumulative Radiation Dose (mSv)"
-  ) + stat_pvalue_manual(
-    pvals_for_overall_plot,
-    label = "p.value_for_plot",
-    xmin = "xmin",
-    xmax = "xmax",
-    y.position = "y.position",
-    tip.length = 0.02,
-    bracket.shorten = 0.05,
-    bracket.size = 0.7
   ) 
 
 ##### 6.1.3.1 Examine patients by Risk stratification ####
 summary_df3 <- data_for_plot %>%
-  group_by(auc_label, risk_status, cohort_type,) %>%
+  group_by(auc_label, risk_status, cohort_type) %>%
   summarise(
     mean_dose = mean(cumulative_rad_dose, na.rm = TRUE),
     sd = sd(cumulative_rad_dose, na.rm = TRUE),
