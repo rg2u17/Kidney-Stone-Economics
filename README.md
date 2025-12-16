@@ -6,12 +6,13 @@ This repository details the underpinning data and R code used to model the Europ
 Figure 1. EAU follow-up algorithm for patients with kidney stones following treatment.
 <br>
 
-The model examines both the current standard of care (see below), and multiple theoretical diagnostic accuracy thresholds for prediction of recurrence. <br>
+The model examines both the current standard of care (see below), and multiple theoretical diagnostic accuracy thresholds for prediction of recurrence for follow-up following first stone event (see below for definition). <br>
+The model only examines **1** subsequent stone event (a single recurrence) <br>
 The model examines differing types of imaging modality and lengths of follow-up. <br>
 
 Ascertainment of the current standard of care is detailed below:
 
-### Ascertainment of Current Standard of Care
+## Ascertainment of Current Standard of Care
 We utilised UK Biobank to ascertain the prognostic accuracy of the current standard of care (EAU risk stratification - Table 3.3: https://uroweb.org/guidelines/urolithiasis/chapter/guidelines) <br>
 <br>
 The methodology to do this is detailed in the following link: <br>
@@ -48,7 +49,7 @@ We examined **stone event** rates at both 5 and 10 years and these are defined b
 
 
 
-Each script is labelled in numeric order, and those wishing to replicate the model should run each in order. <br>
+
 
 ## How to Download Model
 **To download this model use:** <br>
@@ -57,6 +58,7 @@ Each script is labelled in numeric order, and those wishing to replicate the mod
 
 ## How to Run Model
 **To run this model we suggest using the rmarkdown file (kidney_stone_economics_full_model.rmd) in RStudio and selecting run all** <br>
+Each script is labelled in numeric order, and those wishing to replicate the model should run each in order. <br>
 Please note that this requires a significant amount of compute to run - Despite efforts to minimise this within each script <br>
 <br>
 We recommend running the scripts sequentially in a HPC cluster (if available), alternatively running it on a local PC may take several days to run. <br>
