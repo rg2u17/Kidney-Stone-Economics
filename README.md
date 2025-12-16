@@ -14,7 +14,8 @@ The model examines differing types of imaging modality (X-ray, ultrasound and CT
 The model examines both the current standard of care (see below), and multiple theoretical prognostic accuracy thresholds for prediction of recurrence for follow-up following first stone event (see below for definition). <br>
 <br>
 At present, the model only examines **one subsequent stone event** (i.e a single recurrence) <br>
-
+<br>
+The assumptions underlying the model are detailed in ```factor levels.docx```, which is also appended to the end of this ReadMe. <br>
 
 Ascertainment of the current standard of care is detailed below: <br>
 
@@ -93,4 +94,160 @@ Otherwise you will need to assign the working directory to where the file is sto
 <br>
 To set the working working directory to an appropriate place <br>
 This will ensure the scripts run without having to alter the file path
+
+## Assumptions
+
+These tables details the assumptions made by the model and the reference for those assumptions: <br>
+<br>
+### Population & Epidemiology Inputs
+| Type of Input Factor  | Model Input Factor                                | Value / Levels                                                                                   | Reference                                               |
+| --------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| Population statistics | English Population                                | 2016: 55,289,000<br>2017: 55,619,500<br>2018: 55,924,500<br>2019: 56,230,100<br>2020: 56,326,000 | ONS (Office for National Statistics, accessed May 2025) |
+| Population statistics | Death rates in England                            | Proportion per population per 5-year age band                                                    | ONS                                                     |
+| Population statistics | Incidence of kidney stones (estimated increments) | 1–2%<br>(0.25% increments – start at 0.5%*)                                                      | Hill et al. 2022 (NHANES)                               |
+| Population statistics | Age distribution of 1st stone episode             | Mean: 52.61 ± 13.98                                                                              | Meta-analysis (AoU + UKB)                               |
+| Population statistics | Sex distribution of 1st stone episode             | Male: 60.9%                                                                                      | Meta-analysis (AoU + UKB)                               |
+| Population statistics | Clinically significant disease                    | Sum undergoing intervention / colic per year (2016–2020)                                         | Estimated from HES vs expected incidence                |
+<br>
+
+### Interventions – Annual Volumes (England)
+| Intervention | Year | Number | Reference |
+| ------------ | ---: | -----: | --------- |
+| PCNL         | 2016 | 10,454 | HES       |
+|              | 2017 | 10,953 |           |
+|              | 2018 | 11,463 |           |
+|              | 2019 | 11,164 |           |
+|              | 2020 | 4,506* |           |
+| URS          | 2016 | 11,441 | HES       |
+|              | 2017 | 12,016 |           |
+|              | 2018 | 12,669 |           |
+|              | 2019 | 12,444 |           |
+|              | 2020 | 12,840 |           |
+| ESWL         | 2016 | 20,745 | HES       |
+|              | 2017 | 20,030 |           |
+|              | 2018 | 18,964 |           |
+|              | 2019 | 19,957 |           |
+|              | 2020 | 13,000 |           |
+
+
+### Stone Free Rates
+**Renal Stones**
+| Treatment | Stone-Free Rate | Reference            |
+| --------- | --------------: | -------------------- |
+| PCNL      |             74% | Geraghty et al. 2024 |
+| URS       |             60% | Ghani & Wolf 2015    |
+| ESWL      |             50% | Brain et al. 2023    |
+<br>
+**Ureteric Stones**
+| Treatment           | Stone-Free Rate | Reference            |
+| ------------------- | --------------: | -------------------- |
+| URS                 |       89% (PP2) | Dasgupta et al. 2021 |
+| ESWL                |       70% (PP2) | Dasgupta et al. 2021 |
+| Spontaneous passage |             74% | Shah et al. 2019     |
+
+### 30-Day mortality rates
+| Management Strategy | Mortality | Reference            |
+| ------------------- | --------: | -------------------- |
+| PCNL                |     0.03% | Kamphuis et al. 2015 |
+| URS                 |     0.04% | Somani et al. 2015   |
+| ESWL                |        0% | Tzelves et al. 2022  |
+| Observation         |        0% | Estimated            |
+| Colic               |        0% | Pickard et al. 2015  |
+
+### Diagnostic Accuracy - Detection of de novo stones
+| Modality    | Sensitivity | Specificity | Reference                       |
+| ----------- | ----------: | ----------: | ------------------------------- |
+| Ultrasound  |        0.54 |        0.91 | Ganesan et al. 2016             |
+| X-ray       |        0.58 |        0.76 | NICE 2019 / Fulgham et al. 2012 |
+| CT          |        0.95 |        0.98 | Coursey et al. 2012             |
+| Low-dose CT |        0.95 |        0.97 | Coursey et al. 2012             |
+
+### Radiation Associated Malignancy - EAR model
+
+Derived from Gonzalez et al. 2012 <br>
+```EAR=βs⋅D⋅e^γe^*⋅(a^*)η``` <br>
+ <br>
+
+
+| Cancer Site | β (Male)         | β (Female)       |     γ |   η |
+| ----------- | ---------------- | ---------------- | ----: | --: |
+| Kidney      | 0.31 (0.08–0.68) | 0.31 (0.08–0.68) | -0.41 | 2.8 |
+| Bladder     | 1.2 (0.4–3.7)    | 0.75 (0.3–1.7)   | -0.41 | 6.0 |
+| Colon       | 3.2 (1.8–5.6)    | 1.6 (0.8–3.2)    | -0.41 | 2.8 |
+| Prostate    | 0.11 (0–1.0)     | NA               | -0.41 | 2.8 |
+| Ovary       | NA               | 0.7 (0.2–3.1)    | -0.41 | 2.8 |
+| Rectum      | 0.34 (0.09–1.1)  | 0.34 (0.09–1.1)  | -0.41 | 2.8 |
+| Stomach     | 4.9 (2.7–8.9)    | 4.9 (3.2–7.3)    | -0.41 | 2.8 |
+| Liver       | 2.2 (0.09–1.1)   | 1.0 (0.40–2.5)   | -0.41 | 4.1 |
+| Uterus      | NA               | 1.2 (0–2.6)      | -0.41 | 2.8 |
+| Pancreas    | 0.49 (0.09–1.1)  | 0.49 (0.09–1.1)  | -0.41 | 2.8 |
+
+### NHS Tariff Costs 23/24
+| Item                         |     Cost |
+| ---------------------------- | -------: |
+| Initial urology consultation |     £145 |
+| Follow-up clinic review      |      £71 |
+| X-ray                        |      £27 |
+| Ultrasound                   |      £43 |
+| CT                           |      £69 |
+| PCNL                         |   £4,548 |
+| URS                          |   £2,386 |
+| ESWL                         |     £445 |
+| Stent insertion              |     £822 |
+| A&E attendance (Cat 3)       |     £288 |
+| R256 genetic panel           |    ~£100 |
+| 24-hour urine                |  £190.50 |
+| SNP array                    | £200–700 |
+| WGS                          |   £1,000 |
+
+### Radiation Doses
+| Exposure             |     Dose |
+| -------------------- | -------: |
+| X-ray                |  0.7 mSv |
+| CT                   |   10 mSv |
+| Low-dose CT          |    3 mSv |
+| Ultra-low-dose CT    | <1.9 mSv |
+| PCNL                 |  6.6 mSv |
+| URS                  |  2.1 mSv |
+| ESWL                 |  2.4 mSv |
+| Transatlantic flight | 0.08 mSv |
+
+### Diagnostic Accuracy of Imaging
+| Modality   | Sensitivity | Specificity | Reference             |
+| ---------- | ----------: | ----------: | --------------------- |
+| X-ray      |        0.67 |        0.98 | Kandasamy et al. 2024 |
+| Ultrasound |        0.54 |        0.91 | Ganesan et al. 2017   |
+| CT         |        0.99 |        0.99 | Kandasamy et al. 2024 |
+| ULDCT      |        0.90 |        0.93 | Kandasamy et al. 2024 |
+
+## References: 
+1. Hill, A. J. et al. Incidence of Kidney Stones in the United States: The Continuous National Health and Nutrition Examination Survey. J. Urol. 207, 851–856 (2022).
+2. Geraghty, R. M. et al. Use of Temporally Validated Machine Learning Models To Predict Outcomes of Percutaneous Nephrolithotomy Using Data from the British Association of Urological Surgeons Percutaneous Nephrolithotomy Audit. Eur. Urol. Focus 10, 290–297 (2024).
+3. Ghani, K. R., Wolf, J. S. & Wolf, J. S. What is the stone-free rate following flexible ureteroscopy for kidney stones? Nat. Rev. Urol. 12, 281–288 (2015).
+4. Brain, E. et al. Outcomes of alpha‐blockers as medical expulsive therapy following shockwave lithotripsy: a systematic review and meta‐analysis. BJU Int. 131, 424–433 (2023).
+5. Dasgupta, R. et al. Shockwave Lithotripsy Versus Ureteroscopic Treatment as Therapeutic Interventions for Stones of the Ureter (TISU): A Multicentre Randomised Controlled Non-inferiority Trial☆. Eur Urol 80, 46–54 (2021).
+6. Shah, T. T. et al. Factors associated with spontaneous stone passage in a contemporary cohort of patients presenting with acute ureteric colic: results from the Multi‐centre cohort study evaluating the role of Inflammatory Markers In patients presenting with acute ureteric Colic (MIMIC) study. BJU Int. 124, 504–513 (2019).
+7. Kamphuis, G. M., Baard, J., Westendarp, M. & Rosette, J. J. M. C. H. de la. Lessons learned from the CROES percutaneous nephrolithotomy global study. World J. Urol. 33, 223–233 (2015).
+8. Somani, B. K. et al. Complications associated with ureterorenoscopy (URS) related to treatment of urolithiasis: the Clinical Research Office of Endourological Society URS Global study. World J. Urol. 35, 675–681 (2017).
+9. Tzelves, L. et al. Shockwave Lithotripsy Complications According to Modified Clavien-Dindo Grading System. A Systematic Review and Meta-regression Analysis in a Sample of 115 Randomized Controlled Trials. Eur. Urol. Focus 8, 1452–1460 (2022).
+10. Pickard, R. et al. Medical expulsive therapy in adults with ureteric colic: a multicentre, randomised, placebo-controlled trial. Lancet 386, 341–349 (2015).
+11. Ganesan, V., De, S., Greene, D., Torricelli, F. C. M. & Monga, M. Accuracy of ultrasonography for renal stone detection and size determination: is it good enough for management decisions? BJU Int. 119, 464–469 (2017).
+12. Renal and ureteric stones: assessment and management. https://www.nice.org.uk/guidance/ng118/evidence/b-imaging-for-diagnosis-pdf-6653382735.
+13. Fulgham, P. F., Assimos, D. G., Pearle, M. S. & Preminger, G. M. Clinical Effectiveness Protocols for Imaging in the Management of Ureteral Calculous Disease: AUA Technology Assessment. J. Urol. 189, 1203–1213 (2013).
+14. Coursey, C. A. et al. ACR Appropriateness Criteria® Acute Onset Flank Pain–Suspicion of Stone Disease. Ultrasound Q. 28, 227–233 (2012).
+15. Dhayat, N. A. et al. Hydrochlorothiazide and Prevention of Kidney-Stone Recurrence. N. Engl. J. Med. 388, 781–791 (2023).
+16. Sorensen, M. D. et al. Removal of Small, Asymptomatic Kidney Stones and Incidence of Relapse. New Engl J Med 387, 506–513 (2022).
+17. Tzelves, L. et al. Duration of Follow-up and Timing of Discharge from Imaging Follow-up, in Adult Patients with Urolithiasis After Surgical or Medical Intervention: A Systematic Review and Meta-analysis from the European Association of Urology Guideline Panel on Urolithiasis. Eur. Urol. Focus 9, 188–198 (2023).
+18. Brain, E., Geraghty, R. M., Lovegrove, C. E., Yang, B. & Somani, B. K. Natural History of Post-Treatment Kidney Stone Fragments: A Systematic Review and Meta-Analysis. J Urology 206, 526–538 (2021).
+19. Gonzalez, A. B. de et al. RadRAT: a radiation risk assessment tool for lifetime cancer risk projection. J. Radiol. Prot. 32, 205–222 (2012).
+20. Smith-Bindman, R. et al. Projected Lifetime Cancer Risks From Current Computed Tomography Imaging. JAMA Intern. Med. 185, 710–719 (2025).
+21. estimate radiation associated malignancy risk. https://assets.publishing.service.gov.uk/media/5a7d90c240f0b64fe6c24796/RCE-19_for_website_v2.pdf.
+22. Frost, A. & Tatton-Brown, K. Different approaches to gene sequencing — Knowledge Hub. https://www.genomicseducation.hee.nhs.uk/genotes/knowledge-hub/different-approaches-to-gene-sequencing/.
+23. Coninck, V. D. et al. Radiation exposure of patients during endourological procedures. World J. Urol. 42, 266 (2024).
+24. Agency, U. H. S. Ionising Radiation: dose comparisons. https://www.gov.uk/government/publications/ionising-radiation-dose-comparisons/ionising-radiation-dose-comparisons (2011).
+25. Kavoussi, N. L. et al. Feasibility of stone recurrence risk stratification using the recurrence of kidney stone (ROKS) nomogram. Urolithiasis 51, 73 (2023).
+26. Kandasamy, M., Chan, M., Xiang, H., Chan, L. & Ridley, L. Comparison of diagnostic accuracy of ultra low‐dose computed tomography and X‐ray of the kidneys, ureters and bladder for urolithiasis in the follow‐up setting. J. Méd. Imaging Radiat. Oncol. 68, 132–140 (2024).
+27. Skolarikos, A. et al. EAU Guidelines on Urolithiasis. (EAU Guidelines Office, Arnhem, The Netherlands).
+28. Lombardo, R. et al. Follow-up of urolithiasis patients after treatment: an algorithm from the EAU Urolithiasis Panel. World J. Urol. 42, 202 (2024).
+ 
 
