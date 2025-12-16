@@ -12,7 +12,7 @@ Each script is labelled in numeric order, and those wishing to replicate the mod
 <br>
 
 <img width="760" height="320" alt="image" src="https://github.com/user-attachments/assets/eee4aa40-d19e-4c0a-8518-ad3c1417d280" /> <br>
-Figure. EAU follow-up algorithm for patients with kidney stones following treatment.
+Figure 1. EAU follow-up algorithm for patients with kidney stones following treatment.
 <br>
 
 ## How to Download Model
@@ -45,5 +45,31 @@ Otherwise you will need to assign the working directory to where the file is sto
 To set the working working directory to an appropriate place <br>
 This will ensure the scripts run without having to alter the file path
 
+## Ascertainment of Current Standard of Care
+We utilised UK Biobank to ascertain the prognostic accuracy of the current standard of care (EAU risk stratification - Table 3.3: ) <br>
+The methodology to do this is detailed in the following link: <br>
+```https://github.com/rg2u17/Recurrence_ML``` <br>
+<br>
+We examined **stone event** rates at both 5 and 10 years and these are detailed below: <br>
 
+### Definitions:
+**Stone Event** = renal/ureteric colic OR intervention <br>
+**Recurrence** = Subsequent stone event >6 months after previous <br>
+<br>
+
+### 5 Year Stone event rates
+
+[EAU Risk stratification counts UKB.tiff](https://github.com/user-attachments/files/24189808/EAU.Risk.stratification.counts.UKB.tiff)
+Figure 2. Counts of stone events over 5 years subdivided by EAU risk stratification <br>
+
+[EAU Risk stratification percentages UKB.tiff](https://github.com/user-attachments/files/24189807/EAU.Risk.stratification.percentages.UKB.tiff)
+Figure 3. Proportions of stone events over 5 years subdivided by EAU risk stratification
+
+<img width="592" height="414" alt="image" src="https://github.com/user-attachments/assets/4089a5d7-f10e-40c6-b2d5-8a514dbf2c75" />
+Figure 4. Kaplan Meier plot of 1st -> 2nd stone event (symptomatic recurrence) 
+
+### 10 Year Stone event rates
+
+[EAU risk stratification 10 year counts.tiff](https://github.com/user-attachments/files/24189857/EAU.risk.stratification.10.year.counts.tiff)
+Figure 5. Counts of stone events over 10 years subdivided by EAU risk stratification <br>
 
