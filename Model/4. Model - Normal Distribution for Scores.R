@@ -405,6 +405,7 @@ simulate_and_plot_roc <- function(auc_targets,
 ### 4.3 Complete Population simulation ####
 simulate_complete_population_distribution <- function(total_patients,
                                                       total_sf_patients,
+                                                      radiolucent_prop = 0.2,
                                                       prevalence = 0.5,
                                                       verbose = TRUE) {
   if (verbose) cat("Starting simulation...\n")
@@ -491,7 +492,14 @@ simulate_complete_population_distribution <- function(total_patients,
     sex = factor(sex_labels),
     age = age_vector,
     stone_free_status = factor(sf_labels, levels = c("SF", "less4", "more4"))
-  )
+  ) %>%
+    mutate(
+      lucency = {
+        n_yes <- round(radiolucent_prop * n())
+        sample(c(rep("yes", n_yes),
+                 rep("no", n() - n_yes)))
+      }
+    )
   
   if (verbose) cat("Simulation complete.\n")
   return(population)
