@@ -1,0 +1,1608 @@
+# 11. Quality of Life with EQ-5D Profile Adjustments ####
+## 11.1 Load libraries ####
+library(tidyverse)
+library(janitor)
+library(gt)
+library(gtExtras)
+library(ggsignif)
+library(data.table)
+library(pryr)
+library(lubridate)
+library(sfsmisc)
+library(mice)
+library(cowplot)
+library(eq5d)
+library(future)
+library(furrr)
+
+
+## 11.2 Load data ####
+### 11.2.1 Read in data ####
+usiqol_scores <- fread("Inputs/usiqol_scores.csv",
+                       header = TRUE) %>%
+  janitor::clean_names() %>%
+  as_tibble() %>%
+  select(date_of_birth, age, trial_number)
+
+eq_5d_metrics_1 <- fread("Inputs/raw_eq_5d_5l_data.csv",
+                         header = TRUE) %>%
+  janitor::clean_names() %>%
+  as_tibble() %>%
+  subset(
+    select = c(
+      trial_number,
+      date_completed,
+      mobility,
+      self_care,
+      usual_activities,
+      pain_discomfort,
+      anxiety_depression,
+      compared_with_general_activity,
+      date_completed_2,
+      mobility_2,
+      self_care_2,
+      usual_activities_2,
+      pain_discomfort_2,
+      anxiety_depression_2,
+      compared_with_general_activity_2,
+      date_completed_3,
+      mobility_3,
+      self_care_3,
+      usual_activities_3,
+      pain_discomfort_3,
+      anxiety_depression_3,
+      compared_with_general_activity_3
+    )
+  ) %>%
+  drop_na(trial_number)
+
+eq_5d_metrics_1 <- eq_5d_metrics_1 %>%
+  mutate(
+    score_1 = paste0(
+      mobility,
+      self_care,
+      usual_activities,
+      pain_discomfort,
+      anxiety_depression
+    ),
+    score_2 = paste0(
+      mobility_2,
+      self_care_2,
+      usual_activities_2,
+      pain_discomfort_2,
+      anxiety_depression_2
+    ),
+    score_3 = paste0(
+      mobility_3,
+      self_care_3,
+      usual_activities_3,
+      pain_discomfort_3,
+      anxiety_depression_3
+    ),
+    .keep = "all"
+  ) 
+
+eq_5d_metrics <- usiqol_scores %>%
+  left_join(
+    eq_5d_metrics_1, by = "trial_number"
+  ) %>%
+  mutate(
+    total_pre = eq5d(score_1, country = "UK", version = "5L", type = "CW", ignore.invalid = TRUE),
+    total_post_1 = eq5d(score_2, country = "UK", version = "5L", type = "CW", ignore.invalid = TRUE),
+    total_post_2 = eq5d(score_3, country = "UK", version = "5L", type = "CW", ignore.invalid = TRUE),
+    .keep = "all"
+  )
+
+eq_5d_stone_sizes_pre_post <- fread("Inputs/stone_free_statuses_usiqol_2.csv", header = TRUE) %>% 
+  janitor::clean_names() %>%
+  as_tibble()
+
+### 11.2.3 Define data ####
+
+eq_5d_metrics$date_of_birth <- as.POSIXct(eq_5d_metrics$date_of_birth, format = "%d/%m/%Y")
+eq_5d_metrics$age <- as.integer(eq_5d_metrics$age)
+eq_5d_metrics$trial_number <- as.integer(eq_5d_metrics$trial_number)
+eq_5d_metrics$date_completed <- as.POSIXct(eq_5d_metrics$date_completed, format = "%d/%m/%Y")
+eq_5d_metrics$total_pre <- as.numeric(eq_5d_metrics$total_pre)
+eq_5d_metrics$date_completed_2 <- as.POSIXct(eq_5d_metrics$date_completed_2, format = "%d/%m/%Y")
+eq_5d_metrics$total_post_1 <- as.numeric(eq_5d_metrics$total_post_1)
+eq_5d_metrics$date_completed_3 <- as.POSIXct(eq_5d_metrics$date_completed_3, format = "%d/%m/%Y")
+eq_5d_metrics$total_post_2 <- as.numeric(eq_5d_metrics$total_post_2)
+
+eq_5d_stone_sizes_pre_post$sex <- as.factor(eq_5d_stone_sizes_pre_post$sex)
+eq_5d_stone_sizes_pre_post$intervention <- as.factor(eq_5d_stone_sizes_pre_post$intervention)
+eq_5d_stone_sizes_pre_post$successful <- as.factor(eq_5d_stone_sizes_pre_post$successful)
+eq_5d_stone_sizes_pre_post$pre_op_stone_free_status <- as.integer(eq_5d_stone_sizes_pre_post$pre_op_stone_free_status)
+eq_5d_stone_sizes_pre_post$post_op_stone_free_status <- as.integer(eq_5d_stone_sizes_pre_post$post_op_stone_free_status)
+
+### 11.2.4 Assign age bands ####
+
+eq_5d_metrics <- eq_5d_metrics %>%
+  mutate(
+    age_1 = age,
+    age_2 = as.numeric(difftime(date_completed_2, date_of_birth, units = "days")) / 365.25,
+    age_3 = as.numeric(difftime(date_completed_3, date_of_birth, units = "days")) / 365.25,
+    age_bin = case_when(
+      age_1 < 5 ~ "Aged 1 to 4", 
+      age_1 >4 & age_1 < 10 ~ "Aged 5-9",
+      age_1 >9 & age_1 < 15 ~ "Aged 10-14",
+      age_1 >14 & age_1 < 20 ~ "Aged 15-19",
+      age_1 >19 & age_1 < 25 ~ "Aged 20-24" ,     
+      age_1 >24 & age_1 < 30 ~ "Aged 25-29",
+      age_1 >29 & age_1 < 35 ~ "Aged 30-34", 
+      age_1 >34 & age_1 < 40 ~ "Aged 35-39", 
+      age_1 >39 & age_1 < 45 ~ "Aged 40-44",      
+      age_1 >44 & age_1 < 50 ~ "Aged 45-49",   
+      age_1 >49 & age_1 < 55 ~ "Aged 50-54",   
+      age_1 >54 & age_1 < 60 ~ "Aged 55-59",      
+      age_1 >59 & age_1 < 65 ~ "Aged 60-64",
+      age_1 >64 & age_1 < 70 ~ "Aged 65-69", 
+      age_1 >69 & age_1 < 75 ~ "Aged 70-74",  
+      age_1 >74 & age_1 < 80 ~ "Aged 75-79",      
+      age_1 >79 & age_1 < 85 ~ "Aged 80-84",
+      age_1 >84 & age_1 < 90 ~ "Aged 85-89",
+      age_1 >89 ~ "Aged 90 and over"
+    ),
+    age_bin = factor(age_bin, levels = c("Aged 1 to 4",
+                                         "Aged 5-9",
+                                         "Aged 10-14",
+                                         "Aged 15-19",
+                                         "Aged 20-24",
+                                         "Aged 25-29",
+                                         "Aged 30-34",
+                                         "Aged 35-39",
+                                         "Aged 40-44",      
+                                         "Aged 45-49",
+                                         "Aged 50-54",
+                                         "Aged 55-59",      
+                                         "Aged 60-64",
+                                         "Aged 65-69",
+                                         "Aged 70-74",
+                                         "Aged 75-79",      
+                                         "Aged 80-84",
+                                         "Aged 85-89",
+                                         "Aged 90 and over")),
+    .keep = "all"
+  ) %>% 
+  drop_na(trial_number)
+
+eq_5d_stone_sizes_pre_post <- eq_5d_stone_sizes_pre_post %>%
+  subset(select = c(
+    trial_number,
+    pre_op_stone_free_status,
+    post_op_stone_free_status,
+    intervention,
+    successful
+  )) %>% 
+  drop_na(trial_number)
+
+### 11.2.5 Assign stone free status ####
+
+eq_5d_metrics_aggregated <- eq_5d_metrics %>%
+  left_join(eq_5d_stone_sizes_pre_post,
+            by = c("trial_number")) %>%
+  mutate(stone_free_status_pre = case_when(
+    pre_op_stone_free_status == 0 ~ "SF",
+    pre_op_stone_free_status >=4 ~ "more4",
+    pre_op_stone_free_status < 4 ~ "less4",
+    TRUE ~ NA_character_
+  ),
+  stone_free_status_post = case_when(
+    post_op_stone_free_status == 0 ~ "SF",
+    post_op_stone_free_status >=4 ~ "more4",
+    post_op_stone_free_status < 4 ~ "less4",
+    TRUE ~ NA_character_
+  )) 
+
+### 11.2.6 Get change with treatment - NOW WITH EQ-5D PROFILES ####
+
+# Calculate mean changes in each EQ-5D dimension by intervention
+eq_5d_dimension_changes <- eq_5d_metrics_aggregated %>%
+  filter(!is.na(mobility) & !is.na(mobility_2)) %>%
+  mutate(
+    mobility_change = mobility_2 - mobility,
+    selfcare_change = self_care_2 - self_care,
+    usual_act_change = usual_activities_2 - usual_activities,
+    pain_change = pain_discomfort_2 - pain_discomfort,
+    anxiety_change = anxiety_depression_2 - anxiety_depression
+  ) %>%
+  group_by(intervention, stone_free_status_pre) %>%
+  summarise(
+    n = n(),
+    mobility_mean_change = mean(mobility_change, na.rm = TRUE),
+    mobility_sd_change = sd(mobility_change, na.rm = TRUE),
+    selfcare_mean_change = mean(selfcare_change, na.rm = TRUE),
+    selfcare_sd_change = sd(selfcare_change, na.rm = TRUE),
+    usual_act_mean_change = mean(usual_act_change, na.rm = TRUE),
+    usual_act_sd_change = sd(usual_act_change, na.rm = TRUE),
+    pain_mean_change = mean(pain_change, na.rm = TRUE),
+    pain_sd_change = sd(pain_change, na.rm = TRUE),
+    anxiety_mean_change = mean(anxiety_change, na.rm = TRUE),
+    anxiety_sd_change = sd(anxiety_change, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Also calculate overall utility changes for comparison
+eq_5d_change_with_rx <- eq_5d_metrics_aggregated %>%
+  group_by(intervention, stone_free_status_pre) %>%
+  summarise(
+    n = sum(!is.na(total_post_1 - total_pre)),
+    qol_change = mean(total_post_1 - total_pre, na.rm = TRUE),
+    qol_sd = sd(total_post_1 - total_pre, na.rm = TRUE),
+    qol_se = qol_sd / sqrt(n)
+  ) %>% 
+  ungroup() %>% 
+  subset(select = c(
+    intervention,
+    stone_free_status_pre,
+    qol_change,
+    qol_sd,
+    qol_se
+  ))
+
+mean_change_se_1 <- eq_5d_change_with_rx %>% 
+  select(qol_se) %>%
+  drop_na(qol_se) %>%
+  subset(qol_se < 4) %>%
+  summarise(
+    qol_se = mean(qol_se)
+  )
+
+mean_change_se <- mean_change_se_1$qol_se  
+
+mean_change_sd_1 <- eq_5d_change_with_rx %>% 
+  select(qol_sd) %>%
+  drop_na(qol_sd) %>%
+  subset(qol_sd < 13) %>%
+  summarise(
+    qol_sd = mean(qol_sd)
+  )
+
+mean_change_sd <- mean_change_sd_1$qol_sd 
+
+# Complete dataset for dimension changes
+eq_5d_dimension_changes <- eq_5d_dimension_changes %>%
+  drop_na(intervention) %>%
+  mutate(
+    intervention = factor(intervention, levels = c(
+      "Colic",
+      "ESWL",
+      "URS",
+      "PCNL"
+    ))
+  ) %>%
+  complete(
+    intervention,
+    stone_free_status_pre = c("more4", "less4", "SF"),
+    fill = list(
+      mobility_mean_change = 0,
+      mobility_sd_change = 0.5,
+      selfcare_mean_change = 0,
+      selfcare_sd_change = 0.3,
+      usual_act_mean_change = 0,
+      usual_act_sd_change = 0.5,
+      pain_mean_change = -0.5,  # Generally improves with treatment
+      pain_sd_change = 0.7,
+      anxiety_mean_change = -0.3,  # Generally improves with treatment
+      anxiety_sd_change = 0.6
+    )
+  )
+
+# Complete utility change dataset
+eq_5d_change_with_rx <- eq_5d_change_with_rx %>%
+  drop_na(intervention) %>%
+  mutate(
+    intervention = factor(intervention, levels = c(
+      "Colic",
+      "ESWL",
+      "URS",
+      "PCNL"
+    ))
+  ) %>%
+  complete(
+    intervention,
+    stone_free_status_pre = c("more4", "less4", "SF"),
+    fill = list(
+      qol_change = NA,
+      qol_se = NA,
+      qol_sd = NA
+    )
+  ) %>%
+  mutate(
+    qol_change = case_when(
+      is.na(qol_change) & stone_free_status_pre == "SF" ~ 0.02,
+      is.na(qol_change) & stone_free_status_pre == "less4" ~ 0.05,
+      TRUE ~ qol_change
+    ),
+    qol_sd = case_when(
+      is.na(qol_sd) | qol_sd > 13 ~ mean_change_sd,
+      TRUE ~ qol_sd
+    ),
+    qol_se = case_when(
+      is.na(qol_se) | qol_se > 4 ~ mean_change_se,
+      TRUE ~ qol_se
+    ),
+    qol_change_ci_lower = qol_change - 1.96 * qol_se,
+    qol_change_ci_upper = qol_change + 1.96 * qol_se
+  )
+
+### 11.2.7 Get baseline EQ-5D PROFILES by age and stone-free status ####
+
+# Calculate mean EQ-5D dimension scores by age bin and stone-free status
+eq_5d_profiles_by_age_stone_free <- eq_5d_metrics_aggregated %>%
+  subset(select = c(age_bin, 
+                    mobility, self_care, usual_activities, pain_discomfort, anxiety_depression,
+                    mobility_2, self_care_2, usual_activities_2, pain_discomfort_2, anxiety_depression_2,
+                    stone_free_status_pre, stone_free_status_post,
+                    total_pre, total_post_1)) %>%
+  pivot_longer(
+    cols = c(mobility, self_care, usual_activities, pain_discomfort, anxiety_depression,
+             mobility_2, self_care_2, usual_activities_2, pain_discomfort_2, anxiety_depression_2),
+    names_to = c(".value", "timepoint"),
+    names_pattern = "(.+?)(_2)?$"
+  ) %>%
+  pivot_longer(
+    cols = c(total_pre, total_post_1),
+    names_to = "util_time",
+    values_to = "utility"
+  ) %>%
+  mutate(
+    stone_free_status = case_when(
+      util_time == "total_pre" ~ stone_free_status_pre,
+      util_time == "total_post_1" ~ stone_free_status_post,
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(mobility) & !is.na(stone_free_status)) %>%
+  group_by(age_bin, stone_free_status) %>%
+  summarise(
+    n = n(),
+    mobility_mean = mean(mobility, na.rm = TRUE),
+    mobility_sd = sd(mobility, na.rm = TRUE),
+    selfcare_mean = mean(self_care, na.rm = TRUE),
+    selfcare_sd = sd(self_care, na.rm = TRUE),
+    usual_act_mean = mean(usual_activities, na.rm = TRUE),
+    usual_act_sd = sd(usual_activities, na.rm = TRUE),
+    pain_mean = mean(pain_discomfort, na.rm = TRUE),
+    pain_sd = sd(pain_discomfort, na.rm = TRUE),
+    anxiety_mean = mean(anxiety_depression, na.rm = TRUE),
+    anxiety_sd = sd(anxiety_depression, na.rm = TRUE),
+    utility_mean = mean(utility, na.rm = TRUE),
+    utility_sd = sd(utility, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Also keep the summary utility stats for compatibility
+eq_5d_metrics_by_age_stone_free_status <- eq_5d_metrics_aggregated %>%
+  subset(select = c(age_bin,
+                    total_pre,
+                    total_post_1,
+                    stone_free_status_pre,
+                    stone_free_status_post
+  )) %>% 
+  pivot_longer(cols = c(total_pre,total_post_1),
+               names_to = "scored_when",
+               values_to = "eq_5d_scores") %>%
+  mutate(
+    stone_free_status = case_when(
+      scored_when == "total_pre" ~ stone_free_status_pre,
+      scored_when == "total_post_1" ~ stone_free_status_post,
+      TRUE ~ NA_character_
+    ) %>% as.factor()
+  ) %>%
+  subset(select = -c(
+    stone_free_status_pre,
+    stone_free_status_post,
+    scored_when
+  )) %>%
+  group_by(age_bin, stone_free_status) %>%
+  summarise(
+    n = sum(!is.na(eq_5d_scores)),
+    total_mean = mean(eq_5d_scores, na.rm = TRUE),
+    total_sd   = sd(eq_5d_scores, na.rm = TRUE),
+    total_se = total_sd / sqrt(n),
+    total_ci_lower = total_mean - 1.96 * total_se,
+    total_ci_upper = total_mean + 1.96 * total_se
+  ) %>% 
+  select(-n) %>%
+  ungroup()
+
+### 11.2.8 Deal with missing profile data ####
+
+# Get mean dimension scores by stone-free status
+dimension_means_by_sf <- eq_5d_profiles_by_age_stone_free %>%
+  group_by(stone_free_status) %>%
+  summarise(across(ends_with("_mean"), ~mean(.x, na.rm = TRUE)))
+
+# Complete missing combinations with reasonable defaults
+eq_5d_profiles_by_age_stone_free <- eq_5d_profiles_by_age_stone_free %>%
+  complete(age_bin, stone_free_status = c("more4", "less4", "SF")) %>%
+  filter(age_bin != "Aged 1 to 4") %>%
+  left_join(dimension_means_by_sf, by = "stone_free_status", suffix = c("", "_default")) %>%
+  mutate(
+    across(c(mobility_mean, selfcare_mean, usual_act_mean, pain_mean, anxiety_mean),
+           ~coalesce(.x, get(paste0(cur_column(), "_default")))),
+    across(c(mobility_sd, selfcare_sd, usual_act_sd, pain_sd, anxiety_sd),
+           ~coalesce(.x, 0.7))  # Default SD
+  ) %>%
+  select(-ends_with("_default")) 
+
+## 11.3 Functions to assign QOL scores with EQ-5D profiles #### 
+### 11.3.1 Assign Age helper function ####
+assign_age_helper <- function(data,
+                              baseline = TRUE,
+                              fu_years = NULL) {
+  
+  age_bins_levels <- c("Aged 1 to 4",
+                       "Aged 5-9",
+                       "Aged 10-14",
+                       "Aged 15-19",
+                       "Aged 20-24",
+                       "Aged 25-29",
+                       "Aged 30-34",
+                       "Aged 35-39",
+                       "Aged 40-44",      
+                       "Aged 45-49",
+                       "Aged 50-54",
+                       "Aged 55-59",      
+                       "Aged 60-64",
+                       "Aged 65-69",
+                       "Aged 70-74",
+                       "Aged 75-79",      
+                       "Aged 80-84",
+                       "Aged 85-89",
+                       "Aged 90 and over")
+  
+  get_age_bin <- function(age_vec) {
+    cut(age_vec,
+        breaks = c(-Inf, 4, 9, 14, 19, 24, 29, 34, 39, 44, 49, 54, 59, 64, 69, 74, 79, 84, 89, Inf),
+        labels = age_bins_levels)
+  }
+  
+  if (baseline) {
+    data <- data %>%
+      mutate(age_bin = get_age_bin(as.numeric(age)))
+  } else if (!is.null(fu_years)) {
+    data <- data %>%
+      mutate(age_bin = get_age_bin(as.numeric(age_fu)))
+  }
+  
+  return(data)
+}
+
+### 11.3.2 Get First intervention year helper function ####
+get_first_intervention_year <- function(df,
+                                        years = 1:5,
+                                        prefix = "colic_intervention_type_year_") {
+  cols <- paste0(prefix, years)
+  
+  tmp <- df[cols]
+  tmp[] <- lapply(tmp, as.character)
+  
+  df$first_intervention_year <- apply(tmp, 1, function(r) {
+    idx <- which(!is.na(r) & r != "No")
+    if (length(idx) == 0)
+      return(NA_integer_)
+    idx[1]  
+  })
+  
+  df
+}
+
+### 11.3.3 Adjust anxiety dimension based on clinical factors ####
+adjust_anxiety_dimension <- function(anxiety_level, stone_free_status, prediction, 
+                                     first_intervention_year, current_year,
+                                     had_intervention = FALSE) {
+  
+  if (is.na(anxiety_level)) return(NA_integer_)
+  
+  adjustment <- 0
+  
+  # Base adjustments
+  if (!is.na(stone_free_status) && stone_free_status != "SF") {
+    adjustment <- adjustment + 1  # Not stone-free increases anxiety
+  }
+  
+  # Prediction-based adjustments
+  if (!is.na(prediction)) {
+    if (prediction == "Yes") {
+      adjustment <- adjustment + 1  # High risk increases anxiety
+    } else if (prediction == "No") {
+      adjustment <- adjustment - 1  # Low risk decreases anxiety
+    }
+  }
+  
+  # Post-intervention adjustments
+  if (had_intervention) {
+    if (!is.na(stone_free_status) && !is.na(prediction)) {
+      if (stone_free_status == "SF" && prediction == "No") {
+        adjustment <- adjustment - 1  # Best outcome
+      } else if (stone_free_status != "SF" && prediction == "Yes") {
+        adjustment <- adjustment + 0  # Worst outcome - no additional change
+      }
+    }
+  }
+  
+  # Apply adjustment with bounds (1-5 for EQ-5D-5L)
+  new_level <- anxiety_level + adjustment
+  return(as.integer(max(1, min(5, new_level))))
+}
+
+### 11.3.4 Pre-assign baseline EQ-5D PROFILES per unique id #### 
+assign_baseline_qol <- function(df,
+                                baseline_qol_profiles = eq_5d_profiles_by_age_stone_free,
+                                n_sim = 1000,
+                                parallel = TRUE,
+                                n_cores = parallel::detectCores() - 1) {
+  
+  # Set up parallel processing if requested
+  if (parallel) {
+    plan(multisession, workers = n_cores)
+    message("Using ", n_cores, " cores for parallel processing")
+  }
+  
+  # Clean age bins (vectorized)
+  baseline_qol_profiles <- baseline_qol_profiles %>%
+    mutate(
+      age_bin = str_replace_all(
+        age_bin,
+        c("Aged " = "", " to " = "-", "90 and over" = ">90")
+      )
+    )
+  
+  
+  # Filter baseline cohort
+  df1 <- df %>%
+    filter(auc_target == 0.55) %>%
+    mutate(age_band = as.character(age_band))
+  
+  # Create combinations grid
+  combinations <- df1 %>%
+    distinct(age_band, stone_free_status) %>%
+    filter(!is.na(age_band), !is.na(stone_free_status))
+  
+  # Function to process single age-SF combination
+  process_combination <- function(age_b, sf_level) {
+    
+    # Get profile
+    profile_row <- baseline_qol_profiles %>%
+      filter(age_bin == age_b, stone_free_status == sf_level)
+    
+    if (nrow(profile_row) == 0) return(NULL)
+    
+    # Get subgroup
+    df_sub <- df1 %>%
+      filter(age_band == age_b, stone_free_status == sf_level)
+    
+    n_subgroup <- nrow(df_sub)
+    if (n_subgroup == 0) return(NULL)
+    
+    # Pre-generate all random numbers at once (much faster)
+    set.seed(1234 + as.integer(factor(paste0(age_b, sf_level))))
+    
+    all_draws <- matrix(
+      rnorm(n_subgroup * n_sim * 5),
+      nrow = n_subgroup,
+      ncol = n_sim * 5
+    )
+    
+    # Extract dimension draws
+    mobility_draws <- round(pmin(pmax(
+      all_draws[, 1:n_sim] * profile_row$mobility_sd + profile_row$mobility_mean,
+      1), 5))
+    
+    selfcare_draws <- round(pmin(pmax(
+      all_draws[, (n_sim+1):(2*n_sim)] * profile_row$selfcare_sd + profile_row$selfcare_mean,
+      1), 5))
+    
+    usual_act_draws <- round(pmin(pmax(
+      all_draws[, (2*n_sim+1):(3*n_sim)] * profile_row$usual_act_sd + profile_row$usual_act_mean,
+      1), 5))
+    
+    pain_draws <- round(pmin(pmax(
+      all_draws[, (3*n_sim+1):(4*n_sim)] * profile_row$pain_sd + profile_row$pain_mean,
+      1), 5))
+    
+    anxiety_draws <- round(pmin(pmax(
+      all_draws[, (4*n_sim+1):(5*n_sim)] * profile_row$anxiety_sd + profile_row$anxiety_mean,
+      1), 5))
+    
+    # Vectorized utility calculation
+    utility_draws <- matrix(NA, nrow = n_subgroup, ncol = n_sim)
+    
+    for (sim in 1:n_sim) {
+      profiles <- paste0(
+        mobility_draws[, sim],
+        selfcare_draws[, sim],
+        usual_act_draws[, sim],
+        pain_draws[, sim],
+        anxiety_draws[, sim]
+      )
+      utility_draws[, sim] <- eq5d(profiles, country = "UK", version = "5L", type = "CW")
+    }
+    
+    # Summarize (vectorized)
+    df_sub %>%
+      mutate(
+        baseline_mobility = round(rowMeans(mobility_draws)),
+        baseline_selfcare = round(rowMeans(selfcare_draws)),
+        baseline_usual_act = round(rowMeans(usual_act_draws)),
+        baseline_pain = round(rowMeans(pain_draws)),
+        baseline_anxiety = round(rowMeans(anxiety_draws)),
+        baseline_qol_mean = rowMeans(utility_draws),
+        baseline_qol_lower = matrixStats::rowQuantiles(utility_draws, probs = 0.025),
+        baseline_qol_upper = matrixStats::rowQuantiles(utility_draws, probs = 0.975)
+      ) %>%
+      select(id, starts_with("baseline_"))
+  }
+  
+  # Process all combinations (with or without parallel)
+  if (parallel) {
+    df_assignments <- future_map2_dfr(
+      combinations$age_band,
+      combinations$stone_free_status,
+      ~process_combination(.x, .y),
+      .progress = TRUE,
+      .options = furrr_options(seed = TRUE)
+    )
+    plan(sequential)
+  } else {
+    df_assignments <- map2_dfr(
+      combinations$age_band,
+      combinations$stone_free_status,
+      ~{
+        result <- process_combination(.x, .y)
+        message("Assigned baseline EQ-5D for: ", .x, " - ", .y)
+        result
+      }
+    )
+  }
+  
+  # Merge back
+  df_final <- df %>%
+    left_join(df_assignments, by = "id")
+  
+  message("✅ Baseline QoL assignment complete")
+  return(df_final)
+}
+
+### 11.3.5 Assign QOL function with profile-based adjustments ####
+assign_qol_chunked <- function(data,
+                               baseline_qol_profiles = eq_5d_profiles_by_age_stone_free,
+                               dimension_changes = eq_5d_dimension_changes,
+                               year_cols = c(1,2,3,4,5),
+                               mc_reps = 100,
+                               ci_level = 0.95,
+                               chunk_size = 10,
+                               verbose = TRUE) {
+  
+  alpha <- (1 - ci_level) / 2
+  vcat <- function(...) if (verbose) message(...)
+  
+  n <- nrow(data)
+  total_chunks <- chunk_size  
+  rows_per_chunk <- ceiling(n / chunk_size) 
+  
+  start_time <- Sys.time()
+  results_list <- vector("list", total_chunks)
+  
+  for (i in seq_len(total_chunks)) {
+    
+    idx_start <- (i - 1) * rows_per_chunk + 1
+    idx_end <- min(i * rows_per_chunk, n)
+    chunk <- data[idx_start:idx_end, ]
+    
+    if (verbose) {
+      pct <- round(i / total_chunks * 100)
+      vcat("---- Chunk ", i, "/", total_chunks, " (", pct, "%) ----")
+    }
+    
+    # Compute ages for baseline & follow-up years
+    chunk <- chunk %>%
+      mutate(
+        baseline_age = age,
+        age_fu_year_1 = age + 1,
+        age_fu_year_2 = age + 2,
+        age_fu_year_3 = age + 3,
+        age_fu_year_4 = age + 4,
+        age_fu_year_5 = age + 5,
+        .keep = "all"
+      )
+    
+    # Assign baseline age bin
+    chunk <- chunk %>%
+      assign_age_helper(baseline = TRUE) %>%   
+      rename(baseline_age_bin = age_bin)
+    
+    # Assign age bins for each follow-up year
+    for (fu_year in 1:5) {
+      chunk <- chunk %>%
+        mutate(age_fu = .data[[paste0("age_fu_year_", fu_year)]]) %>%
+        assign_age_helper(baseline = FALSE, fu_years = fu_year) %>%
+        rename(!!paste0("age_bin_fu_year_", fu_year) := age_bin) %>%
+        select(-age_fu)
+    }
+    
+    # Follow-up years with profile-based adjustments
+    for (fu_year in 1:5) {
+      
+      prev_mobility <- if (fu_year == 1) "baseline_mobility" else paste0("mobility_year_", fu_year - 1)
+      prev_selfcare <- if (fu_year == 1) "baseline_selfcare" else paste0("selfcare_year_", fu_year - 1)
+      prev_usual_act <- if (fu_year == 1) "baseline_usual_act" else paste0("usual_act_year_", fu_year - 1)
+      prev_pain <- if (fu_year == 1) "baseline_pain" else paste0("pain_year_", fu_year - 1)
+      prev_anxiety <- if (fu_year == 1) "baseline_anxiety" else paste0("anxiety_year_", fu_year - 1)
+      prev_age_bin <- if (fu_year == 1) "baseline_age_bin" else paste0("age_bin_fu_year_", fu_year - 1)
+      current_age_bin <- paste0("age_bin_fu_year_", fu_year)
+      intervention_col <- paste0("colic_intervention_type_year_", fu_year)
+      
+      # Join dimension change data for interventions
+      chunk <- chunk %>%
+        left_join(
+          dimension_changes %>% 
+            select(intervention, stone_free_status_pre,
+                   mobility_mean_change, mobility_sd_change,
+                   pain_mean_change, pain_sd_change) %>%
+            rename(!!paste0("mobility_change_", fu_year) := mobility_mean_change,
+                   !!paste0("mobility_sd_", fu_year) := mobility_sd_change,
+                   !!paste0("pain_change_", fu_year) := pain_mean_change,
+                   !!paste0("pain_sd_", fu_year) := pain_sd_change),
+          by = c(setNames("intervention", intervention_col),
+                 setNames("stone_free_status_pre", "stone_free_status1"))
+        )
+      
+      # Update EQ-5D profiles for this year
+      chunk <- chunk %>%
+        rowwise() %>%
+        mutate(
+          # Determine if intervention occurred
+          had_intervention = !is.na(.data[[intervention_col]]) && 
+            .data[[intervention_col]] != "No" &&
+            !is.na(first_intervention_year) && 
+            first_intervention_year <= fu_year,
+          
+          # Apply intervention effects on mobility and pain if intervention occurred
+          !!paste0("mobility_year_", fu_year) := {
+            mob <- .data[[prev_mobility]]
+            if (had_intervention && !is.na(.data[[paste0("mobility_change_", fu_year)]])) {
+              change <- rnorm(1, .data[[paste0("mobility_change_", fu_year)]], 
+                              .data[[paste0("mobility_sd_", fu_year)]])
+              mob <- round(mob + change)
+            }
+            as.integer(pmin(pmax(mob, 1), 5))
+          },
+          
+          !!paste0("pain_year_", fu_year) := {
+            pn <- .data[[prev_pain]]
+            if (had_intervention && !is.na(.data[[paste0("pain_change_", fu_year)]])) {
+              change <- rnorm(1, .data[[paste0("pain_change_", fu_year)]],
+                              .data[[paste0("pain_sd_", fu_year)]])
+              pn <- round(pn + change)
+            }
+            as.integer(pmin(pmax(pn, 1), 5))
+          },
+          
+          # Keep other dimensions stable unless age bin changes
+          !!paste0("selfcare_year_", fu_year) := as.integer(.data[[prev_selfcare]]),
+          !!paste0("usual_act_year_", fu_year) := as.integer(.data[[prev_usual_act]]),
+          
+          # Adjust anxiety based on clinical factors
+          !!paste0("anxiety_year_", fu_year) := adjust_anxiety_dimension(
+            .data[[prev_anxiety]],
+            stone_free_status,
+            prediction,
+            first_intervention_year,
+            fu_year,
+            had_intervention
+          ),
+          
+          # Calculate utility from adjusted profile
+          !!paste0("qol_mean_year_", fu_year) := {
+            profile_str <- paste0(
+              .data[[paste0("mobility_year_", fu_year)]],
+              .data[[paste0("selfcare_year_", fu_year)]],
+              .data[[paste0("usual_act_year_", fu_year)]],
+              .data[[paste0("pain_year_", fu_year)]],
+              .data[[paste0("anxiety_year_", fu_year)]]
+            )
+            eq5d(profile_str, country = "UK", version = "5L", type = "CW", ignore.invalid = TRUE)
+          }
+        ) %>%
+        ungroup() %>%
+        select(-!!paste0("mobility_change_", fu_year),
+               -!!paste0("mobility_sd_", fu_year),
+               -!!paste0("pain_change_", fu_year),
+               -!!paste0("pain_sd_", fu_year),
+               -had_intervention)
+      
+      # Generate CI bounds with MC simulation
+      chunk <- chunk %>%
+        rowwise() %>%
+        mutate(
+          mc_utils = list({
+            mob <- .data[[paste0("mobility_year_", fu_year)]]
+            sc <- .data[[paste0("selfcare_year_", fu_year)]]
+            ua <- .data[[paste0("usual_act_year_", fu_year)]]
+            pn <- .data[[paste0("pain_year_", fu_year)]]
+            anx <- .data[[paste0("anxiety_year_", fu_year)]]
+            
+            # Add small random variation for CI
+            mob_sims <- pmin(pmax(round(rnorm(mc_reps, mob, 0.3)), 1), 5)
+            sc_sims <- pmin(pmax(round(rnorm(mc_reps, sc, 0.2)), 1), 5)
+            ua_sims <- pmin(pmax(round(rnorm(mc_reps, ua, 0.3)), 1), 5)
+            pn_sims <- pmin(pmax(round(rnorm(mc_reps, pn, 0.4)), 1), 5)
+            anx_sims <- pmin(pmax(round(rnorm(mc_reps, anx, 0.4)), 1), 5)
+            
+            sapply(1:mc_reps, function(j) {
+              profile <- paste0(mob_sims[j], sc_sims[j], ua_sims[j], pn_sims[j], anx_sims[j])
+              eq5d(profile, country = "UK", version = "5L", type = "CW", ignore.invalid = TRUE)
+            })
+          }),
+          !!paste0("qol_lower_year_", fu_year) := quantile(unlist(mc_utils), probs = alpha, na.rm = TRUE),
+          !!paste0("qol_upper_year_", fu_year) := quantile(unlist(mc_utils), probs = 1 - alpha, na.rm = TRUE),
+          !!paste0("qol_se_year_", fu_year) := sd(unlist(mc_utils), na.rm = TRUE)
+        ) %>%
+        ungroup() %>%
+        select(-mc_utils)
+    }
+    
+    results_list[[i]] <- chunk
+    
+    if (verbose) {
+      elapsed <- difftime(Sys.time(), start_time, units = "secs")
+      est_remaining <- elapsed / i * (total_chunks - i)
+      vcat(" ✅ chunk ", i, " done | ⏳ remaining: ",
+           round(as.numeric(est_remaining), 1), " sec")
+    }
+  }
+  
+  bind_rows(results_list)
+}
+
+### 11.3.6 Function to calculate scores over years #### 
+calculate_qol <- function(complete_pop_yr_fu,
+                          cutpoints_yr,
+                          start_year,
+                          years = c(1,2,3,4,5),
+                          target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+                          fu_type = c("min", "max"),
+                          post_op_imaging = c("none", "ct", "xr", "us"),
+                          imaging_fu_type = c("ct", "xr", "xr_us"),
+                          xr_sens = 0.67,
+                          xr_spec = 0.98,
+                          us_sens = 0.54,
+                          us_spec = 0.91) {
+  
+  results_list <- list()
+  post_op_imaging <- post_op_imaging[1]
+  if(post_op_imaging == "none") post_op_imaging <- 0
+  
+  for (target_auc in target_aucs) {
+    message("Calculating QoL for: ", start_year,
+            ", AUC: ", target_auc,
+            ", Follow-up Type: ", fu_type,
+            ", Follow-up Imaging: ", imaging_fu_type,
+            " and Post-Operative Imaging: ", post_op_imaging)
+    
+    target_auc <- as.numeric(target_auc)
+    
+    complete_pop_yr_fu2 <- complete_pop_yr_fu %>%
+      filter(.data$auc_target == target_auc)
+    
+    # Cutpoint for this AUC
+    cutpoint <- (cutpoints_yr %>% filter(auc_target == !!target_auc))$cutpoint
+    
+    # Determine non-SF proportions
+    not_sf_props <- complete_pop_yr_fu2 %>%
+      filter(stone_free_status %in% c("less4", "more4")) %>%
+      count(stone_free_status) %>%
+      mutate(prop = n / sum(n)) %>%
+      select(stone_free_status, prop)
+    less4_prob <- not_sf_props$prop[not_sf_props$stone_free_status == "less4"]
+    
+    # Assign SF status according to imaging type
+    rand_sens <- runif(nrow(complete_pop_yr_fu2))
+    rand_spec <- runif(nrow(complete_pop_yr_fu2))
+    
+    complete_pop_yr_fu1 <- complete_pop_yr_fu2 %>%
+      mutate(
+        stone_free_status_original = stone_free_status,
+        stone_free_status1 = case_when(
+          imaging_fu_type %in% c("xr", "xr_us") &
+            stone_free_status_original %in% c("less4", "more4") & 
+            rand_sens <= ifelse(imaging_fu_type=="xr", xr_sens, us_sens) ~ stone_free_status_original,
+          
+          imaging_fu_type %in% c("xr", "xr_us") &
+            stone_free_status_original %in% c("less4", "more4") & 
+            rand_sens > ifelse(imaging_fu_type=="xr", xr_sens, us_sens) ~ "SF",  
+          
+          imaging_fu_type %in% c("xr", "xr_us") &
+            stone_free_status_original == "SF" & 
+            rand_spec <= ifelse(imaging_fu_type=="xr", xr_spec, us_spec) ~ "SF",  
+          
+          imaging_fu_type %in% c("xr", "xr_us") &
+            stone_free_status_original == "SF" & 
+            rand_spec > ifelse(imaging_fu_type=="xr", xr_spec, us_spec) ~
+            if_else(runif(n()) <= less4_prob, "less4", "more4"),
+          
+          TRUE ~ stone_free_status_original
+        ),
+        .keep = "all"
+      )
+    
+    # Precalculate first intervention year
+    complete_pop_yr_fu1 <- complete_pop_yr_fu1 %>% 
+      get_first_intervention_year(
+        years = 1:5,
+        prefix = "colic_intervention_type_year_"
+      )
+    
+    # Assign QoL scores for all years using profile-based method
+    combined_result <- assign_qol_chunked(
+      data = complete_pop_yr_fu1,
+      mc_reps = 100,
+      chunk_size = 10,
+      verbose = TRUE
+    ) %>%
+      as_tibble() %>%
+      mutate(
+        auc_target = auc_target,
+        cutpoint = cutpoint,
+        post_op_imaging = post_op_imaging,
+        imaging_fu_type = imaging_fu_type,
+        year = start_year
+      )
+    
+    # Calculate QALYs
+    message("Calculating QALYs for AUC:", target_auc)
+    combined_result <- combined_result %>%
+      mutate(
+        qaly_5yr = rowSums(select(., starts_with("qol_mean_year_")), na.rm = TRUE) / 5,
+        qaly_5yr_lower = rowSums(select(., starts_with("qol_lower_year_")), na.rm = TRUE) / 5,
+        qaly_5yr_upper = rowSums(select(., starts_with("qol_upper_year_")), na.rm = TRUE) / 5,
+        risk_status = case_when(prediction == "No" ~ "Low Risk",
+                                prediction == "Yes" ~ "High Risk",
+                                TRUE ~ NA_character_),
+        .keep = "all"
+      ) %>%
+      select(
+        id,
+        sex,
+        stone_free_status_original,
+        stone_free_status1,
+        auc_target,
+        risk_status,
+        true_rec_5yr,
+        year,
+        imaging_fu_type,
+        baseline_qol_mean,
+        qol_mean_year_1,
+        qol_mean_year_2,
+        qol_mean_year_3,
+        qol_mean_year_4,
+        qol_mean_year_5,
+        baseline_qol_lower,
+        qol_lower_year_1,
+        qol_lower_year_2,
+        qol_lower_year_3,
+        qol_lower_year_4,
+        qol_lower_year_5,
+        baseline_qol_upper,
+        qol_upper_year_1,
+        qol_upper_year_2,
+        qol_upper_year_3,
+        qol_upper_year_4,
+        qol_upper_year_5,
+        qaly_5yr,
+        qaly_5yr_lower,
+        qaly_5yr_upper
+      )
+    
+    results_list[[paste0("auc_", target_auc)]] <- combined_result
+  }
+  
+  message("Concatenating data for Year:", start_year, " Follow-up Type: ", fu_type, " Imaging Type: ", imaging_fu_type)
+  if (length(target_aucs) == 1) {
+    return(results_list[[1]])
+  } else {
+    return(results_list)
+  }
+}
+
+## 11.4 Run QoL function ####
+### 11.4.1 2016 ####
+complete_pop_2016_fu_baseline_qol <- assign_baseline_qol(df = complete_pop_2016_fu)
+
+qol_2016_xr_min <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2016_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2016,
+  start_year = 2016,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "min",
+  imaging_fu_type = "xr"
+)
+
+
+qol_2016_xr_max <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2016_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2016,
+  start_year = 2016,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "max",
+  imaging_fu_type = "xr"
+)
+
+qol_2016_xr_us_min <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2016_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2016,
+  start_year = 2016,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "min",
+  imaging_fu_type = "xr_us"
+)
+
+qol_2016_xr_us_max <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2016_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2016,
+  start_year = 2016,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "max",
+  imaging_fu_type = "xr_us"
+)
+
+qol_2016_ct_min <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2016_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2016,
+  start_year = 2016,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "min",
+  imaging_fu_type = "ct"
+)
+
+qol_2016_ct_max <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2016_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2016,
+  start_year = 2016,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "max",
+  imaging_fu_type = "ct"
+)
+
+### 11.4.2 2017 ####
+complete_pop_2017_fu_baseline_qol <- assign_baseline_qol(df = complete_pop_2017_fu)
+
+qol_2017_xr_min <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2017_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2017,
+  start_year = 2017,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "min",
+  imaging_fu_type = "xr"
+)
+
+qol_2017_xr_max <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2017_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2017,
+  start_year = 2017,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "max",
+  imaging_fu_type = "xr"
+)
+
+qol_2017_xr_us_min <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2017_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2017,
+  start_year = 2017,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "min",
+  imaging_fu_type = "xr_us"
+)
+
+qol_2017_xr_us_max <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2017_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2017,
+  start_year = 2017,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "max",
+  imaging_fu_type = "xr_us"
+)
+
+qol_2017_ct_min <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2017_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2017,
+  start_year = 2017,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "min",
+  imaging_fu_type = "ct"
+)
+
+qol_2017_ct_max <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2017_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2017,
+  start_year = 2017,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "max",
+  imaging_fu_type = "ct"
+)
+
+### 11.4.3 2018 ####
+complete_pop_2018_fu_baseline_qol <- assign_baseline_qol(df = complete_pop_2018_fu)
+
+qol_2018_xr_min <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2018_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2018,
+  start_year = 2018,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "min",
+  imaging_fu_type = "xr"
+)
+
+qol_2018_xr_max <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2018_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2018,
+  start_year = 2018,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "max",
+  imaging_fu_type = "xr"
+)
+
+qol_2018_xr_us_min <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2018_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2018,
+  start_year = 2018,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "min",
+  imaging_fu_type = "xr_us"
+)
+
+qol_2018_xr_us_max <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2018_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2018,
+  start_year = 2018,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "max",
+  imaging_fu_type = "xr_us"
+)
+
+qol_2018_ct_min <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2018_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2018,
+  start_year = 2018,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "min",
+  imaging_fu_type = "ct"
+)
+
+qol_2018_ct_max <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2018_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2018,
+  start_year = 2018,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "max",
+  imaging_fu_type = "ct"
+)
+
+### 11.4.4 2019 ####
+complete_pop_2019_fu_baseline_qol <- assign_baseline_qol(df = complete_pop_2019_fu)
+
+
+qol_2019_xr_min <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2019_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2019,
+  start_year = 2019,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "min",
+  imaging_fu_type = "xr"
+)
+
+qol_2019_xr_max <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2019_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2019,
+  start_year = 2019,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "max",
+  imaging_fu_type = "xr"
+)
+
+qol_2019_xr_us_min <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2019_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2019,
+  start_year = 2019,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "min",
+  imaging_fu_type = "xr_us"
+)
+
+qol_2019_xr_us_max <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2019_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2019,
+  start_year = 2019,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "max",
+  imaging_fu_type = "xr_us"
+)
+
+qol_2019_ct_min <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2019_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2019,
+  start_year = 2019,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "min",
+  imaging_fu_type = "ct"
+)
+
+qol_2019_ct_max <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2019_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2019,
+  start_year = 2019,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "max",
+  imaging_fu_type = "ct"
+)
+
+### 11.4.5 2020 ####
+complete_pop_2020_fu_baseline_qol <- assign_baseline_qol(df = complete_pop_2020_fu)
+
+qol_2020_xr_min <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2020_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2020,
+  start_year = 2020,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "min",
+  imaging_fu_type = "xr"
+)
+
+qol_2020_xr_max <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2020_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2020,
+  start_year = 2020,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "max",
+  imaging_fu_type = "xr"
+)
+
+qol_2020_xr_us_min <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2020_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2020,
+  start_year = 2020,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "min",
+  imaging_fu_type = "xr_us"
+)
+
+qol_2020_xr_us_max <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2020_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2020,
+  start_year = 2020,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "max",
+  imaging_fu_type = "xr_us"
+)
+
+qol_2020_ct_min <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2020_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2020,
+  start_year = 2020,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "min",
+  imaging_fu_type = "ct"
+)
+
+qol_2020_ct_max <- calculate_qol(
+  complete_pop_yr_fu = complete_pop_2020_fu_baseline_qol,
+  cutpoints_yr = cutpoints_2020,
+  start_year = 2020,
+  years = c(1,2,3,4,5),
+  target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+  fu_type = "max",
+  imaging_fu_type = "ct"
+)
+
+## 11.5 Amalgamate Each Year and Plot each AUC ####
+### 11.5.1 Aggregation function ####
+aggregate_qol_cohorts <- function(auc_target = c(1,2,3,4,5,6,7,8,9)) {
+  all_cohorts <- list()
+  
+  for (i in auc_target) {
+    key <- as.integer(i)
+    message("Processing AUC = ", key)
+    
+    message("  Loading 2016 data...")
+    cohort_2016_min_xr <- qol_2016_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2016_min_ct <- qol_2016_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
+    cohort_2016_max_xr <- qol_2016_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2016_max_ct <- qol_2016_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
+    cohort_2016_min_xr_us <- qol_2016_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
+    cohort_2016_max_xr_us <- qol_2016_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
+    
+    message("  Loading 2017 data...")
+    cohort_2017_min_xr <- qol_2017_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2017_min_ct <- qol_2017_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
+    cohort_2017_max_xr <- qol_2017_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2017_max_ct <- qol_2017_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
+    cohort_2017_min_xr_us <- qol_2017_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
+    cohort_2017_max_xr_us <- qol_2017_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
+    
+    message("  Loading 2018 data...")
+    cohort_2018_min_xr <- qol_2018_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2018_min_ct <- qol_2018_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
+    cohort_2018_max_xr <- qol_2018_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2018_max_ct <- qol_2018_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
+    cohort_2018_min_xr_us <- qol_2018_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
+    cohort_2018_max_xr_us <- qol_2018_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
+    
+    message("  Loading 2019 data...")
+    cohort_2019_min_xr <- qol_2019_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2019_min_ct <- qol_2019_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
+    cohort_2019_max_xr <- qol_2019_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2019_max_ct <- qol_2019_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
+    cohort_2019_min_xr_us <- qol_2019_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
+    cohort_2019_max_xr_us <- qol_2019_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
+    
+    message("  Loading 2020 data...")
+    cohort_2020_min_xr <- qol_2020_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2020_min_ct <- qol_2020_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
+    cohort_2020_max_xr <- qol_2020_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2020_max_ct <- qol_2020_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
+    cohort_2020_min_xr_us <- qol_2020_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
+    cohort_2020_max_xr_us <- qol_2020_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
+    
+    message("  Combining cohorts for AUC = ", key)
+    overall_cohort <- dplyr::bind_rows(
+      cohort_2016_min_xr, cohort_2016_min_ct, cohort_2016_max_xr, cohort_2016_max_ct, cohort_2016_min_xr_us, cohort_2016_max_xr_us,
+      cohort_2017_min_xr, cohort_2017_min_ct, cohort_2017_max_xr, cohort_2017_max_ct, cohort_2017_min_xr_us, cohort_2017_max_xr_us,
+      cohort_2018_min_xr, cohort_2018_min_ct, cohort_2018_max_xr, cohort_2018_max_ct, cohort_2018_min_xr_us, cohort_2018_max_xr_us,
+      cohort_2019_min_xr, cohort_2019_min_ct, cohort_2019_max_xr, cohort_2019_max_ct, cohort_2019_min_xr_us, cohort_2019_max_xr_us,
+      cohort_2020_min_xr, cohort_2020_min_ct, cohort_2020_max_xr, cohort_2020_max_ct, cohort_2020_min_xr_us, cohort_2020_max_xr_us
+    )
+    
+    all_cohorts[[key]] <- overall_cohort
+    message("✅ Done with AUC = ", key, "\n")
+  }
+  
+  message("🔗 Binding all AUC cohorts together...")
+  final_df <- dplyr::bind_rows(all_cohorts)
+  message("✅ All done.")
+  
+  return(final_df)
+}
+
+### 11.5.2 AUC 0.55 ####
+qol_auc_0.55 <- aggregate_qol_cohorts(auc_target = 1)
+
+### 11.5.3 AUC 0.6 ####
+qol_auc_0.6 <- aggregate_qol_cohorts(auc_target = 2)
+
+### 11.5.4 AUC 0.55 ####
+qol_auc_0.65 <- aggregate_qol_cohorts(auc_target = 3)
+
+### 11.5.5 AUC 0.55 ####
+qol_auc_0.7 <- aggregate_qol_cohorts(auc_target = 4)
+
+### 11.5.6 AUC 0.55 ####
+qol_auc_0.75 <- aggregate_qol_cohorts(auc_target = 5)
+
+### 11.5.7 AUC 0.55 ####
+qol_auc_0.8 <- aggregate_qol_cohorts(auc_target = 6)
+
+### 11.5.8 AUC 0.55 ####
+qol_auc_0.85 <- aggregate_qol_cohorts(auc_target = 7)
+
+### 11.5.9 AUC 0.55 ####
+qol_auc_0.9 <- aggregate_qol_cohorts(auc_target = 8)
+
+### 11.5.10 AUC 0.55 ####
+qol_auc_0.95 <- aggregate_qol_cohorts(auc_target = 9)
+
+## 11.6 Combine datasets and calculate cumulative qol ####
+combine_auc_data <- function(data, auc_label) {
+  data %>%
+    mutate(
+      auc_label = auc_label,
+      risk_status = case_when(
+        risk_status == "LR" ~ "Low Risk",
+        risk_status == "HR" ~ "High Risk",
+        TRUE ~ risk_status
+      ),
+      annual_qol = case_when(
+        year == 2020 ~ qol_mean_year_1,
+        year == 2019 ~ qol_mean_year_2,
+        year == 2018 ~ qol_mean_year_3,
+        year == 2017 ~ qol_mean_year_4,
+        year == 2016 ~ qol_mean_year_5,
+        TRUE ~ NA_real_
+      ),
+      annual_qol_lower = case_when(
+        year == 2020 ~ qol_lower_year_1,
+        year == 2019 ~ qol_lower_year_2,
+        year == 2018 ~ qol_lower_year_3,
+        year == 2017 ~ qol_lower_year_4,
+        year == 2016 ~ qol_lower_year_5,
+        TRUE ~ NA_real_
+      ),
+      annual_qol_upper = case_when(
+        year == 2020 ~ qol_upper_year_1,
+        year == 2019 ~ qol_upper_year_2,
+        year == 2018 ~ qol_upper_year_3,
+        year == 2017 ~ qol_upper_year_4,
+        year == 2016 ~ qol_upper_year_5,
+        TRUE ~ NA_real_
+      ),
+      stone_free_status = stone_free_status_original
+    ) %>%
+    select(auc_label,
+           cohort_type,
+           stone_free_status,
+           risk_status,
+           annual_qol,
+           annual_qol_lower,
+           annual_qol_upper,
+           qaly_5yr,
+           true_rec_5yr
+    )
+}
+
+auc_list <- list(
+  qol_auc_0.55,
+  qol_auc_0.6,
+  qol_auc_0.65,
+  qol_auc_0.7,
+  qol_auc_0.75,
+  qol_auc_0.8,
+  qol_auc_0.85,
+  qol_auc_0.9,
+  qol_auc_0.95
+)
+
+auc_labels <- c(
+  "AUC 0.55", "AUC 0.6", "AUC 0.65",
+  "AUC 0.7", "AUC 0.75", "AUC 0.8",
+  "AUC 0.85", "AUC 0.9", "AUC 0.95"
+)
+
+data_for_plot_qol <- map2_dfr(
+  auc_list,
+  auc_labels,
+  combine_auc_data,
+  .progress = TRUE
+)
+
+data_for_plot_qol$auc_label <- as.factor(data_for_plot_qol$auc_label)
+data_for_plot_qol$cohort_type <- as.factor(data_for_plot_qol$cohort_type)
+data_for_plot_qol$risk_status <- as.factor(data_for_plot_qol$risk_status)
+data_for_plot_qol$true_rec_5yr <- as.factor(data_for_plot_qol$true_rec_5yr)
+
+# Summarise mean and SD by auc_label, risk_status, cohort_type
+summary_df_qol <- data_for_plot_qol %>%
+  group_by(auc_label, risk_status, cohort_type) %>%
+  summarise(
+    total_qol = mean(annual_qol, na.rm = TRUE),
+    total_qol_lower = quantile(annual_qol, 0.025, na.rm = TRUE),
+    total_qol_upper = quantile(annual_qol, 0.975, na.rm = TRUE),
+    mean_qaly_5yr = mean(qaly_5yr, na.rm = TRUE),
+    lower_qaly_5yr = quantile(qaly_5yr, 0.025, na.rm = TRUE),
+    upper_qaly_5yr = quantile(qaly_5yr, 0.975, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Summarise mean and SD for combined risk groups ("All")
+summary_all <- data_for_plot_qol %>%
+  group_by(auc_label, cohort_type) %>%
+  summarise(
+    total_qol = mean(annual_qol, na.rm = TRUE),
+    total_qol_lower = quantile(annual_qol, 0.025, na.rm = TRUE),
+    total_qol_upper = quantile(annual_qol, 0.975, na.rm = TRUE),
+    mean_qaly_5yr = mean(qaly_5yr, na.rm = TRUE),
+    lower_qaly_5yr = quantile(qaly_5yr, 0.025, na.rm = TRUE),
+    upper_qaly_5yr = quantile(qaly_5yr, 0.975, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(risk_status = "All") 
+
+# Combine all summaries
+summary_df_qol <- bind_rows(summary_df_qol, summary_all)
+summary_df_qol <- summary_df_qol %>% mutate(
+  total_qol = total_qol
+)
+
+# Factor levels for ordering
+summary_df_full_qol_data <- summary_df_qol %>%
+  mutate(
+    cohort_type = factor(cohort_type, levels = c("Minimum FU, XR", 
+                                                 "Minimum FU, CT", 
+                                                 "Minimum FU, XR + US",
+                                                 "Maximum FU, XR", 
+                                                 "Maximum FU, CT", 
+                                                 "Maximum FU, XR + US"
+    )),
+    risk_status = factor(risk_status, levels = c("All", "Low Risk", "High Risk"))
+  )
+
+# Prepare data_for_plot factors similarly
+data_for_plot_qol2 <- data_for_plot_qol %>%
+  mutate(
+    cohort_type = factor(cohort_type, levels = c("Minimum FU, XR", 
+                                                 "Minimum FU, CT", 
+                                                 "Minimum FU, XR + US",
+                                                 "Maximum FU, XR", 
+                                                 "Maximum FU, CT", 
+                                                 "Maximum FU, XR + US")),
+    risk_status = factor(risk_status, levels = c("Low Risk", "High Risk"))
+  )
+
+# All auc values
+auc_values <- unique(data_for_plot$auc_label)
+
+## 11.7 Plot QoL ####
+summary_df_full_qol_data %>% 
+  group_by(auc_label) %>%
+  ggplot(aes(x = auc_label, y = total_qol, fill = risk_status)) +
+  geom_col(
+    position = position_dodge(width = 0.8),
+    width = 0.7,
+    color = "black"
+  ) +
+  geom_errorbar(
+    aes(ymin = total_qol_lower, ymax = total_qol_upper),
+    position = position_dodge(width = 0.8),
+    width = 0.3
+  ) +
+  facet_wrap(~ cohort_type) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size = 10)) +
+  labs(title = "Annual Mean eq_5d score for EAU Follow-Up of those with Clinically Significant Disease",
+       x = "Cohort Type",
+       y = "eq_5d score",
+       fill = "Risk Status")
+
+## 11.8 Plot QALYs ####
+summary_df_full_qol_data %>% 
+  group_by(auc_label) %>%
+  ggplot(aes(x = auc_label, y = mean_qaly_5yr, fill = risk_status)) +
+  geom_col(
+    position = position_dodge(width = 0.8),
+    width = 0.7,
+    color = "black"
+  ) +
+  geom_errorbar(
+    aes(ymin = lower_qaly_5yr, ymax = upper_qaly_5yr),
+    position = position_dodge(width = 0.8),
+    width = 0.3
+  ) +
+  facet_wrap(~ cohort_type) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size = 10)) +
+  labs(title = "Mean eq_5d Adjusted Life Years for EAU Follow-Up of those with Clinically Significant Disease",
+       x = "Cohort Type",
+       y = "Mean 5yr QALYs (eq_5d)",
+       fill = "Risk Status") + ylim(0,0.7)
