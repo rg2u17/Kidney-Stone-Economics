@@ -40,7 +40,7 @@ We examined **stone event** rates at both 5 and 10 years and these are defined b
 
 #### Stone event rates
 
-<img width="999" height="961" alt="image" src="https://github.com/user-attachments/assets/39202d7f-8113-425d-88fb-1330a0fbc7e7" />
+<img width="999" height="961" alt="image" src="https://github.com/user-attachments/assets/39202d7f-8113-425d-88fb-1330a0fbc7e7" /> <br>
 **Figure 2.** Stone event rates by EAU risk stratification in UK Biobank **A.** Number of events over 5 years stratified by EAU risk status. **B.** Proportions of recurrence by risk status over 5 years. **C.** Number of events over 10 years. **D.** Proportion of events over 10 years. **E.**  Kaplan Meier plot of 1st to 2nd stone event in UK Biobank. P-value derived from Cox Regression. **F.** Risk table for KM plot. <br>
 
 
