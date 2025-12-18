@@ -38,24 +38,10 @@ We examined **stone event** rates at both 5 and 10 years and these are defined b
 **Recurrence** = Subsequent stone event >6 months after previous <br>
 <br>
 
-#### 5 Year Stone event rates
+#### Stone event rates
 
-<img width="760" height="500" alt="image" src="https://github.com/user-attachments/files/24189808/EAU.Risk.stratification.counts.UKB.tiff" /> <br>
-**Figure 2.** Counts of stone events over 5 years subdivided by EAU risk stratification <br>
-
-<img width="760" height="500" alt="image" src="https://github.com/user-attachments/files/24189807/EAU.Risk.stratification.percentages.UKB.tiff" /> <br>
-**Figure 3.** Proportions of stone events over 5 years subdivided by EAU risk stratification <br>
-
-<img width="592" height="414" alt="image" src="https://github.com/user-attachments/assets/4089a5d7-f10e-40c6-b2d5-8a514dbf2c75" /> <br>
-**Figure 4.** Kaplan Meier plot of 1st -> 2nd stone event (symptomatic recurrence) <br>
-
-#### 10 Year Stone event rates
-
-<img width="760" height="500" alt="image" src="https://github.com/user-attachments/files/24189857/EAU.risk.stratification.10.year.counts.tiff" /> <br>
-**Figure 5.** Counts of stone events over 10 years subdivided by EAU risk stratification <br>
-
-
-
+<img width="999" height="961" alt="image" src="https://github.com/user-attachments/assets/39202d7f-8113-425d-88fb-1330a0fbc7e7" />
+**Figure 2.** Stone event rates by EAU risk stratification in UK Biobank **A.** Number of events over 5 years stratified by EAU risk status. **B.** Proportions of recurrence by risk status over 5 years. **C.** Number of events over 10 years. **D.** Proportion of events over 10 years. **E.**  Kaplan Meier plot of 1st to 2nd stone event in UK Biobank. P-value derived from Cox Regression. <br>
 
 
 ## How to Download Model
