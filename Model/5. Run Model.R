@@ -70,7 +70,6 @@ auc_labels <- map_df(scores_2016, function(sim) {
 }) %>%
   distinct()
 
-# Placing labels near bottom right corner of each facet
 label_positions <- auc_labels %>%
   mutate(
     x = 0.6,
@@ -421,7 +420,7 @@ results_list <- map(split_data, process_auc_group)
 final_summary_2017 <- map_dfr(results_list, "summary_data")
 cutpoints_2017 <- map2_dfr(
   .x = results_list,
-  .y = keys[[1]],  # extract vector of auc_target values
+  .y = keys[[1]],  
   .f = function(result, auc_target_value) {
     tibble(auc_target = auc_target_value, cutpoint = result$cutpoint)
   }
@@ -456,7 +455,7 @@ results_list <- map(split_data, process_auc_group)
 final_summary_2018 <- map_dfr(results_list, "summary_data")
 cutpoints_2018 <- map2_dfr(
   .x = results_list,
-  .y = keys[[1]],  # extract vector of auc_target values
+  .y = keys[[1]],  
   .f = function(result, auc_target_value) {
     tibble(auc_target = auc_target_value, cutpoint = result$cutpoint)
   }
@@ -491,7 +490,7 @@ results_list <- map(split_data, process_auc_group)
 final_summary_2019 <- map_dfr(results_list, "summary_data")
 cutpoints_2019 <- map2_dfr(
   .x = results_list,
-  .y = keys[[1]],  # extract vector of auc_target values
+  .y = keys[[1]],  
   .f = function(result, auc_target_value) {
     tibble(auc_target = auc_target_value, cutpoint = result$cutpoint)
   }
@@ -526,7 +525,7 @@ results_list <- map(split_data, process_auc_group)
 final_summary_2020 <- map_dfr(results_list, "summary_data")
 cutpoints_2020 <- map2_dfr(
   .x = results_list,
-  .y = keys[[1]],  # extract vector of auc_target values
+  .y = keys[[1]],  
   .f = function(result, auc_target_value) {
     tibble(auc_target = auc_target_value, cutpoint = result$cutpoint)
   }
@@ -562,7 +561,7 @@ grouped_data <- complete_pop_2020_fu %>%
 keys <- grouped_data %>% group_keys()
 split_data <- grouped_data %>% group_split()
 
-# Process each group (you'll need to modify process_auc_group function if needed)
+# Process each group
 results_list <- map(split_data, process_auc_group)
 
 # Combine results with stone_free_status information
@@ -574,7 +573,6 @@ final_summary_2020_combined <- map2_dfr(
       mutate(
         auc_target = keys$auc_target[index],
         stone_free_status = keys$stone_free_status[index],
-        # Create combined risk group identifier
         combined_risk_group = paste(stone_free_status, risk_status, sep = "_")
       )
   }
@@ -590,8 +588,7 @@ ggplot(final_summary_2020_combined,
   geom_line(linewidth = 0.8) +
   facet_wrap(~ auc_target, ncol = 3, labeller = label_both) +
   scale_color_manual(values = c("Cumulative Recurrence" = "#D55E00", "Survivors" = "#0072B2")) +
-  # You may want to define specific shapes and linetypes for each combination
-  scale_shape_manual(values = c(16, 17, 15, 18, 8, 11)) + # Adjust based on your combinations
+  scale_shape_manual(values = c(16, 17, 15, 18, 8, 11)) + 
   scale_linetype_manual(values = c("solid", "dashed", "dotted", "dotdash", "longdash", "twodash")) +
   labs(
     title = "2020 - Cumulative Recurrence and Survivors by Stone-Free Status and Risk Group",
