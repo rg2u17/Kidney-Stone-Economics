@@ -68,13 +68,23 @@ calculate_no_appts <- function(complete_pop_yr_fu,
     # Get cutpoint for current AUC target
     cutpoint <- (cutpoints_yr %>% filter(auc_target == !!auc_target))$cutpoint
     
-    not_sf_props <- complete_pop_yr_fu %>%
+    less4_prob <- complete_pop_yr_fu %>%
       filter(stone_free_status %in% c("less4", "more4")) %>%
-      count(stone_free_status) %>%
-      mutate(prop = n / sum(n)) %>%
-      select(stone_free_status, prop)
-    
-    less4_prob <- not_sf_props$prop[not_sf_props$stone_free_status == "less4"]
+      {
+        if (nrow(.) == 0) {
+          0.5
+        } else {
+          props <- group_by(., stone_free_status) %>%
+            summarise(n = n(), .groups = "drop") %>%
+            mutate(prop = n / sum(n))
+          
+          if ("less4" %in% props$stone_free_status) {
+            props$prop[props$stone_free_status == "less4"]
+          } else {
+            0.5
+          }
+        }
+      }
     
     # Distribute SF status as determined by imaging
     if (imaging_fu_type == "xr") {
