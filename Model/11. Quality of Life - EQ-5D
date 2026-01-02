@@ -1,4 +1,4 @@
-# 11. Quality of Life with EQ-5D Profile Adjustments - OPTIMIZED ####
+# 11. Quality of Life with EQ-5D Profile Adjustments ####
 ## 11.1 Load libraries ####
 library(tidyverse)
 library(janitor)
@@ -194,7 +194,7 @@ library(furrr)
 #    TRUE ~ NA_character_
 #  )) 
 
-### 11.2.6 Get change with treatment - OPTIMIZED ####
+### 11.2.6 Get change with treatment ####
 
 # Calculate mean changes in each EQ-5D dimension by intervention
 #eq_5d_dimension_changes <- setDT(eq_5d_metrics_aggregated)[
@@ -528,7 +528,7 @@ get_utility_fast <- function(mobility, selfcare, usual_act, pain, anxiety) {
   EQ5D_LOOKUP[profile_str]
 }
 
-### 11.3.1 Assign Age helper function - OPTIMIZED ####
+### 11.3.1 Assign Age helper function -  ####
 assign_age_helper <- function(data,
                               baseline = TRUE,
                               fu_years = NULL) {
@@ -623,21 +623,21 @@ adjust_anxiety_dimension <- function(anxiety_level, stone_free_status, predictio
   return(as.integer(max(1, min(5, new_level))))
 }
 
-### 11.3.4 Pre-assign baseline EQ-5D PROFILES per unique id - OPTIMIZED #### 
+### 11.3.4 Pre-assign baseline EQ-5D PROFILES per unique id -  #### 
 assign_baseline_qol <- function(df,
                                 baseline_qol_profiles = eq_5d_profiles_by_age_stone_free,
                                 n_sim = 1000,
                                 parallel = TRUE,
                                 n_cores = parallel::detectCores() - 1) {
   
-  # Clean baseline_qol_profiles using standard R (not data.table)
+  # Clean baseline_qol_profiles 
   baseline_qol_profiles <- baseline_qol_profiles %>%
     mutate(
       age_bin = gsub("Aged ", "", age_bin),
       age_bin = gsub("90 and over", ">90", age_bin),
       age_bin = gsub(" to ", "-", age_bin)
     ) %>%
-    as.data.frame()  # Ensure it's a regular data frame
+    as.data.frame()  
   
   # Filter baseline cohort
   df1 <- df %>%
@@ -659,7 +659,6 @@ assign_baseline_qol <- function(df,
   # Combination processing - now takes all required data as arguments
   process_combination <- function(age_b, sf_level, profiles_dt, df_subset, n_simulations) {
     
-    # Use standard R subsetting instead of data.table syntax
     profile_row <- profiles_dt %>%
       filter(age_bin == age_b, stone_free_status == sf_level)
     
@@ -673,7 +672,7 @@ assign_baseline_qol <- function(df,
     
     set.seed(1234 + as.integer(factor(paste0(age_b, sf_level))))
     
-    # Pre-generate all random numbers at once
+    # Pre-generate random numbers
     all_draws <- matrix(
       rnorm(n_subgroup * n_simulations * 5),
       nrow = n_subgroup,
@@ -751,7 +750,7 @@ assign_baseline_qol <- function(df,
   return(df_final)
 }
 
-### 11.3.5 Assign QOL function with profile-based adjustments - OPTIMIZED ####
+### 11.3.5 Assign QOL function with profile-based adjustments -  ####
 assign_qol_chunked <- function(data,
                                baseline_qol_profiles = eq_5d_profiles_by_age_stone_free,
                                dimension_changes = eq_5d_dimension_changes,
@@ -881,7 +880,7 @@ assign_qol_chunked <- function(data,
           !!paste0("usual_act_year_", fu_year) := as.integer(.data[[prev_usual_act]])
         )
       
-      # Adjust anxiety (row by row needed for complex logic)
+      # Adjust anxiety - rowwise as complex adjustment to make at scale
       chunk <- chunk %>%
         rowwise() %>%
         mutate(
@@ -896,7 +895,7 @@ assign_qol_chunked <- function(data,
         ) %>%
         ungroup()
       
-      # Calculate utility using fast lookup
+      # Calculate utility using lookup table
       chunk <- chunk %>%
         mutate(
           !!paste0("qol_mean_year_", fu_year) := 
@@ -985,7 +984,7 @@ calculate_qol <- function(complete_pop_yr_fu,
     
     target_auc <- as.numeric(target_auc)
     
-    # Filter and ensure it remains a tibble
+    # Filter
     complete_pop_yr_fu2 <- complete_pop_yr_fu %>%
       filter(auc_target == !!target_auc)
     
@@ -1002,7 +1001,7 @@ calculate_qol <- function(complete_pop_yr_fu,
     }
     cutpoint <- cutpoint_df$cutpoint[1]
     
-    # Calculate not stone-free proportions - do it all in one pipeline
+    # Calculate not stone-free proportions 
     less4_prob <- complete_pop_yr_fu2 %>%
       filter(stone_free_status %in% c("less4", "more4")) %>%
       {
@@ -1775,3 +1774,5 @@ summary_df_full_qol_data_eq_5d %>%
        x = "Cohort Type",
        y = "Mean 5yr QALYs (EQ-5D derived)",
        fill = "Risk Status") + ylim(0,1.1)
+
+
