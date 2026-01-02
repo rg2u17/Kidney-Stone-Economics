@@ -78,13 +78,23 @@ calculate_economic_costs <- function(complete_pop_yr_fu,
     # Get cutpoint for current AUC target
     cutpoint <- (cutpoints_yr %>% filter(auc_target == !!auc_target))$cutpoint
     
-    not_sf_props <- complete_pop_yr_fu %>%
+    less4_prob <- complete_pop_yr_fu %>%
       filter(stone_free_status %in% c("less4", "more4")) %>%
-      count(stone_free_status) %>%
-      mutate(prop = n / sum(n)) %>%
-      select(stone_free_status, prop)
-    
-    less4_prob <- not_sf_props$prop[not_sf_props$stone_free_status == "less4"]
+      {
+        if (nrow(.) == 0) {
+          0.5
+        } else {
+          props <- group_by(., stone_free_status) %>%
+            summarise(n = n(), .groups = "drop") %>%
+            mutate(prop = n / sum(n))
+          
+          if ("less4" %in% props$stone_free_status) {
+            props$prop[props$stone_free_status == "less4"]
+          } else {
+            0.5
+          }
+        }
+      }
     
     # Distribute SF status as determined by imaging
     if (imaging_fu_type == "xr") {
@@ -97,12 +107,12 @@ calculate_economic_costs <- function(complete_pop_yr_fu,
           stone_free_status_original = stone_free_status,
           stone_free_status1 = case_when(
             stone_free_status_original %in% c("less4", "more4") & rand_sens <= xr_sens ~ stone_free_status_original,
-            stone_free_status_original %in% c("less4", "more4") & rand_sens > xr_sens ~ "SF", # FIXED: uppercase
-            stone_free_status_original == "sf" & rand_spec <= xr_spec ~ "SF", # FIXED: uppercase
+            stone_free_status_original %in% c("less4", "more4") & rand_sens > xr_sens ~ "SF", 
+            stone_free_status_original == "sf" & rand_spec <= xr_spec ~ "SF", 
             stone_free_status_original == "sf" & rand_spec > xr_spec ~ ifelse(
               runif(n()) <= less4_prob, "less4", "more4"
             ),
-            TRUE ~ stone_free_status_original # Handle any other cases
+            TRUE ~ stone_free_status_original 
           ),
           .keep = "all"
         )
@@ -115,8 +125,8 @@ calculate_economic_costs <- function(complete_pop_yr_fu,
           stone_free_status_original = stone_free_status,
           stone_free_status1 = case_when(
             stone_free_status_original %in% c("less4", "more4") & rand_sens <= us_sens ~ stone_free_status_original,
-            stone_free_status_original %in% c("less4", "more4") & rand_sens > us_sens ~ "SF", # FIXED: uppercase
-            stone_free_status_original == "sf" & rand_spec <= us_spec ~ "SF", # FIXED: uppercase
+            stone_free_status_original %in% c("less4", "more4") & rand_sens > us_sens ~ "SF", 
+            stone_free_status_original == "sf" & rand_spec <= us_spec ~ "SF", 
             stone_free_status_original == "sf" & rand_spec > us_spec ~ ifelse(
               runif(n()) <= less4_prob, "less4", "more4"
             ),
@@ -660,11 +670,9 @@ calculate_economic_costs <- function(complete_pop_yr_fu,
              imaging_fu_type = imaging_fu_type,
              year = year)
     
-    # Store result in list with named element
     results_list[[paste0("auc_", auc_target)]] <- combined_result
   }
   
-  # Return results
   if (length(auc_targets) == 1) {
     return(results_list[[1]])
   } else {
