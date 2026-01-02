@@ -170,7 +170,7 @@ ear_inputs$attained_age_parameter <- as.numeric(ear_inputs$attained_age_paramete
 
 # 2. Create dataset to use for calculation ####
 ## 2.1 Aggregate Radiation Cohorts ####
-aggregate_radiation_cohorts <- function(auc_target = c(1, 2, 3, 4, 5, 6, 7, 8, 9)) {
+aggregate_radiation_cohorts <- function(auc_target = c(1,2,3,4,5,6,7,8,9)) {
   all_cohorts <- list()
   
   for (i in auc_target) {
@@ -180,76 +180,84 @@ aggregate_radiation_cohorts <- function(auc_target = c(1, 2, 3, 4, 5, 6, 7, 8, 9
     message("  Loading 2016 data...")
     cohort_2016_min_xr <- rad_doses_2016_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i,
                                                                          year = 2016)
+    cohort_2016_min_xr_us <- rad_doses_2016_cohort_min_xr_us[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i,
+                                                                               year = 2016)
     cohort_2016_min_ct <- rad_doses_2016_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i,
                                                                          year = 2016)
     cohort_2016_max_xr <- rad_doses_2016_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i,
                                                                          year = 2016)
+    cohort_2016_max_xr_us <- rad_doses_2016_cohort_max_xr_us[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i,
+                                                                               year = 2016)
     cohort_2016_max_ct <- rad_doses_2016_cohort_max_ct[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i,
                                                                          year = 2016)
     
     message("  Loading 2017 data...")
     cohort_2017_min_xr <- rad_doses_2017_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i,
                                                                          year = 2017)
+    cohort_2017_min_xr_us <- rad_doses_2017_cohort_min_xr_us[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i,
+                                                                               year = 2017)
     cohort_2017_min_ct <- rad_doses_2017_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i,
                                                                          year = 2017)
     cohort_2017_max_xr <- rad_doses_2017_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i,
                                                                          year = 2017)
+    cohort_2017_max_xr_us <- rad_doses_2017_cohort_max_xr_us[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i,
+                                                                               year = 2017)
     cohort_2017_max_ct <- rad_doses_2017_cohort_max_ct[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i,
                                                                          year = 2017)
     
     message("  Loading 2018 data...")
     cohort_2018_min_xr <- rad_doses_2018_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i,
                                                                          year = 2018)
+    cohort_2018_min_xr_us <- rad_doses_2018_cohort_min_xr_us[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i,
+                                                                               year = 2018)
     cohort_2018_min_ct <- rad_doses_2018_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i,
                                                                          year = 2018)
     cohort_2018_max_xr <- rad_doses_2018_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i,
                                                                          year = 2018)
+    cohort_2018_max_xr_us <- rad_doses_2018_cohort_max_xr_us[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i,
+                                                                               year = 2018)
     cohort_2018_max_ct <- rad_doses_2018_cohort_max_ct[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i,
                                                                          year = 2018)
     
     message("  Loading 2019 data...")
     cohort_2019_min_xr <- rad_doses_2019_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i,
                                                                          year = 2019)
+    cohort_2019_min_xr_us <- rad_doses_2019_cohort_min_xr_us[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i,
+                                                                               year = 2019)
     cohort_2019_min_ct <- rad_doses_2019_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i,
                                                                          year = 2019)
     cohort_2019_max_xr <- rad_doses_2019_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i,
                                                                          year = 2019)
+    cohort_2019_max_xr_us <- rad_doses_2019_cohort_max_xr_us[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i,
+                                                                               year = 2019)
     cohort_2019_max_ct <- rad_doses_2019_cohort_max_ct[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i,
                                                                          year = 2019)
     
     message("  Loading 2020 data...")
     cohort_2020_min_xr <- rad_doses_2020_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i,
                                                                          year = 2020)
+    cohort_2020_min_xr_us <- rad_doses_2020_cohort_min_xr_us[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i,
+                                                                               year = 2020)
     cohort_2020_min_ct <- rad_doses_2020_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i,
                                                                          year = 2020)
     cohort_2020_max_xr <- rad_doses_2020_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i,
                                                                          year = 2020)
+    cohort_2020_max_xr_us <- rad_doses_2020_cohort_max_xr_us[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i,
+                                                                               year = 2020)
     cohort_2020_max_ct <- rad_doses_2020_cohort_max_ct[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i,
                                                                          year = 2020)
     
     message("  Combining cohorts for AUC = ", key)
     overall_cohort <- dplyr::bind_rows(
-      cohort_2016_min_xr,
-      cohort_2016_min_ct,
-      cohort_2016_max_xr,
-      cohort_2016_max_ct,
-      cohort_2017_min_xr,
-      cohort_2017_min_ct,
-      cohort_2017_max_xr,
-      cohort_2017_max_ct,
-      cohort_2018_min_xr,
-      cohort_2018_min_ct,
-      cohort_2018_max_xr,
-      cohort_2018_max_ct,
-      cohort_2019_min_xr,
-      cohort_2019_min_ct,
-      cohort_2019_max_xr,
-      cohort_2019_max_ct,
-      cohort_2020_min_xr,
-      cohort_2020_min_ct,
-      cohort_2020_max_xr,
-      cohort_2020_max_ct
-    )
+      cohort_2016_min_xr, cohort_2016_min_xr_us, cohort_2016_min_ct, cohort_2016_max_xr, cohort_2016_max_xr_us, cohort_2016_max_ct,
+      cohort_2017_min_xr, cohort_2017_min_xr_us, cohort_2017_min_ct, cohort_2017_max_xr, cohort_2017_max_xr_us, cohort_2017_max_ct,
+      cohort_2018_min_xr, cohort_2018_min_xr_us, cohort_2018_min_ct, cohort_2018_max_xr, cohort_2018_max_xr_us, cohort_2018_max_ct,
+      cohort_2019_min_xr, cohort_2019_min_xr_us, cohort_2019_min_ct, cohort_2019_max_xr, cohort_2019_max_xr_us, cohort_2019_max_ct,
+      cohort_2020_min_xr, cohort_2020_min_xr_us, cohort_2020_min_ct, cohort_2020_max_xr, cohort_2020_max_xr_us, cohort_2020_max_ct
+    ) %>%
+      mutate(
+        cohort_type = as.factor(cohort_type)
+      )
     
     all_cohorts[[key]] <- overall_cohort
     message("✅ Done with AUC = ", key, "\n")
@@ -264,7 +272,8 @@ aggregate_radiation_cohorts <- function(auc_target = c(1, 2, 3, 4, 5, 6, 7, 8, 9
 
 
 # AUC 0.55
-auc_0.55 <- aggregate_radiation_cohorts(auc_target = 1) %>% subset(
+auc_0.55 <- aggregate_radiation_cohorts(auc_target = 1) %>% 
+  subset(
   select = c(
     id,
     year,
@@ -614,7 +623,7 @@ ear_solid_malignancy <- function(rad_data,
         next
       }
       
-      # Filter data for this AUC and alive patients
+      # Filter data for AUC and alive patients
       target_data <- rad_data %>%
         filter(auc_label == auc & death_year_5 == "No") %>%
         select(age, sex, rad_dose_year_1, rad_dose_year_2, rad_dose_year_3, 
@@ -661,7 +670,6 @@ ear_solid_malignancy <- function(rad_data,
                twenty_year_risk, twenty_five_year_risk, thirty_year_risk,
                organ, auc, cohort_type, stone_free_status)
       
-      # Store results
       results_list[[paste(organ, auc, sep = "_")]] <- target_data
     }
   }
@@ -1100,7 +1108,7 @@ organ_specific_ear_long_all <- organ_specific_ear_per_person_long %>%
   group_by(auc, cohort_type, organ, follow_up, yrs_after_first_scan) %>%
   summarise(
     ear = mean(ear, na.rm = TRUE),
-    ear_se = sqrt(mean(ear_se^2, na.rm = TRUE)),  # RMS of SEs
+    ear_se = sqrt(mean(ear_se^2, na.rm = TRUE)),  # RMS of SEs - as above - conservative approach
     ear_per_1000 = mean(ear_per_1000, na.rm = TRUE),
     ear_se_per_1000 = sqrt(mean(ear_se_per_1000^2, na.rm = TRUE)),
     risk_status = "All",
@@ -1233,36 +1241,132 @@ monte_carlo_lifetime_risk <- function(age, sex, doses, start_year,
 ### 6.2.1 All patients ####
 plan(multisession, workers = parallel::detectCores() - 1)
 
+CHUNK_SIZE <- 100 
+N_SIMULATIONS <- 10
+
 risk_all <- rad_data %>%
-  group_by(age, sex, cohort_type, auc_target) %>%
+  group_by(age, sex, cohort_type, auc_target, year) %>%
   summarise(
-    across(starts_with("rad_dose_year_"), 
-           ~mean(.x, na.rm = TRUE), 
-           .names = "mean_{.col}"),
-    start_year = first(year),  # Changed from just 'year'
+    across(starts_with("rad_dose_year_"), ~ mean(.x, na.rm = TRUE), .names = "mean_{.col}"),
     n_patients = n(),
     .groups = "drop"
   ) %>%
   mutate(
     risk_status = "All",
-    doses = pmap(list(mean_rad_dose_year_1, mean_rad_dose_year_2, 
-                      mean_rad_dose_year_3, mean_rad_dose_year_4, 
-                      mean_rad_dose_year_5), c)
-  ) %>%
-  mutate(
-    mc_results = future_pmap(
-      list(age, sex, doses, start_year, auc_target),
-      ~monte_carlo_lifetime_risk(
-        age = ..1,
-        sex = ..2,
-        doses = ..3,
-        start_year = ..4,
-        auc_target = ..5,
-        n_simulations = 100
+    start_year = year,
+    doses = pmap(
+      list(
+        mean_rad_dose_year_1,
+        mean_rad_dose_year_2,
+        mean_rad_dose_year_3,
+        mean_rad_dose_year_4,
+        mean_rad_dose_year_5
       ),
-      .options = furrr_options(seed = TRUE)
+      c
     )
   ) %>%
+  select(-year)
+
+message("Mean Radiation doses calculated for All patients")
+
+# Run monte carlo simulation in chunks due to compute constraints - made verbose for transparency
+total_rows <- nrow(risk_all)
+n_chunks <- ceiling(total_rows / CHUNK_SIZE)
+
+cat("=== Monte Carlo Risk Analysis - Verbose Mode ===\n")
+cat(sprintf("Total rows to process: %d\n", total_rows))
+cat(sprintf("Chunk size: %d\n", CHUNK_SIZE))
+cat(sprintf("Number of chunks: %d\n", n_chunks))
+cat(sprintf("Simulations per row: %d\n", N_SIMULATIONS))
+cat(sprintf("Parallel workers: %d\n", availableCores() - 1))
+cat("================================================\n\n")
+
+# Initialize results list
+results_list <- vector("list", n_chunks)
+
+for (chunk_idx in 1:n_chunks) {
+  
+  start_row <- (chunk_idx - 1) * CHUNK_SIZE + 1
+  end_row <- min(chunk_idx * CHUNK_SIZE, total_rows)
+  
+  cat(sprintf("\n--- CHUNK %d of %d ---\n", chunk_idx, n_chunks))
+  cat(sprintf("Processing rows %d to %d (%d rows)\n", 
+              start_row, end_row, end_row - start_row + 1))
+  cat(sprintf("Time: %s\n", Sys.time()))
+  
+  chunk_data <- risk_all %>%
+    slice(start_row:end_row)
+  
+  cat(sprintf("Chunk extracted. Running Monte Carlo simulations...\n"))
+  
+  chunk_start_time <- Sys.time()
+  
+  chunk_results <- chunk_data %>%
+    mutate(
+      mc_results = future_pmap(
+        list(age, sex, doses, start_year, auc_target),
+        function(age_val, sex_val, doses_val, start_year_val, auc_target_val) {
+          monte_carlo_lifetime_risk(
+            age = age_val,
+            sex = sex_val,
+            doses = doses_val,
+            start_year = start_year_val,
+            auc_target = auc_target_val,
+            n_simulations = N_SIMULATIONS
+          )
+        },
+        .options = furrr_options(seed = TRUE),
+        .progress = TRUE
+      )
+    )
+  
+  chunk_end_time <- Sys.time()
+  chunk_duration <- as.numeric(difftime(chunk_end_time, chunk_start_time, units = "secs"))
+  
+  cat(sprintf("✓ Chunk %d completed in %.2f seconds (%.2f sec/row)\n", 
+              chunk_idx, chunk_duration, chunk_duration / (end_row - start_row + 1)))
+  
+  results_list[[chunk_idx]] <- chunk_results
+  
+  if (chunk_idx %% 5 == 0) {
+    cat("Running garbage collection...\n")
+    gc()
+  }
+  
+  if (chunk_idx < n_chunks) {
+    avg_time_per_chunk <- chunk_duration
+    remaining_chunks <- n_chunks - chunk_idx
+    estimated_remaining <- avg_time_per_chunk * remaining_chunks
+    
+    cat(sprintf("Estimated time remaining: %.2f minutes\n", 
+                estimated_remaining / 60))
+  }
+}
+
+cat("\n=== Combining Results ===\n")
+cat(sprintf("Time: %s\n", Sys.time()))
+
+# Combine all chunks back together
+risk_all_processed <- bind_rows(results_list)
+
+cat(sprintf("✓ All chunks combined successfully\n"))
+cat(sprintf("Final dataset rows: %d\n", nrow(risk_all_processed)))
+cat(sprintf("mc_results column present: %s\n", 
+            "mc_results" %in% names(risk_all_processed)))
+
+n_successful <- sum(!sapply(risk_all_processed$mc_results, is.null))
+cat(sprintf("Successful simulations: %d/%d (%.1f%%)\n", 
+            n_successful, nrow(risk_all_processed),
+            100 * n_successful / nrow(risk_all_processed)))
+
+cat("\n=== PROCESSING COMPLETE ===\n")
+cat(sprintf("Total time: %s\n", Sys.time()))
+risk_all <- risk_all_processed
+rm(results_list, chunk_data, chunk_results)
+gc()
+message("Monte Carlo simulations for Lifetime Malignancy Risk completed")
+
+risk_all <- risk_all %>%
   mutate(
     cumulative_lifetime_risk = map_dbl(mc_results, "mean_risk"),
     ci_lower_95 = map_dbl(mc_results, "ci_lower"),
@@ -1274,30 +1378,130 @@ plan(sequential)
 
 ### 6.2.2 Subdivided by Risk status ####
 risk_summary_monte_carlo_final <- rad_data %>%
-  group_by(age, sex, risk_status, cohort_type, auc_target) %>%
+  group_by(age, sex, risk_status, cohort_type, auc_target, year) %>%
   summarise(
-    mean_dose_year_1 = mean(rad_dose_year_1, na.rm = TRUE),
-    mean_dose_year_2 = mean(rad_dose_year_2, na.rm = TRUE),
-    mean_dose_year_3 = mean(rad_dose_year_3, na.rm = TRUE),
-    mean_dose_year_4 = mean(rad_dose_year_4, na.rm = TRUE),
-    mean_dose_year_5 = mean(rad_dose_year_5, na.rm = TRUE),
-    start_year = first(year),
+    across(starts_with("rad_dose_year_"), ~ mean(.x, na.rm = TRUE), .names = "mean_{.col}"),
     n_patients = n(),
     .groups = "drop"
   ) %>%
-  rowwise() %>%
   mutate(
-    mc_results = list(monte_carlo_lifetime_risk(
-      age = age,
-      sex = sex,
-      doses = c(mean_dose_year_1, mean_dose_year_2, mean_dose_year_3, 
-                mean_dose_year_4, mean_dose_year_5),
-      start_year = start_year,
-      auc_target = auc_target,
-      n_simulations = 100
-    ))
+    risk_status = risk_status,
+    start_year = year,
+    doses = pmap(
+      list(
+        mean_rad_dose_year_1,
+        mean_rad_dose_year_2,
+        mean_rad_dose_year_3,
+        mean_rad_dose_year_4,
+        mean_rad_dose_year_5
+      ),
+      c
+    )
   ) %>%
-  ungroup() %>%
+  select(-year)
+
+message("Mean Radiation doses calculated subdivided by risk status")
+
+# Run monte carlo simulation in chunks due to compute constraints 
+total_rows <- nrow(risk_summary_monte_carlo_final)
+n_chunks <- ceiling(total_rows / CHUNK_SIZE)
+
+cat("=== Monte Carlo Risk Analysis - Verbose Mode ===\n")
+cat(sprintf("Total rows to process: %d\n", total_rows))
+cat(sprintf("Chunk size: %d\n", CHUNK_SIZE))
+cat(sprintf("Number of chunks: %d\n", n_chunks))
+cat(sprintf("Simulations per row: %d\n", N_SIMULATIONS))
+cat(sprintf("Parallel workers: %d\n", availableCores() - 1))
+cat("================================================\n\n")
+
+# Initialize results list
+results_list <- vector("list", n_chunks)
+
+for (chunk_idx in 1:n_chunks) {
+  
+  start_row <- (chunk_idx - 1) * CHUNK_SIZE + 1
+  end_row <- min(chunk_idx * CHUNK_SIZE, total_rows)
+  
+  cat(sprintf("\n--- CHUNK %d of %d ---\n", chunk_idx, n_chunks))
+  cat(sprintf("Processing rows %d to %d (%d rows)\n", 
+              start_row, end_row, end_row - start_row + 1))
+  cat(sprintf("Time: %s\n", Sys.time()))
+  
+  chunk_data <- risk_summary_monte_carlo_final %>%
+    slice(start_row:end_row)
+  
+  cat(sprintf("Chunk extracted. Running Monte Carlo simulations...\n"))
+  
+  chunk_start_time <- Sys.time()
+  
+  chunk_results <- chunk_data %>%
+    mutate(
+      mc_results = future_pmap(
+        list(age, sex, doses, start_year, auc_target),
+        function(age_val, sex_val, doses_val, start_year_val, auc_target_val) {
+          monte_carlo_lifetime_risk(
+            age = age_val,
+            sex = sex_val,
+            doses = doses_val,
+            start_year = start_year_val,
+            auc_target = auc_target_val,
+            n_simulations = N_SIMULATIONS
+          )
+        },
+        .options = furrr_options(seed = TRUE),
+        .progress = TRUE
+      )
+    )
+  
+  chunk_end_time <- Sys.time()
+  chunk_duration <- as.numeric(difftime(chunk_end_time, chunk_start_time, units = "secs"))
+  
+  cat(sprintf("✓ Chunk %d completed in %.2f seconds (%.2f sec/row)\n", 
+              chunk_idx, chunk_duration, chunk_duration / (end_row - start_row + 1)))
+  
+  results_list[[chunk_idx]] <- chunk_results
+  
+  if (chunk_idx %% 5 == 0) {
+    cat("Running garbage collection...\n")
+    gc()
+  }
+  
+  if (chunk_idx < n_chunks) {
+    avg_time_per_chunk <- chunk_duration
+    remaining_chunks <- n_chunks - chunk_idx
+    estimated_remaining <- avg_time_per_chunk * remaining_chunks
+    
+    cat(sprintf("Estimated time remaining: %.2f minutes\n", 
+                estimated_remaining / 60))
+  }
+}
+
+cat("\n=== Combining Results ===\n")
+cat(sprintf("Time: %s\n", Sys.time()))
+
+# Combine all chunks back together
+risk_summary_monte_carlo_final_processed <- bind_rows(results_list)
+
+cat(sprintf("✓ All chunks combined successfully\n"))
+cat(sprintf("Final dataset rows: %d\n", nrow(risk_summary_monte_carlo_final_processed)))
+cat(sprintf("mc_results column present: %s\n", 
+            "mc_results" %in% names(risk_summary_monte_carlo_final_processed)))
+
+n_successful <- sum(!sapply(risk_summary_monte_carlo_final_processed$mc_results, is.null))
+cat(sprintf("Successful simulations: %d/%d (%.1f%%)\n", 
+            n_successful, nrow(risk_summary_monte_carlo_final_processed),
+            100 * n_successful / nrow(risk_summary_monte_carlo_final_processed)))
+
+cat("\n=== PROCESSING COMPLETE ===\n")
+cat(sprintf("Total time: %s\n", Sys.time()))
+risk_summary_monte_carlo_final <- risk_summary_monte_carlo_final_processed
+rm(results_list, chunk_data, chunk_results)
+gc()
+message("Monte Carlo simulations for Lifetime Malignancy Risk subdivided by risk status completed")
+
+
+
+risk_summary_monte_carlo_final <- risk_summary_monte_carlo_final %>%
   mutate(
     cumulative_lifetime_risk = map_dbl(mc_results, "mean_risk"),
     ci_lower_95 = map_dbl(mc_results, "ci_lower"),
@@ -1472,33 +1676,6 @@ malignancy_plot_data <- malignancy_grand_total %>%
     percentage_upper = (grand_total_expected_malignancies_upper / total_patients) * 100
   )
 
-comparisons <- list(
-  c("Maximum FU, CT", "Maximum FU, XR"),
-  c("Minimum FU, CT", "Minimum FU, XR"),
-  c("Maximum FU, CT", "Minimum FU, CT"),
-  c("Maximum FU, XR", "Minimum FU, XR")
-)
-
-calc_chisq_pvalue <- function(data, group1, group2) {
-  d1 <- data %>% filter(cohort_type == group1)
-  d2 <- data %>% filter(cohort_type == group2)
-  
-  if(nrow(d1) == 0 || nrow(d2) == 0) return(1)
-  
-  mat <- matrix(
-    c(d1$grand_total_expected_malignancies, 
-      d1$total_patients - d1$grand_total_expected_malignancies,
-      d2$grand_total_expected_malignancies,
-      d2$total_patients - d2$grand_total_expected_malignancies),
-    nrow = 2,
-    byrow = TRUE
-  )
-  
-  tryCatch({
-    chisq.test(mat)$p.value
-  }, error = function(e) 1)
-}
-
 ggplot(malignancy_plot_data, 
        aes(x = cohort_type, 
            y = percentage,
@@ -1507,24 +1684,6 @@ ggplot(malignancy_plot_data,
   geom_errorbar(aes(ymin = percentage_lower, 
                     ymax = percentage_upper),
                 width = 0.2) +
-  geom_signif(
-    comparisons = comparisons,
-    test = function(x, y) {
-      # Get the current facet's data
-      current_data <- malignancy_plot_data %>%
-        filter(cohort_type %in% c(x, y))
-      
-      if(nrow(current_data) < 2) return(list(p.value = 1))
-      
-      p_val <- calc_chisq_pvalue(current_data, unique(x), unique(y))
-      list(p.value = p_val)
-    },
-    map_signif_level = c("***" = 0.001, "**" = 0.01, "*" = 0.05, "ns" = 1),
-    step_increase = 0.08,
-    tip_length = 0.01,
-    size = 0.4,
-    textsize = 3
-  ) +
   facet_grid(risk_status ~ auc_target,
              labeller = labeller(
                auc_target = function(x) paste0("AUC: ", x),
@@ -1553,6 +1712,7 @@ ggplot(malignancy_plot_data,
 ### 6.3.1 All Patients subdivided by Risk ####
 risk_smoothed <- risk_combined %>%
   select(age, risk_status, cohort_type, auc_target, cumulative_lifetime_risk, ci_lower_95, ci_upper_95) %>%
+  drop_na(cumulative_lifetime_risk) %>%
   group_by(risk_status, cohort_type, auc_target) %>%
   arrange(age) %>%
   summarise(
@@ -1570,7 +1730,7 @@ malignancy_risk_plot <- risk_smoothed %>%
   facet_grid(
     cohort_type ~ auc_target,
     labeller = labeller(
-      auc_target = label_value,  # Changed this line
+      auc_target = label_value,  
       cohort_type = label_wrap_gen(10)
     )
   ) +
@@ -1598,99 +1758,25 @@ print(malignancy_risk_plot)
 ## 6.4 Run function subdivided by Recurrence status ####
 ### 6.4.1 All patients ####
 risk_all_with_sf_status_sf <- rad_data %>%
-  mutate(cohort_type_recurrence = paste0(cohort_type,"_recurrence_",recurrence)) %>%
-  group_by(age, sex, risk_status, auc_target, cohort_type_recurrence) %>%
-  summarise(
-    mean_dose_year_1 = mean(rad_dose_year_1, na.rm = TRUE),
-    mean_dose_year_2 = mean(rad_dose_year_2, na.rm = TRUE),
-    mean_dose_year_3 = mean(rad_dose_year_3, na.rm = TRUE),
-    mean_dose_year_4 = mean(rad_dose_year_4, na.rm = TRUE),
-    mean_dose_year_5 = mean(rad_dose_year_5, na.rm = TRUE),
-    start_year = first(year),
-    n_patients = n(),
-    .groups = "drop"
-  ) %>%
-  rowwise() %>%
-  mutate(
-    risk_status = "All",  
-    mc_results = list(monte_carlo_lifetime_risk(
-      age = age,
-      sex = sex,
-      doses = c(mean_dose_year_1, mean_dose_year_2, mean_dose_year_3,
-                mean_dose_year_4, mean_dose_year_5),
-      start_year = start_year,
-      auc_target = auc_target,
-      n_simulations = 100
-    ))
-  ) %>%
-  ungroup() %>%
-  mutate(
-    cumulative_lifetime_risk = map_dbl(mc_results, "mean_risk"),
-    ci_lower_95 = map_dbl(mc_results, "ci_lower"),
-    ci_upper_95 = map_dbl(mc_results, "ci_upper")
-  )
+  select(age, sex, cohort_type, auc_target, year, recurrence) %>%
+  left_join(risk_all, by=c("age","sex","cohort_type", "auc_target","year" = "start_year")) 
 
 ### 6.4.2 Subdivided by Risk status ####
-plan(multisession, workers = parallel::detectCores() - 1)
-
 risk_summary_monte_carlo_final_with_sf_status_sf <- rad_data %>%
-  mutate(cohort_type_recurrence = paste0(cohort_type, "_recurrence_", recurrence)) %>%
-  group_by(age, sex, risk_status, auc_target, cohort_type_recurrence) %>%
-  summarise(
-    across(starts_with("rad_dose_year_"), 
-           ~mean(.x, na.rm = TRUE),
-           .names = "mean_{.col}"),
-    start_year = first(year),
-    n_patients = n(),
-    .groups = "drop"
-  ) %>%
-  mutate(
-    mc_results = future_pmap(
-      list(age, sex, mean_rad_dose_year_1, mean_rad_dose_year_2,
-           mean_rad_dose_year_3, mean_rad_dose_year_4, mean_rad_dose_year_5,
-           start_year, auc_target),
-      function(a, s, d1, d2, d3, d4, d5, sy, at) {
-        monte_carlo_lifetime_risk(
-          age = a, sex = s,
-          doses = c(d1, d2, d3, d4, d5),
-          start_year = sy, auc_target = at,
-          n_simulations = 100
-        )
-      },
-      .options = furrr_options(seed = TRUE),
-      .progress = TRUE
-    )
-  ) %>%
-  mutate(
-    cumulative_lifetime_risk = future_map_dbl(
-      mc_results, 
-      "mean_risk",
-      .options = furrr_options(seed = TRUE),
-      .progress = TRUE
-    ),
-    ci_lower_95 = future_map_dbl(
-      mc_results, 
-      "ci_lower",
-      .options = furrr_options(seed = TRUE),
-      .progress = TRUE
-    ),
-    ci_upper_95 = future_map_dbl(
-      mc_results, 
-      "ci_upper",
-      .options = furrr_options(seed = TRUE),
-      .progress = TRUE
-    )
-  )
-
-plan(sequential)
+  select(age, sex, cohort_type, auc_target, year, recurrence) %>%
+  left_join(risk_summary_monte_carlo_final, by=c("age","cohort_type", "auc_target","sex","year" = "start_year")) 
 
 risk_combined_with_sf_status_sf <- bind_rows(risk_summary_monte_carlo_final_with_sf_status_sf, risk_all_with_sf_status_sf)
 
 
 ## 6.5 Plot ####
 risk_smoothed_sf <- risk_combined_with_sf_status_sf %>%
-  select(age, risk_status, cohort_type_recurrence, auc_target, cumulative_lifetime_risk, ci_lower_95, ci_upper_95) %>%
+  select(age, risk_status, cohort_type, recurrence, auc_target, cumulative_lifetime_risk, ci_lower_95, ci_upper_95) %>%
+  mutate(
+    cohort_type_recurrence = paste0(cohort_type, recurrence)
+  )
   group_by(risk_status, cohort_type_recurrence, auc_target) %>%
+  drop_na(cumulative_lifetime_risk) %>%
   arrange(age) %>%
   summarise(
     y = loess(cumulative_lifetime_risk ~ age, data = cur_data(), span = 0.6)$fitted,
@@ -1706,7 +1792,7 @@ malignancy_risk_plot_sf <- ggplot(risk_smoothed_sf, aes(x = age, y = y, color = 
   facet_grid(
     cohort_type_recurrence ~ auc_target,
     labeller = labeller(
-      auc_target = label_value,  # Changed this line
+      auc_target = label_value,  
       cohort_type_recurrence = label_wrap_gen(10)
     )
   ) +
@@ -1806,7 +1892,8 @@ risk_combined_with_sf_status_sf %>%
 
 # 8. Plot additional risk of malignancy per AUC + risk status ####
 ## 8.1 Proportions ####
-           # Get unique AUC target values for comparisons
+           
+# Get unique AUC target values for comparisons
 auc_values <- unique(as.factor(malignancy_plot_data$auc_target))
 
 ref_auc <- "0.55"
