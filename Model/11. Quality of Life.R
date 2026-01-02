@@ -974,12 +974,23 @@ calculate_qol <- function(complete_pop_yr_fu,
     cutpoint <- (cutpoints_yr %>% filter(auc_target == !!target_auc))$cutpoint
     
     # Determine non-SF proportions for distributing misclassified SF
-    not_sf_props <- complete_pop_yr_fu2 %>%
+    less4_prob <- complete_pop_yr_fu %>%
       filter(stone_free_status %in% c("less4", "more4")) %>%
-      count(stone_free_status) %>%
-      mutate(prop = n / sum(n)) %>%
-      select(stone_free_status, prop)
-    less4_prob <- not_sf_props$prop[not_sf_props$stone_free_status == "less4"]
+      {
+        if (nrow(.) == 0) {
+          0.5
+        } else {
+          props <- group_by(., stone_free_status) %>%
+            summarise(n = n(), .groups = "drop") %>%
+            mutate(prop = n / sum(n))
+          
+          if ("less4" %in% props$stone_free_status) {
+            props$prop[props$stone_free_status == "less4"]
+          } else {
+            0.5
+          }
+        }
+      }
     
     # Assign SF status according to imaging type
     rand_sens <- runif(nrow(complete_pop_yr_fu2))
@@ -1498,25 +1509,25 @@ qol_auc_0.55 <- aggregate_qol_cohorts(auc_target = 1)
 ### 11.5.3 AUC 0.6 ####
 qol_auc_0.6 <- aggregate_qol_cohorts(auc_target = 2)
 
-### 11.5.4 AUC 0.55 ####
+### 11.5.4 AUC 0.65 ####
 qol_auc_0.65 <- aggregate_qol_cohorts(auc_target = 3)
 
-### 11.5.5 AUC 0.55 ####
+### 11.5.5 AUC 0.7 ####
 qol_auc_0.7 <- aggregate_qol_cohorts(auc_target = 4)
 
-### 11.5.6 AUC 0.55 ####
+### 11.5.6 AUC 0.75 ####
 qol_auc_0.75 <- aggregate_qol_cohorts(auc_target = 5)
 
-### 11.5.7 AUC 0.55 ####
+### 11.5.7 AUC 0.8 ####
 qol_auc_0.8 <- aggregate_qol_cohorts(auc_target = 6)
 
-### 11.5.8 AUC 0.55 ####
+### 11.5.8 AUC 0.85 ####
 qol_auc_0.85 <- aggregate_qol_cohorts(auc_target = 7)
 
-### 11.5.9 AUC 0.55 ####
+### 11.5.9 AUC 0.9 ####
 qol_auc_0.9 <- aggregate_qol_cohorts(auc_target = 8)
 
-### 11.5.10 AUC 0.55 ####
+### 11.5.10 AUC 0.95 ####
 qol_auc_0.95 <- aggregate_qol_cohorts(auc_target = 9)
 
 ## 11.6 Combine datasets and calculate cumulative qol ####
