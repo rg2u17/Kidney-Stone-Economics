@@ -38,39 +38,39 @@ library(patchwork)
 
 # 1. Define Inputs
 ```{r}
-source("~/Desktop/Kidney-Stone-Economics/Model/1. Define Inputs.R")
+source("Model/1. Define Inputs.R")
 ```
 \newpage
 
 # 2. Total Cost Calculation for Stone Free Patients
 ```{r}
-source("~/Desktop/Kidney-Stone-Economics/Model/2. Total Cost Calculation for Stone Free Patients.R")
+source("Model/2. Total Cost Calculation for Stone Free Patients.R")
 ```
 \newpage
 
 # 3. Visualise Model 
 ```{r}
-source("~/Desktop/Kidney-Stone-Economics/Model/3. Visualise Model.R")
+source("Model/3. Visualise Model.R")
 ```
 \newpage
 
 # 4. Distribution of Scores - Pick one!
 ## 4.1 Beta Distribution - e.g modelling a machine learning model output
 ```{r}
-source("~/Desktop/Kidney-Stone-Economics/Model/4. Model - Beta Distribution for Scores.R")
+source("Model/4. Model - Beta Distribution for Scores.R")
 ```
 \newpage
 
 ## 4.2 Normal Distribution - e.g modelling a blood test output
 <br> **uncomment to run** <br>
 ```{r}
-#source("~/Desktop/Kidney-Stone-Economics/Model/4. Model - Normal Distribution for Scores.R")
+#source("Model/4. Model - Normal Distribution for Scores.R")
 ```
 \newpage
 
 # 5. Run Model
 ```{r}
-source("~/Desktop/Kidney-Stone-Economics/Model/5. Run Model.R")
+source("Model/5. Run Model.R")
 ```
 \newpage
 
@@ -94,7 +94,7 @@ overall_simulation_plot
 
 # 6. Radiation Dose
 ```{r}
-source("~/Desktop/Kidney-Stone-Economics/Model/6. Radiation Dose.R")
+source("Model/6. Radiation Dose.R")
 ```
 \newpage
 
@@ -162,7 +162,7 @@ data_for_plot %>% ggplot(aes(x = auc_label, y=cumulative_rad_dose, fill = risk_s
 
 # 7. Radiation Induced Malignancy
 ```{r}
-source("~/Desktop/Kidney-Stone-Economics/Model/7. Radiation Induced Malignancy.R")
+source("Model/7. Radiation Induced Malignancy.R")
 ```
 \newpage
 
@@ -687,7 +687,7 @@ baseline_malignancies_perc_plot
 
 # 8. Economic Costs - All Patients
 ```{r}
-source("~/Desktop/Kidney-Stone-Economics/Model/8. Economic Costs - All Patients.R")
+source("Model/8. Economic Costs - All Patients.R")
 ```
 \newpage
 
@@ -826,7 +826,7 @@ summary_df_full_cost_data_all_patients <- summary_df_full_cost_data
 
 # 9. Economic Costs - Recurrence only
 ```{r}
-source("~/Desktop/Kidney-Stone-Economics/Model/9. Economic Costs - Recurrence only.R")
+source("Model/9. Economic Costs - Recurrence only.R")
 ```
 \newpage
 
@@ -964,7 +964,7 @@ summary_df_rec_only %>% subset(risk_status == "All") %>% group_by(auc_label,
 
 # 10. Clinician Time - Number of Appointments
 ```{r}
-source("~/Desktop/Kidney-Stone-Economics/Model/10. Clinician Time.R")
+source("Model/10. Clinician Time.R")
 ```
 \newpage
 
@@ -1059,7 +1059,7 @@ summary_df_appts %>%
 
 # 11. Quality of Life
 ```{r}
-source("~/Desktop/Kidney-Stone-Economics/Model/11. Quality of Life.R")
+source("Model/11. Quality of Life.R")
 ```
 \newpage
 
@@ -1182,7 +1182,7 @@ summary_df_full_qol_plot
 
 # 12. Calculate ICER 
 ```{r}
-source("~/Desktop/Kidney-Stone-Economics/Model/12. Calculate ICER.R")
+source("Model/12. Calculate ICER.R")
 ```
 \newpage
 
@@ -1207,7 +1207,7 @@ icer_results %>%
 
 # 13. CO2 Emissions
 ```{r}
-source("~/Desktop/Kidney-Stone-Economics/Model/13. Calculate CO2 emissions.R")
+source("Model/13. Calculate CO2 emissions.R")
 ```
 \newpage
 
@@ -1445,7 +1445,7 @@ paper_2_plot
 
 # 15. QoL - EQ-5D
 ```{r}
-source("~/Desktop/Kidney-Stone-Economics/Model/11. Quality of Life - EQ-5D.R")
+source("Model/11. Quality of Life - EQ-5D.R")
 ```
 \newpage
 
@@ -1602,7 +1602,7 @@ summary_df_full_qol_plot
 
 # 16. Calculate ICER with EQ-5D data
 ```{r}
-source("~/Desktop/Kidney-Stone-Economics/Model/12. Calculate ICER.R")
+source("Model/12. Calculate ICER.R")
 ```
 \newpage
 
