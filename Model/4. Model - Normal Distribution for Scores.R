@@ -1,4 +1,4 @@
-## 4. Complete Model ####
+## 4. Complete Model - Normal Distribution ####
 ### 4.1 Display Estimated 5 year event rate ####
 global_rec_rate
 
@@ -46,10 +46,10 @@ simulate_and_plot_roc <- function(auc_targets,
       sd_nonevent <- params[4]
       
       # Ensure parameters are valid
-      if (any(params[c(2, 4)] <= 0.01)) return(1000)  # SDs must be positive
+      if (any(params[c(2, 4)] <= 0.01)) return(1000)  
       if (mean_event < 0 || mean_event > 1) return(1000)
       if (mean_nonevent < 0 || mean_nonevent > 1) return(1000)
-      if (mean_event <= mean_nonevent) return(1000)  # Event mean should be higher
+      if (mean_event <= mean_nonevent) return(1000)  
       
       # Calculate AUC with these parameters
       auc_calc <- calculate_auc_from_normal(mean_event, sd_event, mean_nonevent, sd_nonevent,
@@ -59,14 +59,14 @@ simulate_and_plot_roc <- function(auc_targets,
       return((auc_calc - target_auc)^2)
     }
     
-    # Initial parameter guess based on target AUC
+    # Initial parameter estimate based on target AUC
     # Separation between means increases with target AUC
     separation_factor <- 2 * (target_auc - 0.5)
     
     initial_params <- c(
-      mean_event = 0.5 + separation_factor * 0.25,      # Higher mean for events
+      mean_event = 0.5 + separation_factor * 0.25,      
       sd_event = base_sd,
-      mean_nonevent = 0.5 - separation_factor * 0.25,   # Lower mean for non-events
+      mean_nonevent = 0.5 - separation_factor * 0.25,   
       sd_nonevent = base_sd
     )
     
@@ -273,7 +273,7 @@ simulate_and_plot_roc <- function(auc_targets,
       cat("Event: N(", round(mean_event, 3), ", ", round(sd_event, 3), "²)\n", sep = "")
       cat("Non-event: N(", round(mean_nonevent, 3), ", ", round(sd_nonevent, 3), "²)\n", sep = "")
       
-      # Run Monte Carlo simulation if requested
+      # Monte Carlo simulation 
       mc_results <- NULL
       if (monte_carlo) {
         cat("Starting Monte Carlo simulation...\n")
@@ -283,7 +283,7 @@ simulate_and_plot_roc <- function(auc_targets,
                                       mc_iterations, seed)
       }
       
-      # Generate single realization for plotting (using original seed)
+      # Generate single realization for plotting
       set.seed(seed)
       scores_event <- rnorm(n_events_recalculated, mean = mean_event, sd = sd_event)
       scores_nonevent <- rnorm(n_nonevents_recalculated, mean = mean_nonevent, sd = sd_nonevent)
@@ -313,7 +313,7 @@ simulate_and_plot_roc <- function(auc_targets,
       auc_actual <- round(as.numeric(roc_obj$auc), digits = 3)
       auc_error <- abs(auc_actual - auc_target)
       
-      # ROC plot with Monte Carlo info if available
+      # ROC plot with Monte Carlo info
       annotation_text <- paste0("Target AUC = ", round(auc_target, 3),
                                 "\nSingle Run AUC = ", round(auc_actual, 3),
                                 "\nError = ", round(auc_error, 4))
@@ -351,7 +351,7 @@ simulate_and_plot_roc <- function(auc_targets,
             "± SD:", round(mc_results$mc_summary$accuracy_sd, 4), "\n")
       }
       
-      # Enhanced density plot
+      # density plot
       plot_title <- paste0("Target AUC: ", auc_target, " | Single Run AUC: ", auc_actual)
       if (monte_carlo && !is.null(mc_results)) {
         plot_title <- paste0(plot_title, " | MC Mean AUC: ", round(mc_results$mc_summary$auc_mean, 3))
@@ -366,7 +366,7 @@ simulate_and_plot_roc <- function(auc_targets,
         theme_minimal() +
         xlim(0, 1)
       
-      # Histogram of scores by label
+      # Histogram of scores
       p_hist <- ggplot(data_for_roc, aes(x = scores, fill = labels)) +
         geom_histogram(position = "identity", alpha = 0.5, bins = bins) +
         labs(title = "Histogram of Scores (Normal Distribution)",
@@ -1201,7 +1201,7 @@ colic_intervention_rates_function <- function(population,
     
     result[[as.character(auc_target)]] <- subpopulation
   }
-  # Combine all into one dataframe
+  # Combine results
   final_result <- bind_rows(result)
   return(final_result)
 }
