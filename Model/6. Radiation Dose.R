@@ -7,7 +7,6 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
                                       fu_type = "min",
                                       imaging_fu_type = "xr") {
   
-  # Initialize list to store results for each AUC target
   results_list <- list()
   
   for (auc_target in auc_targets) {
@@ -18,13 +17,23 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
       risk_status = ifelse(score < cutpoint, "LR", "HR")
     )
     
-    not_sf_props <- complete_pop_yr_fu %>%
+    less4_prob <- complete_pop_yr_fu %>%
       filter(stone_free_status %in% c("less4", "more4")) %>%
-      count(stone_free_status) %>%
-      mutate(prop = n / sum(n)) %>%
-      select(stone_free_status, prop)
-    
-    less4_prob <- not_sf_props$prop[not_sf_props$stone_free_status == "less4"]
+      {
+        if (nrow(.) == 0) {
+          0.5
+        } else {
+          props <- group_by(., stone_free_status) %>%
+            summarise(n = n(), .groups = "drop") %>%
+            mutate(prop = n / sum(n))
+          
+          if ("less4" %in% props$stone_free_status) {
+            props$prop[props$stone_free_status == "less4"]
+          } else {
+            0.5
+          }
+        }
+      }
     
     # Distribute SF status as determined by imaging
     if (imaging_fu_type == "xr") {
@@ -45,7 +54,7 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
             stone_free_status_original == "sf" & rand_spec > xr_spec ~ ifelse(
               runif(n()) <= less4_prob, "less4", "more4"
             ),
-            TRUE ~ stone_free_status_original # Handle any other cases
+            TRUE ~ stone_free_status_original 
           ),
           .keep = "all"
         )
@@ -1132,7 +1141,7 @@ auc_0.9 <- aggregate_radiation_cohorts(auc_target = 8)
 auc_0.95 <- aggregate_radiation_cohorts(auc_target = 9)
 
 ##### 6.1.2.2 Compare length of FU + type of imaging in terms of radiation dose ####
-# Step 1: Combine datasets and calculate cumulative dose
+# Combine datasets and calculate cumulative dose
 combine_auc_data <- function(data, auc_label) {
   data %>%
     mutate(
@@ -1170,7 +1179,7 @@ summary_df <- data_for_plot %>%
     .groups = "drop"
   )
 
-# Summarise mean and SD for combined risk groups ("All")
+# Summarise mean and SD for combined All risk groups
 summary_all <- data_for_plot %>%
   group_by(auc_label, cohort_type) %>%
   summarise(
