@@ -23,7 +23,6 @@ Ascertainment of the current standard of care is detailed below: <br>
 We utilised UK Biobank to ascertain the prognostic accuracy of the current standard of care (EAU risk stratification - Table 3.3: https://uroweb.org/guidelines/urolithiasis/chapter/guidelines) <br>
 <br>
 The methodology to do this is detailed in the following link: <br>
-<br>
 https://github.com/rg2u17/Recurrence_ML <br>
 <br>
 Then selecting the following script: <br>
