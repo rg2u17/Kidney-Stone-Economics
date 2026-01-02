@@ -24,7 +24,7 @@ We utilised UK Biobank to ascertain the prognostic accuracy of the current stand
 <br>
 The methodology to do this is detailed in the following link: <br>
 <br>
-```https://github.com/rg2u17/Recurrence_ML``` <br>
+https://github.com/rg2u17/Recurrence_ML <br>
 <br>
 Then selecting the following script: <br>
 <br>
