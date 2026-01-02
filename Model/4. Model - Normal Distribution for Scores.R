@@ -795,7 +795,7 @@ simulate_death_for_year <- function(sim_data, death_rate, year) {
 
 # Function to update dataset based on death rates
 update_dataset_with_death_rates <- function(data, data_with_death_rates) {
-  # First, create age_band in your main data to match the death rates tibble
+  # First, create age_band in main data to match the death rates tibble
   data <- data %>%
     mutate(
       age_band = case_when(
@@ -825,7 +825,7 @@ update_dataset_with_death_rates <- function(data, data_with_death_rates) {
   survival_probs <- data_with_death_rates %>%
     mutate(survival_rate = survivors / n)
   
-  # Join survival rates to your main data
+  # Join survival rates to main data
   data_updated <- data %>%
     left_join(
       survival_probs %>% select(age_band, sex, survival_rate),
