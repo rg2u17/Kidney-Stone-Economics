@@ -33,10 +33,14 @@ strip_out_costs <- function(data) {
         year
       )) %>%
       mutate(
-        cost_year_5 = ifelse(is.na(cost_year_5),
-                             0,
-                             cost_year_5),
-        total_cost = sum(c_across(starts_with("cost_year_")))
+        cost_year_5 = ifelse(is.na(cost_year_5), 0, cost_year_5),
+        cost_year_1 = cost_year_1,
+        cost_year_2 = cost_year_2 / (1.035 ^ 1),
+        cost_year_3 = cost_year_3 / (1.035 ^ 2),
+        cost_year_4 = cost_year_4 / (1.035 ^ 3),
+        cost_year_5 = cost_year_5 / (1.035 ^ 4),
+        
+        total_cost = rowSums(across(starts_with("cost_year_")), na.rm = TRUE)
       )
     
     cohort[[i]] <- data1
@@ -113,47 +117,144 @@ costs_2020_ct_max_stripped <- strip_out_costs(costs_2020_ct_max)
 ### 12.3.1 Function to strip out auc, id and qol ####
 strip_out_qol <- function(data) {
   
-  cohort <- list()
+  # detect data format
+  if (is.list(data) && !is.data.frame(data)) {
+    data_format <- "list"
+  } else if (is.data.frame(data) || tibble::is_tibble(data)) { 
+    data_format <- "tibble"
+  } else {
+    stop("Data must be either a list or a data frame/tibble")
+  }
   
-  for (i in 1:9){
+  # tibble format
+  if (data_format == "tibble") {
     
-    data1 <- data[[i]] %>% 
-      subset(select = c(
-        id,
-        auc_target,
-        baseline_qol_mean,
-        qol_mean_year_1,
-        qol_mean_year_2,
-        qol_mean_year_3,
-        qol_mean_year_4,
-        qol_mean_year_5,
-        qol_lower_year_1,
-        qol_lower_year_2,
-        qol_lower_year_3,
-        qol_lower_year_4,
-        qol_lower_year_5,
-        qaly_5yr,
-        qaly_5yr_lower,
-        qaly_5yr_upper,
-        year
-      )) %>%
-      mutate(
-        qol_mean_year_0 = baseline_qol_mean,
-        mean_qol = mean(c_across(starts_with("qol_mean_year_"))),
-        qaly_5yr_se = (qaly_5yr - qaly_5yr_lower)/1.96,
-        qol_se_year_1 = (qol_mean_year_1 - qol_lower_year_1)/1.96,
-        qol_se_year_2 = (qol_mean_year_2 - qol_lower_year_2)/1.96,
-        qol_se_year_3 = (qol_mean_year_3 - qol_lower_year_3)/1.96,
-        qol_se_year_4 = (qol_mean_year_4 - qol_lower_year_4)/1.96,
-        qol_se_year_5 = (qol_mean_year_5 - qol_lower_year_5)/1.96,
-        .keep = "all"
-      )
+    cohort <- list()  
     
-    cohort[[i]] <- data1
+    for (i in 1:9) {
+      auc_value <- case_when(  
+        i == 1 ~ 0.55,
+        i == 2 ~ 0.6,
+        i == 3 ~ 0.65,
+        i == 4 ~ 0.7,
+        i == 5 ~ 0.75,
+        i == 6 ~ 0.8,
+        i == 7 ~ 0.85,
+        i == 8 ~ 0.9,
+        i == 9 ~ 0.95,
+        TRUE ~ NA_real_)  
+      
+      data1 <- data %>% 
+        filter(auc_target == auc_value) %>%  
+        select(
+          id,
+          auc_target,
+          baseline_qol_mean,
+          qol_mean_year_1,
+          qol_mean_year_2,
+          qol_mean_year_3,
+          qol_mean_year_4,
+          qol_mean_year_5,
+          year
+        ) %>%
+        drop_na(qol_mean_year_1) %>%
+        mutate(
+          qol_mean_year_0 = baseline_qol_mean,
+          # Discount QoL values
+          qol_mean_year_1 = case_when(
+            qol_mean_year_1 > 2 ~ qol_mean_year_1 / 1.035,
+            TRUE ~ qol_mean_year_1 * 1.035
+          ),
+          qol_mean_year_2 = case_when(
+            qol_mean_year_2 > 2 ~ qol_mean_year_2 / (1.035 ^ 2),
+            TRUE ~ qol_mean_year_2 * (1.035 ^ 2)
+          ),
+          qol_mean_year_3 = case_when(
+            qol_mean_year_3 > 2 ~ qol_mean_year_3 / (1.035 ^ 3),
+            TRUE ~ qol_mean_year_3 * (1.035 ^ 3)
+          ),
+          qol_mean_year_4 = case_when(
+            qol_mean_year_4 > 2 ~ qol_mean_year_4 / (1.035 ^ 4),
+            TRUE ~ qol_mean_year_4 * (1.035 ^ 4)
+          ),
+          qol_mean_year_5 = case_when(
+            qol_mean_year_5 > 2 ~ qol_mean_year_5 / (1.035 ^ 5),
+            TRUE ~ qol_mean_year_5 * (1.035 ^ 5)
+          ),
+          
+          # Calculate 5-year QALY (excluding baseline year 0)
+          qaly_5yr = case_when(
+            qol_mean_year_1 > 2 ~ (qol_mean_year_1 / 60) + (qol_mean_year_2 / 60) + 
+              (qol_mean_year_3 / 60) + (qol_mean_year_4 / 60) + 
+              (qol_mean_year_5 / 60),
+            TRUE ~ qol_mean_year_1 + qol_mean_year_2 + qol_mean_year_3 + 
+              qol_mean_year_4 + qol_mean_year_5
+          )
+        )
+      
+      cohort[[i]] <- data1
+    }
+    
+    # list format
+  } else {
+    
+    cohort <- list()
+    
+    for (i in 1:9){
+      
+      data1 <- data[[i]] %>% 
+        select(
+          id,
+          auc_target,
+          baseline_qol_mean,
+          qol_mean_year_1,
+          qol_mean_year_2,
+          qol_mean_year_3,
+          qol_mean_year_4,
+          qol_mean_year_5,
+          year
+        ) %>%
+        drop_na(qol_mean_year_1) %>%
+        mutate(
+          qol_mean_year_0 = baseline_qol_mean,
+          # Discount QoL values
+          qol_mean_year_1 = case_when(
+            qol_mean_year_1 > 2 ~ qol_mean_year_1 / 1.035,
+            TRUE ~ qol_mean_year_1 * 1.035
+          ),
+          qol_mean_year_2 = case_when(
+            qol_mean_year_2 > 2 ~ qol_mean_year_2 / (1.035 ^ 2),
+            TRUE ~ qol_mean_year_2 * (1.035 ^ 2)
+          ),
+          qol_mean_year_3 = case_when(
+            qol_mean_year_3 > 2 ~ qol_mean_year_3 / (1.035 ^ 3),
+            TRUE ~ qol_mean_year_3 * (1.035 ^ 3)
+          ),
+          qol_mean_year_4 = case_when(
+            qol_mean_year_4 > 2 ~ qol_mean_year_4 / (1.035 ^ 4),
+            TRUE ~ qol_mean_year_4 * (1.035 ^ 4)
+          ),
+          qol_mean_year_5 = case_when(
+            qol_mean_year_5 > 2 ~ qol_mean_year_5 / (1.035 ^ 5),
+            TRUE ~ qol_mean_year_5 * (1.035 ^ 5)
+          ),
+          
+          # Calculate 5-year QALY (excluding baseline year 0)
+          qaly_5yr = case_when(
+            qol_mean_year_1 > 2 ~ (qol_mean_year_1 / 60) + (qol_mean_year_2 / 60) + 
+              (qol_mean_year_3 / 60) + (qol_mean_year_4 / 60) + 
+              (qol_mean_year_5 / 60),
+            TRUE ~ qol_mean_year_1 + qol_mean_year_2 + qol_mean_year_3 + 
+              qol_mean_year_4 + qol_mean_year_5
+          )
+        )
+      
+      cohort[[i]] <- data1
+    }
+    
   }
   return(cohort)
 }
-
 
 ### 12.3.2 2016 ####
 qol_2016_xr_min_stripped <- strip_out_qol(qol_2016_xr_min)
@@ -368,244 +469,558 @@ auc_0.85_for_icer <- aggregate_qol_and_cost_cohorts(auc_target = 7)
 auc_0.9_for_icer <- aggregate_qol_and_cost_cohorts(auc_target = 8)
 auc_0.95_for_icer <- aggregate_qol_and_cost_cohorts(auc_target = 9)
 
-### 12.4.3 Set baseline for comparison => AUC 0.55, XR FU, Min FU ####
-baseline_for_icer <- auc_0.55_for_icer %>% filter(cohort_type == "Minimum FU, XR")
-  
-  
-## 12.5 Calculate ICER ####  
-### 12.5.1 Function to get cost/qaly differences ####
-#### 12.5.1.1 Helper functions ####
-get_annual <- function(df) {
-  df %>%
-    mutate(
-      annual_cost = dplyr::case_when(
-        year == 2016 ~ cost_year_5,
-        year == 2017 ~ cost_year_4,
-        year == 2018 ~ cost_year_3,
-        year == 2019 ~ cost_year_2,
-        year == 2020 ~ cost_year_1
-      ),
-      annual_qaly = dplyr::case_when(
-        year == 2016 ~ qol_mean_year_5,
-        year == 2017 ~ qol_mean_year_4,
-        year == 2018 ~ qol_mean_year_3,
-        year == 2019 ~ qol_mean_year_2,
-        year == 2020 ~ qol_mean_year_1
-      ) / 60,
-      annual_se = dplyr::case_when(
-        year == 2016 ~ qol_se_year_5,
-        year == 2017 ~ qol_se_year_4,
-        year == 2018 ~ qol_se_year_3,
-        year == 2019 ~ qol_se_year_2,
-        year == 2020 ~ qol_se_year_1
-      ) / 60
-    ) %>%
-    summarise(
-      mean_cost = mean(annual_cost, na.rm = TRUE),
-      mean_qaly = mean(annual_qaly, na.rm = TRUE),
-      se_qaly   = mean(annual_se, na.rm = TRUE)
-    )
-}
-
-run_single_iteration <- function(iter, baseline_data, intervention_data) {
-  
-  baseline_sample <- baseline_data[sample.int(nrow(baseline_data), nrow(baseline_data), TRUE), ]
-  intervention_sample <- intervention_data[sample.int(nrow(intervention_data), nrow(intervention_data), TRUE), ]
-  
-  baseline_vals <- get_annual(baseline_sample)
-  intervention_vals <- get_annual(intervention_sample)
-  
-  qaly_baseline <- rnorm(1, baseline_vals$mean_qaly, baseline_vals$se_qaly)
-  qaly_intervention <- rnorm(1, intervention_vals$mean_qaly, intervention_vals$se_qaly)
-  
-  cost_diff <- intervention_vals$mean_cost - baseline_vals$mean_cost
-  qaly_diff <- qaly_intervention - qaly_baseline
-  
-  tibble(
-    cost_diff = cost_diff,
-    qaly_diff = qaly_diff,
-    icer      = cost_diff / qaly_diff
+### 12.4.3 Set baseline for comparison => AUC 0.55, XR + US FU, Min FU ####
+baseline_for_icer <- auc_0.55_for_icer %>% 
+  filter(cohort_type == "Minimum FU, XR + US") %>%
+  dplyr::select(
+    id,
+    year,
+    qaly_5yr,
+    total_cost
   )
-}
-
-
-#### 12.5.5.2 Main MC simulation for ICER calculation ####
-monte_carlo_icer_parallel <- function(data,
-                                      baseline_cohort = "Minimum FU, XR",
-                                      n_iterations = 1000,
-                                      n_cores = parallel::detectCores() - 1) {
   
-  set.seed(1234)
   
-  plan(multisession, workers = n_cores)
-  message("Using ", n_cores, " cores for parallel processing")
+## 12.5 Calculate ICER - Compare to AUC 0.55, Minimum FU XR + US ####  
+### 12.5.1 Function to calculate ICER ####
+calculate_icer <- function(intervention_data) {
   
-  auc_data <- data %>% mutate(cost_year_5 = ifelse(is.na(cost_year_5), 0, cost_year_5))
+  intervention_data$cohort_type <- as.factor(intervention_data$cohort_type)
+  cohort_types <- levels(intervention_data$cohort_type)
+  wtp = 20000
   
-  baseline_data <- baseline_for_icer %>%
-    filter(cohort_type == baseline_cohort) %>%
-    mutate(cost_year_5 = ifelse(is.na(cost_year_5), 0, cost_year_5))
+  # Initialize results dataframe
+  results <- data.frame()
   
-  comparison_cohorts <- if (unique(auc_data$auc_target)[1] == 0.55) {
-    unique(auc_data$cohort_type[auc_data$cohort_type != baseline_cohort])
-  } else {
-    unique(auc_data$cohort_type)
+  # Loop through each cohort_type with AUC 0.55 & Minimum FU, XR as baseline
+  for (cohort in cohort_types) {
+    
+    # Filter intervention data for this cohort 
+    intervention_subset <- intervention_data %>%
+      filter(cohort_type == cohort)
+    
+    # Calculate means for baseline (from total_cost and qaly_5yr)
+    baseline_mean_cost <- mean(baseline_for_icer$total_cost, na.rm = TRUE)
+    baseline_mean_cost_sd <- sd(baseline_for_icer$total_cost, na.rm = TRUE)
+    baseline_mean_qaly <- mean(baseline_for_icer$qaly_5yr, na.rm = TRUE)
+    baseline_mean_qaly_sd <- sd(baseline_for_icer$qaly_5yr, na.rm = TRUE)
+    baseline_n <- nrow(baseline_for_icer)
+    
+    # Calculate means for intervention (from total_cost and qaly_5yr)
+    intervention_mean_cost <- mean(intervention_subset$total_cost, na.rm = TRUE)
+    intervention_mean_cost_sd <- sd(intervention_subset$total_cost, na.rm = TRUE)
+    intervention_mean_qaly <- mean(intervention_subset$qaly_5yr, na.rm = TRUE)
+    intervention_mean_qaly_sd <- sd(intervention_subset$qaly_5yr, na.rm = TRUE)
+    intervention_n <- nrow(intervention_subset)
+    
+    # Calculate incremental values (using mean differences)
+    incremental_cost <- intervention_mean_cost - baseline_mean_cost
+    incremental_qaly <- intervention_mean_qaly - baseline_mean_qaly
+    
+    # Calculate ICER (handle division by zero)
+    if (incremental_qaly != 0) {
+      icer <- incremental_cost / incremental_qaly
+    } else {
+      icer <- NA 
+    }
+    
+    # Calculate incremental NMB using mean values (this is the correct approach)
+    incremental_nmb <- wtp * incremental_qaly - incremental_cost
+    
+    # Calculate NMB for each group (for reference)
+    baseline_nmb <- wtp * baseline_mean_qaly - baseline_mean_cost
+    intervention_nmb <- wtp * intervention_mean_qaly - intervention_mean_cost
+    
+    # Calculate probability of cost-effectiveness using paired data
+    incremental_data <- intervention_subset %>%
+      inner_join(
+        baseline_for_icer %>%
+          select(id, 
+                 base_cost = total_cost, 
+                 base_qaly = qaly_5yr, 
+                 year),
+        by = c("id", "year")
+      ) %>%
+      mutate(
+        inc_cost = total_cost - base_cost,
+        inc_qaly = qaly_5yr - base_qaly,
+        nmb = wtp * inc_qaly - inc_cost
+      )
+    
+    # Probability cost-effective = proportion where incremental NMB > 0
+    # (i.e., new strategy provides positive net benefit)
+    prob_cost_effective <- mean(incremental_data$nmb > 0, na.rm = TRUE)
+    
+    # Determine cost-effectiveness based on incremental NMB
+    cost_effective_decision <- case_when(
+      is.na(icer) ~ "No QALY difference",
+      incremental_qaly < 0 & incremental_cost > 0 ~ "Baseline Dominant (worse QoL, higher cost)",
+      incremental_qaly > 0 & incremental_cost < 0 ~ "New FU Strategy Dominant (better QoL, lower cost)",
+      incremental_nmb > 0 ~ "New FU Strategy Cost-effective",
+      incremental_nmb <= 0 ~ "Not Cost-effective",
+      TRUE ~ "Unclear"
+    )
+    
+    # Store results
+    result_row <- tibble(
+      "Cohort Type" = cohort,
+      "Iterations, n" = intervention_n,
+      "Baseline, Mean Cost ± SD (£)" = paste0(
+        round(baseline_mean_cost, 0), " ± ", round(baseline_mean_cost_sd, 0)
+      ),
+      "New FU Strategy, Mean Cost ± SD (£)" = paste0(
+        round(intervention_mean_cost, 0), " ± ", round(intervention_mean_cost_sd, 0)
+      ),
+      "Incremental Cost (£)" = round(incremental_cost, 0),
+      "Baseline, Mean QALYs ± SD (EQ-5D)" = paste0(
+        round(baseline_mean_qaly, 2), " ± ", round(baseline_mean_qaly_sd, 2)
+      ),
+      "New FU Strategy, Mean QALYs ± SD (EQ-5D)" = paste0(
+        round(intervention_mean_qaly, 2), " ± ", round(intervention_mean_qaly_sd, 2)
+      ),
+      "Incremental QALYs" = round(incremental_qaly, 4),
+      "ICER (£/QALY)" = ifelse(!is.na(icer), round(icer, 0), NA),
+      "Baseline NMB (£)" = round(baseline_nmb, 0),
+      "New FU Strategy NMB (£)" = round(intervention_nmb, 0),
+      "Incremental NMB (£)" = round(incremental_nmb, 0),
+      "Probability Cost-Effective" = round(prob_cost_effective, 2),
+      "Cost-Effectiveness Decision" = cost_effective_decision
+    )
+    
+    results <- rbind(results, result_row)
   }
   
-  all_results <- purrr::map_dfr(comparison_cohorts, function(cohort) {
-    
-    message("\n📌 Starting parallel simulations for cohort: ", cohort)
-    
-    intervention_data <- auc_data %>% filter(cohort_type == cohort)
-    
-    results_df <- future_map2_dfr(
-      1:n_iterations,
-      1:n_iterations,    
-      ~ run_single_iteration(.x, baseline_data, intervention_data),
-      .progress = TRUE,
-      .options = furrr::furrr_options(seed = TRUE)
-    )
-
-    results_df <- results_df %>%
-      mutate(
-        cohort_type = cohort,
-        iteration = 1:n_iterations
-      ) %>%
-      select(cohort_type, iteration, cost_diff, qaly_diff, icer)
-    
-    # summary logs
-    message("\n✅ Finished cohort: ", cohort)
-    finite_icers <- results_df$icer[is.finite(results_df$icer)]
-    message("   → Mean ICER: £", format(round(mean(finite_icers), 0), big.mark = ","))
-    message("   → Median ICER: £", format(round(median(finite_icers), 0), big.mark = ","))
-    message("   → 95% CI: [£",
-            format(round(quantile(finite_icers, 0.025), 0), big.mark = ","),
-            " to £",
-            format(round(quantile(finite_icers, 0.975), 0), big.mark = ","), "]")
-    
-    results_df
-  })
-  
-  plan(sequential)
-  message("\n🎉 All simulations completed successfully.")
-  
-  all_results
+  return(results)
 }
 
-### 12.5.5 Compare baseline against other FU lengths/modalities ####
-wtp <- 20000
 
-#### 12.5.5.1 AUC = 0.55 ####
-icer_0.55 <- monte_carlo_icer_parallel(auc_0.55_for_icer, 
-                                       n_iterations = 1000)
+### 12.5.2 AUC 0.55 ####
+icer_0.55 <- calculate_icer(auc_0.55_for_icer)
 
+### 12.5.3 AUC 0.6 ####
+icer_0.6 <- calculate_icer(auc_0.6_for_icer)
 
-icer_0.55$cohort_type <- as.factor(icer_0.55$cohort_type)
+### 12.5.4 AUC 0.65 ####
+icer_0.65 <- calculate_icer(auc_0.65_for_icer)
 
-#### 12.5.5.1 AUC = 0.6 ####
-icer_0.6 <- monte_carlo_icer_parallel(
-  auc_0.6_for_icer,
-  n_iterations = 1000
-)
+### 12.5.5 AUC 0.7 ####
+icer_0.7 <- calculate_icer(auc_0.7_for_icer)  
 
-icer_0.6$cohort_type <- as.factor(icer_0.6$cohort_type)
+### 12.5.6 AUC 0.75 ####
+icer_0.75 <- calculate_icer(auc_0.75_for_icer)
 
-#### 12.5.5.3 AUC = 0.65 ####
-icer_0.65 <- monte_carlo_icer_parallel(
-  auc_0.65_for_icer,
-  n_iterations = 1000
-)
-icer_0.65$cohort_type <- as.factor(icer_0.65$cohort_type)
+### 12.5.7 AUC 0.8 ####
+icer_0.8 <- calculate_icer(auc_0.8_for_icer)
 
-#### 12.5.5.4 AUC = 0.7 ####
-icer_0.7 <- monte_carlo_icer_parallel(
-  auc_0.7_for_icer,
-  n_iterations = 1000
-)
+### 12.5.8 AUC 0.85 ####
+icer_0.85 <- calculate_icer(auc_0.85_for_icer)
 
-icer_0.7$cohort_type <- as.factor(icer_0.7$cohort_type)
+### 12.5.9 AUC 0.9 ####
+icer_0.9 <- calculate_icer(auc_0.9_for_icer)
 
-#### 12.5.5.5 AUC = 0.75 ####
-icer_0.75 <- monte_carlo_icer_parallel(
-  auc_0.75_for_icer,
-  n_iterations = 1000
-)
-icer_0.75$cohort_type <- as.factor(icer_0.75$cohort_type)
+### 12.5.10 AUC 0.95 ####
+icer_0.95 <- calculate_icer(auc_0.95_for_icer)
 
-#### 12.5.5.6 AUC = 0.8 ####
-icer_0.8 <- monte_carlo_icer_parallel(
-  auc_0.8_for_icer,
-  n_iterations = 1000
-)
+### 12.5.11 Tabulate all results ####
+icer_results <- bind_rows(
+  icer_0.55 %>% mutate(auc = 0.55),
+  icer_0.6 %>% mutate(auc = 0.6),
+  icer_0.65 %>% mutate(auc = 0.65),
+  icer_0.7 %>% mutate(auc = 0.7),
+  icer_0.75 %>% mutate(auc = 0.75),
+  icer_0.8 %>% mutate(auc = 0.8),
+  icer_0.85 %>% mutate(auc = 0.85),
+  icer_0.9 %>% mutate(auc = 0.9),
+  icer_0.95 %>% mutate(auc = 0.95)
+) %>% select(auc, everything())
 
-icer_0.8$cohort_type <- as.factor(icer_0.8$cohort_type)
-
-#### 12.5.5.7 AUC = 0.85 ####
-icer_0.85 <- monte_carlo_icer_parallel(
-  auc_0.85_for_icer,
-  n_iterations = 1000
-)
-icer_0.85$cohort_type <- as.factor(icer_0.85$cohort_type)
-
-#### 12.5.5.8 AUC = 0.9 ####
-icer_0.9 <- monte_carlo_icer_parallel(
-  auc_0.9_for_icer,
-  n_iterations = 1000
-)
-
-icer_0.9$cohort_type <- as.factor(icer_0.9$cohort_type)
-
-#### 12.5.5.9 AUC = 0.95 ####
-icer_0.95 <- monte_carlo_icer_parallel(
-  auc_0.95_for_icer,
-  n_iterations = 1000
-)
-icer_0.95$cohort_type <- as.factor(icer_0.95$cohort_type)
-
-# Compute mean ICER per cohort
-icer_slopes <- icer_0.95 %>%
-  group_by(cohort_type) %>%
-  summarise(mean_icer = mean(icer, na.rm = TRUE))
-
-# Merge slopes into data
-plot_data <- icer_0.95 %>%
-  left_join(icer_slopes, by = "cohort_type")
-
-ggplot(plot_data, aes(x = qaly_difference, y = cost_difference)) +
-  geom_point(alpha = 0.4, size = 1.5) +
-  facet_wrap(~ cohort_type, scales = "free") +
+## 12.6 ICER - Compare Between all cohorts ####
+### 12.6.1 Function to calculate ICER ####
+calculate_all_icer <- function(intervention_data) {
   
-  geom_abline(aes(slope = mean_icer, intercept = 0),
-              colour = "red", linewidth = 1) +
+  intervention_data$cohort_type <- as.factor(intervention_data$cohort_type)
+  cohort_types <- levels(intervention_data$cohort_type)
+  binary_comparisons <- combn(cohort_types, 2) %>%
+    t() %>%
+    as_tibble(.name_repair = "minimal") %>%
+    setNames(c("group_1", "group_2"))
+  wtp = 20000
   
-  geom_hline(yintercept = 0, color = "black", linewidth = 0.5) +
-  geom_vline(xintercept = 0, color = "black", linewidth = 0.5) +
+  # Initialize results dataframe
+  results <- data.frame()
   
-  geom_text(
-    data = icer_slopes,
-    aes(
-      x = -Inf, y = Inf,
-      label = paste0("Mean ICER: £", format(round(mean_icer, 0), big.mark = ","))
-    ),
-    hjust = -0.1, vjust = 1.2,
-    size = 3.5, fontface = "bold"
-  ) +
+  # Loop through each combination of cohort_type 
+  for (i in seq_len(nrow(binary_comparisons))) {
+    
+    baseline_cohort     <- binary_comparisons$group_1[i] 
+    intervention_cohort <- binary_comparisons$group_2[i]
+    
+    # Filter baseline data
+    baseline_subset <- intervention_data %>%
+      filter(cohort_type == baseline_cohort) %>%
+      dplyr::select(
+        id,
+        year,
+        cohort_type,
+        qaly_5yr,
+        total_cost
+      )
+    
+    # Filter intervention data
+    intervention_subset <- intervention_data %>%
+      filter(cohort_type == intervention_cohort) %>%
+      dplyr::select(
+        id,
+        year,
+        cohort_type,
+        qaly_5yr,
+        total_cost
+      )
+    
+    # Calculate means for baseline
+    baseline_mean_cost <- mean(baseline_subset$total_cost, na.rm = TRUE)
+    baseline_mean_qaly <- mean(baseline_subset$qaly_5yr, na.rm = TRUE)
+    baseline_n <- nrow(baseline_subset)
+    
+    # Calculate means for intervention
+    intervention_mean_cost <- mean(intervention_subset$total_cost, na.rm = TRUE)
+    intervention_mean_qaly <- mean(intervention_subset$qaly_5yr, na.rm = TRUE)
+    intervention_n <- nrow(intervention_subset)
+    
+    # Calculate incremental values
+    incremental_cost <- intervention_mean_cost - baseline_mean_cost
+    incremental_qaly <- intervention_mean_qaly - baseline_mean_qaly
+    
+    # Calculate ICER (handle division by zero)
+    if (incremental_qaly != 0) {
+      icer <- incremental_cost / incremental_qaly
+    } else {
+      icer <- NA 
+    }
+    
+    # Calculate incremental NMB using mean values
+    incremental_nmb <- wtp * incremental_qaly - incremental_cost
+    
+    # Calculate NMB for each group
+    baseline_nmb <- wtp * baseline_mean_qaly - baseline_mean_cost
+    intervention_nmb <- wtp * intervention_mean_qaly - intervention_mean_cost
+    
+    # Calculate probability of cost-effectiveness using paired data
+    incremental_data <- intervention_subset %>%
+      inner_join(
+        baseline_subset %>%
+          select(id, 
+                 base_cost = total_cost, 
+                 base_qaly = qaly_5yr, 
+                 year),
+        by = c("id", "year")
+      ) %>%
+      mutate(
+        inc_cost = total_cost - base_cost,
+        inc_qaly = qaly_5yr - base_qaly,
+        nmb = wtp * inc_qaly - inc_cost
+      )
+    
+    # Probability cost-effective = proportion where incremental NMB > 0
+    prob_cost_effective <- mean(incremental_data$nmb > 0, na.rm = TRUE)
+    
+    # Determine cost-effectiveness
+    cost_effective_decision <- case_when(
+      is.na(icer) ~ "No QALY difference",
+      incremental_qaly < 0 & incremental_cost > 0 ~ "Group 1 Dominant",
+      incremental_qaly > 0 & incremental_cost < 0 ~ "Group 2 Dominant",
+      incremental_nmb > 0 ~ "Group 2 Cost-effective",
+      incremental_nmb <= 0 ~ "Not Cost-effective",
+      TRUE ~ "Unclear"
+    )
+    
+    # Store results
+    result_row <- tibble(
+      "Group 1" = baseline_cohort,
+      "Group 2" = intervention_cohort,
+      "Group 1, n" = baseline_n,
+      "Group 2, n" = intervention_n,
+      "Group 1 Mean Cost (£)" = round(baseline_mean_cost, 2),
+      "Group 2 Mean Cost (£)" = round(intervention_mean_cost, 2),
+      "Incremental Cost (£)" = round(incremental_cost, 2),
+      "Group 1 Mean QALY" = round(baseline_mean_qaly, 4),
+      "Group 2 Mean QALY" = round(intervention_mean_qaly, 4),
+      "Incremental QALY" = round(incremental_qaly, 4),
+      "ICER (£/QALY)" = round(icer, 0),
+      "Group 1 NMB (£)" = round(baseline_nmb, 0),
+      "Group 2 NMB (£)" = round(intervention_nmb, 0),
+      "Incremental NMB (£)" = round(incremental_nmb, 0),
+      "Probability Cost-Effective" = round(prob_cost_effective, 2),
+      "Cost-Effectiveness Decision" = cost_effective_decision
+    )
+    
+    results <- rbind(results, result_row)
+  }
   
-  # Axes labels
-  labs(
-    title = "Cost vs QALY Differences (Monte Carlo ICER Simulation)",
-    x = "Δ QALY",
-    y = "Δ Cost (£)"
-  ) +
+  return(results)
+}
+
+
+### 12.6.2 AUC 0.55 ####
+icer_all_0.55 <- calculate_all_icer(auc_0.55_for_icer)
+
+### 12.6.3 AUC 0.6 ####
+icer_all_0.6 <- calculate_all_icer(auc_0.6_for_icer)
+
+### 12.6.4 AUC 0.65 ####
+icer_all_0.65 <- calculate_all_icer(auc_0.65_for_icer)
+
+### 12.6.5 AUC 0.7 ####
+icer_all_0.7 <- calculate_all_icer(auc_0.7_for_icer)
+
+
+### 12.6.6 AUC 0.75 ####
+icer_all_0.75 <- calculate_all_icer(auc_0.75_for_icer)
+
+
+### 12.6.7 AUC 0.8 ####
+icer_all_0.8 <- calculate_all_icer(auc_0.8_for_icer)
+
+
+### 12.6.8 AUC 0.85 ####
+icer_all_0.85 <- calculate_all_icer(auc_0.85_for_icer)
+
+
+### 12.6.9 AUC 0.9 ####
+icer_all_0.9 <- calculate_all_icer(auc_0.9_for_icer)
+
+
+### 12.6.10 AUC 0.95 ####
+icer_all_0.95 <- calculate_all_icer(auc_0.95_for_icer)
+
+### 12.6.11 Tabulate all results ####
+icer_all_results <- bind_rows(
+  (icer_all_0.55 %>% mutate("auc" = 0.55)),
+  (icer_all_0.6 %>% mutate("auc" = 0.6)),
+  (icer_all_0.65 %>% mutate("auc" = 0.65)),
+  (icer_all_0.7 %>% mutate("auc" = 0.7)),
+  (icer_all_0.75 %>% mutate("auc" = 0.75)),
+  (icer_all_0.8 %>% mutate("auc" = 0.8)),
+  (icer_all_0.85 %>% mutate("auc" = 0.85)),
+  (icer_all_0.9 %>% mutate("auc" = 0.9)),
+  (icer_all_0.95 %>% mutate("auc" = 0.95))
+) %>%
+  select(auc, everything())
+
+## 12.7 Scatter plot and Cost-effectiveness Acceptability Curves ####
+### 12.7.1 Function to Generate Scatter plot ####
+plot_cost_effectiveness <- function(
+    data,
+    baseline_label = "Minimum FU, XR + US",
+    wtp = 20000,
+    wtp_range = seq(0, 50000, by = 100),
+    sample_n = 100000,
+    color_palette = NULL  
+) {
   
-  # Adjust scales to give some padding around zero
-  scale_x_continuous(expand = expansion(mult = 0.15)) +
-  scale_y_continuous(expand = expansion(mult = 0.15)) +
-  
-  theme_bw() +
-  theme(
-    strip.text = element_text(face = "bold"),
-    plot.title = element_text(size = 16, face = "bold"),
-    panel.spacing = unit(1, "lines")
+  # Ensure cohort_type is factor with consistent levels across ALL data
+  all_cohort_levels <- c(
+    "Minimum FU, XR + US",
+    "Maximum FU, XR + US",
+    "Minimum FU, XR",
+    "Maximum FU, XR",
+    "Minimum FU, CT",
+    "Maximum FU, CT"
   )
+  
+  data <- data %>%
+    mutate(cohort_type = factor(cohort_type, levels = all_cohort_levels))
+  
+  # Baseline data
+  baseline_data <- baseline_for_icer
+  
+  # Incremental data (excluding baseline)
+  incremental_cohort_levels <- all_cohort_levels
+  
+  incremental_data <- data %>%
+    inner_join(
+      baseline_data %>%
+        select(id, base_cost = total_cost, base_qaly = qaly_5yr, year),
+      by = c("id", "year")
+    ) %>%
+    mutate(
+      inc_cost = total_cost - base_cost,
+      inc_qaly = qaly_5yr - base_qaly,
+      cohort_type = factor(cohort_type, levels = incremental_cohort_levels)
+    )
+  
+  # Create consistent color palette
+  if (is.null(color_palette)) {
+    n_cohorts <- length(incremental_cohort_levels)
+    color_palette <- scales::hue_pal()(n_cohorts)
+    names(color_palette) <- incremental_cohort_levels
+  }
+  
+  # Summary table
+  summary_table <- incremental_data %>%
+    group_by(cohort_type) %>%
+    summarise(
+      baseline_n = n_distinct(id),
+      intervention_n = n(),
+      incremental_cost = mean(inc_cost, na.rm = TRUE),
+      incremental_qaly = mean(inc_qaly, na.rm = TRUE),
+      icer = incremental_cost / incremental_qaly,
+      incremental_nmb = wtp * incremental_qaly - incremental_cost,
+      prob_cost_effective = mean(
+        (wtp * inc_qaly - inc_cost) > 0,
+        na.rm = TRUE
+      ),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      ce_decision = case_when(
+        incremental_qaly < 0 & incremental_cost > 0 ~ "Baseline Dominates",
+        incremental_qaly > 0 & incremental_cost < 0 ~ "Novel FU Dominates",
+        incremental_nmb > 0 ~ "Novel FU Cost-effective",
+        TRUE ~ "Not cost-effective"
+      )
+    )
+  
+  # CE plane
+  ce_plane <- incremental_data %>% 
+    slice_sample(n = sample_n) %>%
+    ggplot(aes(x = inc_qaly, y = inc_cost, colour = cohort_type)) +
+    facet_wrap(. ~ cohort_type, drop = FALSE) +
+    geom_point(alpha = 0.15, size = 0.6) +
+    geom_hline(yintercept = 0, linetype = "solid", color = "gray50") +
+    geom_vline(xintercept = 0, linetype = "solid", color = "gray50") +
+    geom_abline(slope = wtp, intercept = 0, linetype = "dashed", color = "black") + 
+    scale_colour_manual(
+      values = color_palette,
+      drop = FALSE,
+      name = "Cohort Type"
+    ) +
+    labs(
+      x = "Incremental QALYs",
+      y = "Incremental Costs (£)"
+    ) +
+    theme_minimal() +
+    theme(
+      legend.position = "none"
+    ) + ylim(c(-1000,1000)) + xlim(c(-1.5, 1.5)) + guides(colour = "none")
+  
+  # CEAC
+  incremental_data1 <- incremental_data %>%
+    slice_sample(n = sample_n)
+  
+  ceac <- expand_grid(
+    cohort_type = incremental_cohort_levels,
+    wtp = wtp_range
+  ) %>%
+    mutate(cohort_type = factor(cohort_type, levels = incremental_cohort_levels)) %>%
+    left_join(incremental_data1, by = "cohort_type") %>%
+    mutate(nmb = wtp * inc_qaly - inc_cost) %>%
+    group_by(cohort_type, wtp) %>%
+    summarise(
+      prob_ce = mean(nmb > 0, na.rm = TRUE),
+      .groups = "drop"
+    )
+  
+  ceac_plot <- ggplot(
+    ceac,
+    aes(x = wtp, y = prob_ce, colour = cohort_type)
+  ) +
+    geom_line(linewidth = 1) +
+    geom_vline(xintercept = wtp, linetype = "dashed", color = "gray50") +
+    scale_colour_manual(
+      values = color_palette,
+      drop = FALSE,
+      name = "Cohort Type"
+    ) +
+    labs(
+      x = "Willingness-to-pay (£/QALY)",
+      y = "Probability of Cost-Effectiveness",
+      title = paste0("AUC ", unique(incremental_data$auc_target))
+    ) +
+    theme_minimal() +
+    theme(
+      legend.position = "bottom",
+      legend.title = element_text(face = "bold")
+    ) + xlim(c(0,30000))
+  
+  # Return
+  list(
+    summary_table = summary_table,
+    ce_plane = ce_plane,
+    ceac = ceac_plot,
+    incremental_data = incremental_data,
+    color_palette = color_palette  
+  )
+}
 
+
+### 12.7.2 AUC 0.55 ####
+icer_0.55_plots <- plot_cost_effectiveness(auc_0.55_for_icer)
+icer_0.55_plots$summary_table %>% gt()
+auc_0.55_icer_plots <- icer_0.55_plots$ce_plane + 
+  icer_0.55_plots$ceac + 
+  plot_annotation(tag_levels = "A") 
+auc_0.55_icer_plots & theme_bw()
+
+### 12.7.3 AUC 0.6 ####
+icer_0.6_plots <- plot_cost_effectiveness(auc_0.6_for_icer)
+icer_0.6_plots$summary_table %>% gt()
+auc_0.6_icer_plots <- icer_0.6_plots$ce_plane + 
+  icer_0.6_plots$ceac + 
+  plot_annotation(tag_levels = "A") 
+auc_0.6_icer_plots & theme_bw()
+
+### 12.7.4 AUC 0.65 ####
+icer_0.65_plots <- plot_cost_effectiveness(auc_0.65_for_icer)
+icer_0.65_plots$summary_table %>% gt()
+auc_0.65_icer_plots <- icer_0.65_plots$ce_plane + 
+  icer_0.65_plots$ceac + 
+  plot_annotation(tag_levels = "A") 
+auc_0.65_icer_plots & theme_bw()
+
+### 12.7.5 AUC 0.7 ####
+icer_0.7_plots <- plot_cost_effectiveness(auc_0.7_for_icer)
+icer_0.7_plots$summary_table %>% gt()
+auc_0.7_icer_plots <- icer_0.7_plots$ce_plane + 
+  icer_0.7_plots$ceac + 
+  plot_annotation(tag_levels = "A") 
+auc_0.7_icer_plots & theme_bw()
+
+### 12.7.6 AUC 0.75 ####
+icer_0.75_plots <- plot_cost_effectiveness(auc_0.75_for_icer)
+icer_0.75_plots$summary_table %>% gt()
+auc_0.75_icer_plots <- icer_0.75_plots$ce_plane + 
+  icer_0.75_plots$ceac + 
+  plot_annotation(tag_levels = "A") 
+auc_0.75_icer_plots & theme_bw()
+
+### 12.7.7 AUC 0.8 ####
+icer_0.8_plots <- plot_cost_effectiveness(auc_0.8_for_icer)
+icer_0.8_plots$summary_table %>% gt()
+auc_0.8_icer_plots <- icer_0.8_plots$ce_plane + 
+  icer_0.8_plots$ceac + 
+  plot_annotation(tag_levels = "A") 
+auc_0.8_icer_plots & theme_bw()
+
+### 12.7.8 AUC 0.85 ####
+icer_0.85_plots <- plot_cost_effectiveness(auc_0.85_for_icer)
+icer_0.85_plots$summary_table %>% gt()
+auc_0.85_icer_plots <- icer_0.85_plots$ce_plane + 
+  icer_0.85_plots$ceac + 
+  plot_annotation(tag_levels = "A") 
+auc_0.85_icer_plots & theme_bw()
+
+### 12.7.9 AUC 0.9 ####
+icer_0.9_plots <- plot_cost_effectiveness(auc_0.9_for_icer)
+icer_0.9_plots$summary_table %>% gt()
+auc_0.9_icer_plots <- icer_0.9_plots$ce_plane + 
+  icer_0.9_plots$ceac + 
+  plot_annotation(tag_levels = "A") 
+auc_0.9_icer_plots & theme_bw()
+
+### 12.7.10 AUC 0.9 ####
+icer_0.95_plots <- plot_cost_effectiveness(auc_0.95_for_icer)
+icer_0.95_plots$summary_table %>% gt()
+auc_0.95_icer_plots <- icer_0.95_plots$ce_plane + 
+  icer_0.95_plots$ceac + 
+  plot_annotation(tag_levels = "A") 
+auc_0.95_icer_plots & theme_bw()
