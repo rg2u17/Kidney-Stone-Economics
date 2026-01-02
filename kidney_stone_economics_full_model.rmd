@@ -38,39 +38,39 @@ library(patchwork)
 
 # 1. Define Inputs
 ```{r}
-source("Model/1. Define Inputs.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/1. Define Inputs.R")
 ```
 \newpage
 
 # 2. Total Cost Calculation for Stone Free Patients
 ```{r}
-source("Model/2. Total Cost Calculation for Stone Free Patients.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/2. Total Cost Calculation for Stone Free Patients.R")
 ```
 \newpage
 
 # 3. Visualise Model 
 ```{r}
-source("Model/3. Visualise Model.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/3. Visualise Model.R")
 ```
 \newpage
 
 # 4. Distribution of Scores - Pick one!
 ## 4.1 Beta Distribution - e.g modelling a machine learning model output
 ```{r}
-source("Model/4. Model - Beta Distribution for Scores.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/4. Model - Beta Distribution for Scores.R")
 ```
 \newpage
 
 ## 4.2 Normal Distribution - e.g modelling a blood test output
 <br> **uncomment to run** <br>
 ```{r}
-#source("Model/4. Model - Normal Distribution for Scores.R")
+#source("~/Desktop/Kidney-Stone-Economics/Model/4. Model - Normal Distribution for Scores.R")
 ```
 \newpage
 
 # 5. Run Model
 ```{r}
-source("Model/5. Run Model.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/5. Run Model.R")
 ```
 \newpage
 
@@ -94,7 +94,7 @@ overall_simulation_plot
 
 # 6. Radiation Dose
 ```{r}
-source("Model/6. Radiation Dose.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/6. Radiation Dose.R")
 ```
 \newpage
 
@@ -162,7 +162,7 @@ data_for_plot %>% ggplot(aes(x = auc_label, y=cumulative_rad_dose, fill = risk_s
 
 # 7. Radiation Induced Malignancy
 ```{r}
-source("Model/7. Radiation Induced Malignancy.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/7. Radiation Induced Malignancy.R")
 ```
 \newpage
 
@@ -469,7 +469,7 @@ ggplot(malignancy_plot_data,
 ```{r}
 baseline_malignancies <- malignancy_plot_data %>%
   filter(auc_target == 0.55) %>%
-  filter(cohort_type == "Minimum FU, XR") %>%
+  filter(cohort_type == "Minimum FU, XR + US") %>%
   select(
     risk_status,
     grand_total_expected_malignancies,
@@ -578,7 +578,7 @@ baseline_malignancies_perc <- malignancy_plot_data %>%
                                     "Low Risk"))
   ) %>%
   filter(auc_target == 0.55) %>%
-  filter(cohort_type == "Minimum FU, XR") %>%
+  filter(cohort_type == "Minimum FU, XR + US") %>%
   select(
     risk_status,
     percentage,
@@ -623,8 +623,10 @@ baseline_malignancies_perc_plot <- malignancy_plot_data %>%
       cohort_type,
       levels = c(
         "Minimum FU, XR",
-        "Maximum FU, XR",
+        "Minimum FU, XR + US",
         "Minimum FU, CT",
+        "Maximum FU, XR",
+        "Maximum FU, XR + US",
         "Maximum FU, CT"
       )
     ),
@@ -685,7 +687,7 @@ baseline_malignancies_perc_plot
 
 # 8. Economic Costs - All Patients
 ```{r}
-source("Model/8. Economic Costs - All Patients.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/8. Economic Costs - All Patients.R")
 ```
 \newpage
 
@@ -714,7 +716,7 @@ summary_df_full_cost_data %>%
 ```{r}
 baseline_costs <- summary_df_full_cost_data %>%
   filter(auc_label == "AUC 0.55") %>%
-  filter(cohort_type == "Minimum FU, XR") %>%
+  filter(cohort_type == "Minimum FU, XR + US") %>%
   mutate(auc_label == "Baseline")
 
 baseline_cost_all <- baseline_costs %>%
@@ -824,7 +826,7 @@ summary_df_full_cost_data_all_patients <- summary_df_full_cost_data
 
 # 9. Economic Costs - Recurrence only
 ```{r}
-source("Model/9. Economic Costs - Recurrence only.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/9. Economic Costs - Recurrence only.R")
 ```
 \newpage
 
@@ -962,7 +964,7 @@ summary_df_rec_only %>% subset(risk_status == "All") %>% group_by(auc_label,
 
 # 10. Clinician Time - Number of Appointments
 ```{r}
-source("Model/10. Clinician Time.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/10. Clinician Time.R")
 ```
 \newpage
 
@@ -989,7 +991,7 @@ summary_df_appts %>% group_by(auc_label) %>% ggplot(aes(x = auc_label, y = total
 ```{r}
 baseline_appts <- summary_df_appts %>%
   filter(auc_label == "AUC 0.55") %>%
-  filter(cohort_type == "Minimum FU, XR") %>%
+  filter(cohort_type == "Minimum FU, XR + US") %>%
   mutate(auc_label == "Baseline")
 
 baseline_appt_all <- baseline_appts %>%
@@ -1057,7 +1059,7 @@ summary_df_appts %>%
 
 # 11. Quality of Life
 ```{r}
-source("Model/11. Quality of Life.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/11. Quality of Life.R")
 ```
 \newpage
 
@@ -1091,7 +1093,7 @@ summary_df_full_qol_data %>%
 ```{r}
 baseline_qaly_all1 <- summary_df_full_qol_data %>%
   filter(auc_label == "AUC 0.55") %>%
-  filter(cohort_type == "Minimum FU, XR") %>%
+  filter(cohort_type == "Minimum FU, XR + US") %>%
   select(
     risk_status,
     mean_qaly_5yr,
@@ -1180,13 +1182,32 @@ summary_df_full_qol_plot
 
 # 12. Calculate ICER 
 ```{r}
-source("Model/12. Calculate ICER.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/12. Calculate ICER.R")
+```
+\newpage
+
+## ICER Results:
+*Comparison to Minimum Length of Follow-up with XR or US* \n
+
+### AUC 0.55 only
+```{r}
+icer_0.55 %>% 
+  gt() %>%
+  gt_theme_nytimes()
+```
+\newpage
+
+### All AUCs
+```{r}
+icer_results %>% 
+  gt() %>% 
+  gt_theme_nytimes()
 ```
 \newpage
 
 # 13. CO2 Emissions
 ```{r}
-source("Model/13. Calculate CO2 emissions.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/13. Calculate CO2 emissions.R")
 ```
 \newpage
 
@@ -1200,11 +1221,11 @@ summary_df_full_cost_plot_paper1 <- summary_df_full_cost_data %>%
   mutate(
     cohort_type = factor(cohort_type,
                          levels = c(
-                           "Minimum FU, XR",
                            "Minimum FU, XR + US",
+                           "Minimum FU, XR",
                            "Minimum FU, CT",
-                           "Maximum FU, XR",
                            "Maximum FU, XR + US",
+                           "Maximum FU, XR",
                            "Maximum FU, CT"
                          )),
     total_cost = case_when(
@@ -1235,11 +1256,11 @@ summary_df_appts_plot_paper1 <- summary_df_appts %>%
   mutate(
     cohort_type = factor(cohort_type,
                          levels = c(
-                           "Minimum FU, XR",
                            "Minimum FU, XR + US",
+                           "Minimum FU, XR",
                            "Minimum FU, CT",
-                           "Maximum FU, XR",
                            "Maximum FU, XR + US",
+                           "Maximum FU, XR",
                            "Maximum FU, CT"
                          )),
     total_appts = case_when(
@@ -1275,10 +1296,12 @@ baseline_malignancies_perc_plot_paper1 <- malignancy_plot_data %>%
     cohort_type = factor(
       cohort_type,
       levels = c(
-        "Minimum FU, XR",
-        "Maximum FU, XR",
-        "Minimum FU, CT",
-        "Maximum FU, CT"
+        "Minimum FU, XR + US",
+                           "Minimum FU, XR",
+                           "Minimum FU, CT",
+                           "Maximum FU, XR + US",
+                           "Maximum FU, XR",
+                           "Maximum FU, CT"
       )
     ),
     risk_status = factor(risk_status,
@@ -1337,11 +1360,11 @@ summary_df_full_qol_plot_paper1 <- summary_df_full_qol_data %>%
   mutate(
     cohort_type = factor(cohort_type,
                          levels = c(
-                           "Minimum FU, XR",
                            "Minimum FU, XR + US",
+                           "Minimum FU, XR",
                            "Minimum FU, CT",
-                           "Maximum FU, XR",
                            "Maximum FU, XR + US",
+                           "Maximum FU, XR",
                            "Maximum FU, CT"
                          )),
     mean_qaly_5yr_comp = case_when(
@@ -1415,6 +1438,286 @@ paper_2_plot <- (
   plot_annotation(tag_levels = "A",
                   title = "Variations in Length/Imaging Modality of Follow-up Compared to Current Minimum Standard of Care") + plot_layout(axis_titles = "collect",
                                                                                                                                            guides = "collect")
+
+paper_2_plot
+```
+\newpage
+
+# 15. QoL - EQ-5D
+```{r}
+source("~/Desktop/Kidney-Stone-Economics/Model/11. Quality of Life - EQ-5D.R")
+```
+\newpage
+
+## Plot EQ-5D scores
+```{r}
+summary_df_full_qol_data_eq_5d %>% 
+  group_by(auc_label) %>%
+  ggplot(aes(x = auc_label, y = total_qol, fill = risk_status)) +
+  geom_col(
+    position = position_dodge(width = 0.8),
+    width = 0.7,
+    color = "black"
+  ) +
+  geom_errorbar(
+    aes(ymin = total_qol_lower, ymax = total_qol_upper),
+    position = position_dodge(width = 0.8),
+    width = 0.3
+  ) +
+  facet_wrap(~ cohort_type) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size = 10)) +
+  labs(title = "Annual Mean EQ-5D-5L score for EAU Follow-Up of those with Clinically Significant Disease",
+       x = "Cohort Type",
+       y = "EQ-5D-5L score",
+       fill = "Risk Status")
+```
+\newpage
+
+## Plot QALYs
+```{r}
+summary_df_full_qol_data_eq_5d %>% 
+  mutate(cohort_type = factor(cohort_type,
+                         levels = c(
+                           "Minimum FU, XR + US",
+                           "Minimum FU, XR",
+                           "Minimum FU, CT",
+                           "Maximum FU, XR + US",
+                           "Maximum FU, XR",
+                           "Maximum FU, CT"
+                         ))) %>%
+  group_by(auc_label) %>%
+  ggplot(aes(x = auc_label, y = mean_qaly_5yr, fill = risk_status)) +
+  geom_col(
+    position = position_dodge(width = 0.8),
+    width = 0.7,
+    color = "black"
+  ) +
+  geom_errorbar(
+    aes(ymin = lower_qaly_5yr, ymax = upper_qaly_5yr),
+    position = position_dodge(width = 0.8),
+    width = 0.3
+  ) +
+  facet_wrap(~ cohort_type) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size = 10)) +
+  labs(title = "Mean Quality Adjusted Life Years for EAU Follow-Up of those with Clinically Significant Disease",
+       x = "Cohort Type",
+       y = "Mean 5yr QALYs (EQ-5D-5L)",
+       fill = "Risk Status") + ylim(0,1)
+```
+\newpage
+
+## Plot QALYs vs baseline
+```{r}
+baseline_qaly_all1 <- summary_df_full_qol_data %>%
+  filter(auc_label == "AUC 0.55") %>%
+  filter(cohort_type == "Minimum FU, XR + US") %>%
+  select(
+    risk_status,
+    mean_qaly_5yr,
+    lower_qaly_5yr,
+    upper_qaly_5yr
+  )
+
+baseline_qaly_all <- (baseline_qaly_all1 %>%
+  filter(risk_status == "All"))$mean_qaly_5yr 
+baseline_qaly_hr <- (baseline_qaly_all1 %>%
+  filter(risk_status == "High Risk"))$mean_qaly_5yr 
+baseline_qaly_lr <- (baseline_qaly_all1 %>%
+  filter(risk_status == "Low Risk"))$mean_qaly_5yr 
+
+baseline_qaly_all_upper <- (baseline_qaly_all1 %>%
+  filter(risk_status == "All"))$upper_qaly_5yr 
+baseline_qaly_hr_upper <- (baseline_qaly_all1 %>%
+  filter(risk_status == "High Risk"))$upper_qaly_5yr 
+baseline_qaly_lr_upper <- (baseline_qaly_all1 %>%
+  filter(risk_status == "Low Risk"))$upper_qaly_5yr 
+
+baseline_qaly_all_lower <- (baseline_qaly_all1 %>%
+  filter(risk_status == "All"))$lower_qaly_5yr 
+baseline_qaly_hr_lower <- (baseline_qaly_all1 %>%
+  filter(risk_status == "High Risk"))$lower_qaly_5yr 
+baseline_qaly_lr_lower <- (baseline_qaly_all1 %>%
+  filter(risk_status == "Low Risk"))$lower_qaly_5yr 
+
+
+summary_df_full_qol_plot <- summary_df_full_qol_data %>% 
+  mutate(
+    cohort_type = factor(cohort_type,
+                         levels = c(
+                           "Minimum FU, XR + US",
+                           "Minimum FU, XR",
+                           "Minimum FU, CT",
+                           "Maximum FU, XR + US",
+                           "Maximum FU, XR",
+                           "Maximum FU, CT"
+                         )),
+    mean_qaly_5yr_comp = case_when(
+      risk_status == "All"       ~ mean_qaly_5yr - baseline_qaly_all,
+      risk_status == "High Risk" ~ mean_qaly_5yr - baseline_qaly_hr,
+      risk_status == "Low Risk"  ~ mean_qaly_5yr - baseline_qaly_lr,
+      TRUE ~ NA_real_
+    ),
+    lower_qaly_5yr_comp = case_when(
+      risk_status == "All"       ~ lower_qaly_5yr - baseline_qaly_all,
+      risk_status == "High Risk" ~ lower_qaly_5yr - baseline_qaly_hr,
+      risk_status == "Low Risk"  ~ lower_qaly_5yr - baseline_qaly_lr,
+      TRUE ~ NA_real_
+    ),
+    upper_qaly_5yr_comp = case_when(
+      risk_status == "All"       ~ upper_qaly_5yr - baseline_qaly_all,
+      risk_status == "High Risk" ~ upper_qaly_5yr - baseline_qaly_hr,
+      risk_status == "Low Risk"  ~ upper_qaly_5yr - baseline_qaly_lr,
+      TRUE ~ NA_real_
+    ),
+    .keep = "all"
+  ) %>%
+  group_by(auc_label) %>%
+  ggplot(aes(x = auc_label, y = mean_qaly_5yr_comp, fill = risk_status)) +
+  geom_col(
+    position = position_dodge(width = 0.8),
+    width = 0.7,
+    color = "black"
+  ) +
+  geom_errorbar(
+    aes(ymin = lower_qaly_5yr_comp, ymax = upper_qaly_5yr_comp),
+    position = position_dodge(width = 0.8),
+    width = 0.3
+  ) +
+  facet_wrap(~ cohort_type) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size = 10)) +
+  labs(title = "Quality of Life",
+       x = "Cohort Type",
+       y = "5yr QALYs Difference",
+       fill = "Risk Status") 
+
+summary_df_full_qol_plot
+```
+\newpage
+
+# 16. Calculate ICER with EQ-5D data
+```{r}
+source("~/Desktop/Kidney-Stone-Economics/Model/12. Calculate ICER.R")
+```
+\newpage
+
+## ICER Results:
+*Comparison to Minimum Length of Follow-up with XR or US* \n
+
+### AUC 0.55 only
+```{r}
+icer_0.55 %>% 
+  gt() %>%
+  gt_theme_nytimes()
+```
+\newpage
+
+### All AUCs
+*Baseline = AUC 0.55, Minimum FU, XR + US* <br>
+```{r}
+icer_results %>% 
+  group_by(auc) %>%
+  gt() %>% 
+  gt_theme_nytimes()
+```
+\newpage
+
+# 17. Summary plots with EQ-5D data
+## Paper 1
+### Collate data
+```{r}
+# QoL
+summary_df_full_qol_plot_eq5d_paper1 <- summary_df_full_qol_data_eq_5d %>% 
+  filter(auc_label == "AUC 0.55") %>%
+  mutate(
+    cohort_type = factor(cohort_type,
+                         levels = c(
+                           "Minimum FU, XR + US",
+                           "Minimum FU, XR",
+                           "Minimum FU, CT",
+                           "Maximum FU, XR + US",
+                           "Maximum FU, XR",
+                           "Maximum FU, CT"
+                         )),
+    mean_qaly_5yr_comp = case_when(
+      risk_status == "All" ~ (mean_qaly_5yr - baseline_qaly_all),
+      risk_status == "High Risk" ~ (mean_qaly_5yr - baseline_qaly_hr),
+      risk_status == "Low Risk" ~ (mean_qaly_5yr - baseline_qaly_lr),
+      TRUE ~ NA_integer_
+    ),
+    lower_qaly_5yr_comp = case_when(
+      risk_status == "All" ~ (upper_qaly_5yr - baseline_qaly_all_upper),
+      risk_status == "High Risk" ~ (upper_qaly_5yr - baseline_qaly_hr_upper),
+      risk_status == "Low Risk" ~ (upper_qaly_5yr - baseline_qaly_lr_upper),
+      TRUE ~ NA_integer_
+    ),
+    upper_qaly_5yr_comp = case_when(
+      risk_status == "All" ~ (lower_qaly_5yr - baseline_qaly_all_lower),
+      risk_status == "High Risk" ~ (lower_qaly_5yr - baseline_qaly_hr_lower),
+      risk_status == "Low Risk" ~ (lower_qaly_5yr - baseline_qaly_lr_lower),
+      TRUE ~ NA_integer_
+    ),
+    .keep = "all"
+  ) %>%
+  ggplot(aes(x = cohort_type, y = mean_qaly_5yr_comp, fill = risk_status)) +
+  geom_col(
+    position = position_dodge(width = 0.8),
+    width = 0.7,
+    color = "black"
+  ) +
+  geom_errorbar(
+    aes(ymin = lower_qaly_5yr_comp, ymax = upper_qaly_5yr_comp),
+    position = position_dodge(width = 0.8),
+    width = 0.3
+  ) +
+  facet_wrap(~ risk_status) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size = 10)) +
+  labs(title = "Quality of Life",
+       x = "Cohort Type",
+       y = "5yr QALYs Difference",
+       fill = "Risk Status") 
+```
+\newpage
+
+### Plot Overall Results
+```{r}
+paper_1_plot <- (
+  summary_df_full_cost_plot_paper1 +
+    summary_df_appts_plot_paper1 +
+    baseline_malignancies_perc_plot_paper1 +
+    summary_df_full_qol_plot_eq5d_paper1
+) +
+  plot_layout(nrow = 2, ncol = 2) +
+  plot_annotation(tag_levels = "A", title = "Variations in Length/Imaging Modality of Follow-up Compared to Current Minimum Standard of Care") + plot_layout(axis_titles = "collect", guides = "collect")
+
+paper_1_plot
+```
+\newpage
+
+### Cost-effectiveness Analyses
+```{r}
+auc_0.55_icer_plots & theme_bw()
+```
+\newpage
+
+## Paper 2
+### Plot overall results
+```{r}
+paper_2_plot <- (
+  summary_df_full_cost_plot +
+    summary_df_appts_plot +
+    baseline_malignancies_perc_plot +
+    summary_df_full_qol_plot
+) +
+  plot_layout(nrow = 2, ncol = 2) +
+  plot_annotation(tag_levels = "A", title = "Variations in Length/Imaging Modality of Follow-up Compared to Current Minimum Standard of Care") + plot_layout(axis_titles = "collect", guides = "collect")
 
 paper_2_plot
 ```
