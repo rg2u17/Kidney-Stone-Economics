@@ -1,4 +1,4 @@
-### 6.2.4 Examine costs associated with just recurrence ####
+ # Examine costs associated with just recurrence ####
 calculate_economic_costs_rec_only <- function(complete_pop_yr_fu,
                                      cutpoints_yr,
                                      year,
@@ -8,7 +8,6 @@ calculate_economic_costs_rec_only <- function(complete_pop_yr_fu,
                                      imaging_fu_type = c("ct", "xr", "xr_us")) {
   
   
-  # Initialize list to store results for each AUC target
   results_list <- list()
   
   # Define post-operative imaging
@@ -72,13 +71,23 @@ calculate_economic_costs_rec_only <- function(complete_pop_yr_fu,
     # Get cutpoint for current AUC target
     cutpoint <- (cutpoints_yr %>% filter(auc_target == !!auc_target))$cutpoint
     
-    not_sf_props <- complete_pop_yr_fu %>%
+    less4_prob <- complete_pop_yr_fu %>%
       filter(stone_free_status %in% c("less4", "more4")) %>%
-      count(stone_free_status) %>%
-      mutate(prop = n / sum(n)) %>%
-      select(stone_free_status, prop)
-    
-    less4_prob <- not_sf_props$prop[not_sf_props$stone_free_status == "less4"]
+      {
+        if (nrow(.) == 0) {
+          0.5
+        } else {
+          props <- group_by(., stone_free_status) %>%
+            summarise(n = n(), .groups = "drop") %>%
+            mutate(prop = n / sum(n))
+          
+          if ("less4" %in% props$stone_free_status) {
+            props$prop[props$stone_free_status == "less4"]
+          } else {
+            0.5
+          }
+        }
+      }
     
     # Distribute SF status as determined by imaging
     if (imaging_fu_type == "xr") {
@@ -656,11 +665,9 @@ calculate_economic_costs_rec_only <- function(complete_pop_yr_fu,
              imaging_fu_type = imaging_fu_type,
              year = year)
     
-    # Store result in list with named element
     results_list[[paste0("auc_", auc_target)]] <- combined_result
   }
   
-  # Return results
   if (length(auc_targets) == 1) {
     return(results_list[[1]])
   } else {
@@ -670,7 +677,7 @@ calculate_economic_costs_rec_only <- function(complete_pop_yr_fu,
 
 ### 6.2.5 Run function for each year ####
 #### 6.2.5.1 2016 ####
-costs_2016_xr_min <- calculate_economic_costs_rec_only(
+costs_rec_only_2016_xr_min <- calculate_economic_costs_rec_only(
   complete_pop_yr_fu = complete_pop_2016_fu,
   cutpoints_yr = cutpoints_2016,
   year = 2016,
@@ -680,7 +687,7 @@ costs_2016_xr_min <- calculate_economic_costs_rec_only(
   imaging_fu_type = "xr"
 )
 
-costs_2016_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2016_fu,
+costs_2016_rec_only_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2016_fu,
                                               cutpoints_yr = cutpoints_2016,
                                               year = 2016,
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -688,7 +695,7 @@ costs_2016_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = comp
                                               post_op_imaging = "none",
                                               imaging_fu_type = "xr")
 
-costs_2016_xr_us_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2016_fu,
+costs_2016_rec_only_xr_us_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2016_fu,
                                                  cutpoints_yr = cutpoints_2016,
                                                  year = 2016,
                                                  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -696,7 +703,7 @@ costs_2016_xr_us_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = c
                                                  post_op_imaging = "none",
                                                  imaging_fu_type = "xr_us")
 
-costs_2016_xr_us_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2016_fu,
+costs_2016_rec_only_xr_us_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2016_fu,
                                                  cutpoints_yr = cutpoints_2016,
                                                  year = 2016,
                                                  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -704,7 +711,7 @@ costs_2016_xr_us_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = c
                                                  post_op_imaging = "none",
                                                  imaging_fu_type = "xr_us")
 
-costs_2016_ct_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2016_fu,
+costs_2016_rec_only_ct_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2016_fu,
                                               cutpoints_yr = cutpoints_2016,
                                               year = 2016,
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -712,7 +719,7 @@ costs_2016_ct_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = comp
                                               post_op_imaging = "none",
                                               imaging_fu_type = "ct")
 
-costs_2016_ct_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2016_fu,
+costs_2016_rec_only_ct_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2016_fu,
                                               cutpoints_yr = cutpoints_2016,
                                               year = 2016,
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -721,7 +728,7 @@ costs_2016_ct_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = comp
                                               imaging_fu_type = "ct")
 
 #### 6.2.5.2 2017 ####
-costs_2017_xr_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2017_fu,
+costs_2017_rec_only_xr_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2017_fu,
                                               cutpoints_yr = cutpoints_2017,
                                               year = 2017,
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -729,7 +736,7 @@ costs_2017_xr_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = comp
                                               post_op_imaging = "none",
                                               imaging_fu_type = "xr")
 
-costs_2017_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2017_fu,
+costs_2017_rec_only_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2017_fu,
                                               cutpoints_yr = cutpoints_2017,
                                               year = 2017,
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -737,7 +744,7 @@ costs_2017_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = comp
                                               post_op_imaging = "none",
                                               imaging_fu_type = "xr")
 
-costs_2017_xr_us_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2017_fu,
+costs_2017_rec_only_xr_us_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2017_fu,
                                                  cutpoints_yr = cutpoints_2017,
                                                  year = 2017,
                                                  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -745,7 +752,7 @@ costs_2017_xr_us_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = c
                                                  post_op_imaging = "none",
                                                  imaging_fu_type = "xr_us")
 
-costs_2017_xr_us_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2017_fu,
+costs_2017_rec_only_xr_us_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2017_fu,
                                                  cutpoints_yr = cutpoints_2017,
                                                  year = 2017,
                                                  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -753,7 +760,7 @@ costs_2017_xr_us_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = c
                                                  post_op_imaging = "none",
                                                  imaging_fu_type = "xr_us")
 
-costs_2017_ct_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2017_fu,
+costs_2017_rec_only_ct_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2017_fu,
                                               cutpoints_yr = cutpoints_2017,
                                               year = 2017,
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -761,7 +768,7 @@ costs_2017_ct_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = comp
                                               post_op_imaging = "none",
                                               imaging_fu_type = "ct")
 
-costs_2017_ct_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2017_fu,
+costs_2017_rec_only_ct_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2017_fu,
                                               cutpoints_yr = cutpoints_2017,
                                               year = 2017,
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -770,7 +777,7 @@ costs_2017_ct_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = comp
                                               imaging_fu_type = "ct")
 
 #### 6.2.5.3 2018 ####
-costs_2018_xr_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2018_fu,
+costs_2018_rec_only_xr_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2018_fu,
                                               cutpoints_yr = cutpoints_2018,
                                               year = 2018,
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -778,7 +785,7 @@ costs_2018_xr_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = comp
                                               post_op_imaging = "none",
                                               imaging_fu_type = "xr")
 
-costs_2018_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2018_fu,
+costs_2018_rec_only_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2018_fu,
                                               cutpoints_yr = cutpoints_2018,
                                               year = 2018,
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -786,7 +793,7 @@ costs_2018_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = comp
                                               post_op_imaging = "none",
                                               imaging_fu_type = "xr")
 
-costs_2018_xr_us_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2018_fu,
+costs_2018_rec_only_xr_us_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2018_fu,
                                                  cutpoints_yr = cutpoints_2018,
                                                  year = 2018,
                                                  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -794,7 +801,7 @@ costs_2018_xr_us_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = c
                                                  post_op_imaging = "none",
                                                  imaging_fu_type = "xr_us")
 
-costs_2018_xr_us_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2018_fu,
+costs_2018_rec_only_xr_us_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2018_fu,
                                                  cutpoints_yr = cutpoints_2018,
                                                  year = 2018,
                                                  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -802,7 +809,7 @@ costs_2018_xr_us_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = c
                                                  post_op_imaging = "none",
                                                  imaging_fu_type = "xr_us")
 
-costs_2018_ct_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2018_fu,
+costs_2018_rec_only_ct_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2018_fu,
                                               cutpoints_yr = cutpoints_2018,
                                               year = 2018,
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -810,7 +817,7 @@ costs_2018_ct_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = comp
                                               post_op_imaging = "none",
                                               imaging_fu_type = "ct")
 
-costs_2018_ct_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2018_fu,
+costs_2018_rec_only_ct_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2018_fu,
                                               cutpoints_yr = cutpoints_2018,
                                               year = 2018,
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -819,7 +826,7 @@ costs_2018_ct_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = comp
                                               imaging_fu_type = "ct")
 
 #### 6.2.5.4 2019 ####
-costs_2019_xr_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2019_fu,
+costs_2019_rec_only_xr_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2019_fu,
                                               cutpoints_yr = cutpoints_2019,
                                               year = 2019,
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -827,7 +834,7 @@ costs_2019_xr_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = comp
                                               post_op_imaging = "none",
                                               imaging_fu_type = "xr")
 
-costs_2019_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2019_fu,
+costs_2019_rec_only_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2019_fu,
                                               cutpoints_yr = cutpoints_2019,
                                               year = 2019,
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -835,7 +842,7 @@ costs_2019_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = comp
                                               post_op_imaging = "none",
                                               imaging_fu_type = "xr")
 
-costs_2019_xr_us_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2019_fu,
+costs_2019_rec_only_xr_us_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2019_fu,
                                                  cutpoints_yr = cutpoints_2019,
                                                  year = 2019,
                                                  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -843,7 +850,7 @@ costs_2019_xr_us_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = c
                                                  post_op_imaging = "none",
                                                  imaging_fu_type = "xr_us")
 
-costs_2019_xr_us_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2019_fu,
+costs_2019_rec_only_xr_us_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2019_fu,
                                                  cutpoints_yr = cutpoints_2019,
                                                  year = 2019,
                                                  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -851,7 +858,7 @@ costs_2019_xr_us_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = c
                                                  post_op_imaging = "none",
                                                  imaging_fu_type = "xr_us")
 
-costs_2019_ct_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2019_fu,
+costs_2019_rec_only_ct_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2019_fu,
                                               cutpoints_yr = cutpoints_2019,
                                               year = 2019,
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -859,7 +866,7 @@ costs_2019_ct_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = comp
                                               post_op_imaging = "none",
                                               imaging_fu_type = "ct")
 
-costs_2019_ct_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2019_fu,
+costs_2019_rec_only_ct_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2019_fu,
                                               cutpoints_yr = cutpoints_2019,
                                               year = 2019,
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -868,7 +875,7 @@ costs_2019_ct_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = comp
                                               imaging_fu_type = "ct")
 
 #### 6.2.5.5 2020 ####
-costs_2020_xr_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2020_fu,
+costs_2020_rec_only_xr_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2020_fu,
                                               cutpoints_yr = cutpoints_2020,
                                               year = 2020,
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -876,7 +883,7 @@ costs_2020_xr_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = comp
                                               post_op_imaging = "none",
                                               imaging_fu_type = "xr")
 
-costs_2020_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2020_fu,
+costs_2020_rec_only_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2020_fu,
                                               cutpoints_yr = cutpoints_2020,
                                               year = 2020,
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -884,7 +891,7 @@ costs_2020_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = comp
                                               post_op_imaging = "none",
                                               imaging_fu_type = "xr")
 
-costs_2020_xr_us_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2020_fu,
+costs_2020_rec_only_xr_us_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2020_fu,
                                                  cutpoints_yr = cutpoints_2020,
                                                  year = 2020,
                                                  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -892,7 +899,7 @@ costs_2020_xr_us_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = c
                                                  post_op_imaging = "none",
                                                  imaging_fu_type = "xr_us")
 
-costs_2020_xr_us_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2020_fu,
+costs_2020_rec_only_xr_us_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2020_fu,
                                                  cutpoints_yr = cutpoints_2020,
                                                  year = 2020,
                                                  auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -900,7 +907,7 @@ costs_2020_xr_us_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = c
                                                  post_op_imaging = "none",
                                                  imaging_fu_type = "xr_us")
 
-costs_2020_ct_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2020_fu,
+costs_2020_rec_only_ct_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2020_fu,
                                               cutpoints_yr = cutpoints_2020,
                                               year = 2020,
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -908,7 +915,7 @@ costs_2020_ct_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = comp
                                               post_op_imaging = "none",
                                               imaging_fu_type = "ct")
 
-costs_2020_ct_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2020_fu,
+costs_2020_rec_only_ct_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2020_fu,
                                               cutpoints_yr = cutpoints_2020,
                                               year = 2020,
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
@@ -927,52 +934,52 @@ aggregate_cost_cohorts <- function(auc_target = c(1,2,3,4,5,6,7,8,9)) {
     message("Processing AUC = ", key)
     
     message("  Loading 2016 data...")
-    cohort_2016_min_xr <- costs_2016_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
-    cohort_2016_min_ct <- costs_2016_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2016_max_xr <- costs_2016_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
-    cohort_2016_max_ct <- costs_2016_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
-    cohort_2016_min_xr_us <- costs_2016_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
-    cohort_2016_max_xr_us <- costs_2016_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
+    cohort_2016_rec_only_min_xr <- costs_2016_rec_only_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2016_rec_only_min_ct <- costs_2016_rec_only_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
+    cohort_2016_rec_only_max_xr <- costs_2016_rec_only_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2016_rec_only_max_ct <- costs_2016_rec_only_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
+    cohort_2016_rec_only_min_xr_us <- costs_2016_rec_only_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
+    cohort_2016_rec_only_max_xr_us <- costs_2016_rec_only_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     
     message("  Loading 2017 data...")
-    cohort_2017_min_xr <- costs_2017_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
-    cohort_2017_min_ct <- costs_2017_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2017_max_xr <- costs_2017_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
-    cohort_2017_max_ct <- costs_2017_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
-    cohort_2017_min_xr_us <- costs_2017_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
-    cohort_2017_max_xr_us <- costs_2017_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
+    cohort_2017_rec_only_min_xr <- costs_2017_rec_only_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2017_rec_only_min_ct <- costs_2017_rec_only_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
+    cohort_2017_rec_only_max_xr <- costs_2017_rec_only_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2017_rec_only_max_ct <- costs_2017_rec_only_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
+    cohort_2017_rec_only_min_xr_us <- costs_2017_rec_only_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
+    cohort_2017_rec_only_max_xr_us <- costs_2017_rec_only_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     
     message("  Loading 2018 data...")
-    cohort_2018_min_xr <- costs_2018_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
-    cohort_2018_min_ct <- costs_2018_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2018_max_xr <- costs_2018_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
-    cohort_2018_max_ct <- costs_2018_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
-    cohort_2018_min_xr_us <- costs_2018_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
-    cohort_2018_max_xr_us <- costs_2018_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
+    cohort_2018_rec_only_min_xr <- costs_2018_rec_only_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2018_rec_only_min_ct <- costs_2018_rec_only_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
+    cohort_2018_rec_only_max_xr <- costs_2018_rec_only_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2018_rec_only_max_ct <- costs_2018_rec_only_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
+    cohort_2018_rec_only_min_xr_us <- costs_2018_rec_only_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
+    cohort_2018_rec_only_max_xr_us <- costs_2018_rec_only_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     
     message("  Loading 2019 data...")
-    cohort_2019_min_xr <- costs_2019_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
-    cohort_2019_min_ct <- costs_2019_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2019_max_xr <- costs_2019_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
-    cohort_2019_max_ct <- costs_2019_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
-    cohort_2019_min_xr_us <- costs_2019_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
-    cohort_2019_max_xr_us <- costs_2019_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
+    cohort_2019_rec_only_min_xr <- costs_2019_rec_only_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2019_rec_only_min_ct <- costs_2019_rec_only_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
+    cohort_2019_rec_only_max_xr <- costs_2019_rec_only_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2019_rec_only_max_ct <- costs_2019_rec_only_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
+    cohort_2019_rec_only_min_xr_us <- costs_2019_rec_only_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
+    cohort_2019_rec_only_max_xr_us <- costs_2019_rec_only_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     
     message("  Loading 2020 data...")
-    cohort_2020_min_xr <- costs_2020_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
-    cohort_2020_min_ct <- costs_2020_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2020_max_xr <- costs_2020_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
-    cohort_2020_max_ct <- costs_2020_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
-    cohort_2020_min_xr_us <- costs_2020_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
-    cohort_2020_max_xr_us <- costs_2020_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
+    cohort_2020_rec_only_min_xr <- costs_2020_rec_only_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2020_rec_only_min_ct <- costs_2020_rec_only_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
+    cohort_2020_rec_only_max_xr <- costs_2020_rec_only_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2020_rec_only_max_ct <- costs_2020_rec_only_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
+    cohort_2020_rec_only_min_xr_us <- costs_2020_rec_only_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
+    cohort_2020_rec_only_max_xr_us <- costs_2020_rec_only_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     
     message("  Combining cohorts for AUC = ", key)
     overall_cohort <- dplyr::bind_rows(
-      cohort_2016_min_xr, cohort_2016_min_ct, cohort_2016_max_xr, cohort_2016_max_ct, cohort_2016_min_xr_us, cohort_2016_max_xr_us,
-      cohort_2017_min_xr, cohort_2017_min_ct, cohort_2017_max_xr, cohort_2017_max_ct, cohort_2017_min_xr_us, cohort_2017_max_xr_us,
-      cohort_2018_min_xr, cohort_2018_min_ct, cohort_2018_max_xr, cohort_2018_max_ct, cohort_2018_min_xr_us, cohort_2018_max_xr_us,
-      cohort_2019_min_xr, cohort_2019_min_ct, cohort_2019_max_xr, cohort_2019_max_ct, cohort_2019_min_xr_us, cohort_2019_max_xr_us,
-      cohort_2020_min_xr, cohort_2020_min_ct, cohort_2020_max_xr, cohort_2020_max_ct, cohort_2020_min_xr_us, cohort_2020_max_xr_us
+      cohort_2016_rec_only_min_xr, cohort_2016_rec_only_min_ct, cohort_2016_rec_only_max_xr, cohort_2016_rec_only_max_ct, cohort_2016_rec_only_min_xr_us, cohort_2016_rec_only_max_xr_us,
+      cohort_2017_rec_only_min_xr, cohort_2017_rec_only_min_ct, cohort_2017_rec_only_max_xr, cohort_2017_rec_only_max_ct, cohort_2017_rec_only_min_xr_us, cohort_2017_rec_only_max_xr_us,
+      cohort_2018_rec_only_min_xr, cohort_2018_rec_only_min_ct, cohort_2018_rec_only_max_xr, cohort_2018_rec_only_max_ct, cohort_2018_rec_only_min_xr_us, cohort_2018_rec_only_max_xr_us,
+      cohort_2019_rec_only_min_xr, cohort_2019_rec_only_min_ct, cohort_2019_rec_only_max_xr, cohort_2019_rec_only_max_ct, cohort_2019_rec_only_min_xr_us, cohort_2019_rec_only_max_xr_us,
+      cohort_2020_rec_only_min_xr, cohort_2020_rec_only_min_ct, cohort_2020_rec_only_max_xr, cohort_2020_rec_only_max_ct, cohort_2020_rec_only_min_xr_us, cohort_2020_rec_only_max_xr_us
     )
     
     all_cohorts[[key]] <- overall_cohort
