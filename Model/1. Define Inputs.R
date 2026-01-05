@@ -412,6 +412,25 @@ year_3_lr_more4_fu_cost_xr <- clinic_review_cost + imaging_cost
 year_4_lr_more4_fu_cost_xr <- clinic_review_cost + imaging_cost
 year_5_lr_more4_fu_cost_xr <- clinic_review_cost + imaging_cost
 
+# Costs associated with 'low risk' disease (as per EAU) - US FU
+year_1_lr_sf_fu_cost_us <- 2 * (clinic_review_cost + us_cost)
+year_2_lr_sf_fu_cost_us <- 0
+year_3_lr_sf_fu_cost_us <- 1 * (clinic_review_cost + us_cost)
+year_4_lr_sf_fu_cost_us <- 1 * (clinic_review_cost + us_cost)
+year_5_lr_sf_fu_cost_us <- 1 * (clinic_review_cost + us_cost)
+
+year_1_lr_less4_fu_cost_us <- 2 * (clinic_review_cost + us_cost)
+year_2_lr_less4_fu_cost_us <- clinic_review_cost + us_cost
+year_3_lr_less4_fu_cost_us <- clinic_review_cost + us_cost
+year_4_lr_less4_fu_cost_us <- clinic_review_cost + us_cost
+year_5_lr_less4_fu_cost_us <- clinic_review_cost + us_cost
+
+year_1_lr_more4_fu_cost_us <- 2 * (clinic_review_cost + us_cost)
+year_2_lr_more4_fu_cost_us <- 2 * (clinic_review_cost + us_cost)
+year_3_lr_more4_fu_cost_us <- clinic_review_cost + us_cost
+year_4_lr_more4_fu_cost_us <- clinic_review_cost + us_cost
+year_5_lr_more4_fu_cost_us <- clinic_review_cost + us_cost
+
 # Costs associated with 'low risk' disease (as per EAU) - XR + US FU
 year_1_lr_sf_fu_cost_xr_us <- 2 * (clinic_review_cost + imaging_cost + us_cost)
 year_2_lr_sf_fu_cost_xr_us <- 0
@@ -479,32 +498,59 @@ year_3_hr_more4_fu_cost_eau_xr <- 1 * (clinic_review_cost + imaging_cost + urine
 year_4_hr_more4_fu_cost_eau_xr <- 1 * (clinic_review_cost + imaging_cost + urine_24_hr_cost)
 year_5_hr_more4_fu_cost_eau_xr <- 1 * (clinic_review_cost + imaging_cost + urine_24_hr_cost)
 
+## US FU
+year_1_hr_sf_fu_cost_current_us <- 2 * (clinic_review_cost + us_cost) + urine_24_hr_cost
+year_1_hr_sf_fu_cost_eau_us <- 2 * (clinic_review_cost + us_cost + urine_24_hr_cost)
+
+year_2_hr_sf_fu_cost_current_us <- 1 * (clinic_review_cost + us_cost + urine_24_hr_cost)
+year_2_hr_sf_fu_cost_eau_us <- 1 * (clinic_review_cost + us_cost + urine_24_hr_cost)
+
+year_3_onwards_hr_sf_fu_cost_current_us <- 1 * (clinic_review_cost + us_cost + urine_24_hr_cost)
+year_3_onwards_hr_sf_fu_cost_eau_us <- 1 * (clinic_review_cost + us_cost + urine_24_hr_cost)
+
+year_3_hr_sf_fu_cost_current_us <- 2 * (clinic_review_cost + us_cost + urine_24_hr_cost)
+year_3_hr_sf_fu_cost_eau_us <- 1 * (clinic_review_cost + us_cost + urine_24_hr_cost)
+year_4_hr_sf_fu_cost_eau_us <- 1 * (clinic_review_cost + us_cost + urine_24_hr_cost)
+year_5_hr_sf_fu_cost_eau_us <- 1 * (clinic_review_cost + us_cost + urine_24_hr_cost)
+
+year_1_hr_less4_fu_cost_eau_us <- 2 * (clinic_review_cost + us_cost + urine_24_hr_cost)
+year_2_hr_less4_fu_cost_eau_us <- 1 * (clinic_review_cost + us_cost + urine_24_hr_cost)
+year_3_hr_less4_fu_cost_eau_us <- 1 * (clinic_review_cost + us_cost + urine_24_hr_cost)
+year_4_hr_less4_fu_cost_eau_us <- 1 * (clinic_review_cost + us_cost + urine_24_hr_cost)
+year_5_hr_less4_fu_cost_eau_us <- 1 * (clinic_review_cost + us_cost + urine_24_hr_cost)
+
+year_1_hr_less4_fu_cost_eau_us <- 2 * (clinic_review_cost + us_cost + urine_24_hr_cost)
+year_2_hr_more4_fu_cost_eau_us <- 2 * (clinic_review_cost + us_cost) + urine_24_hr_cost
+year_3_hr_more4_fu_cost_eau_us <- 1 * (clinic_review_cost + us_cost + urine_24_hr_cost)
+year_4_hr_more4_fu_cost_eau_us <- 1 * (clinic_review_cost + us_cost + urine_24_hr_cost)
+year_5_hr_more4_fu_cost_eau_us <- 1 * (clinic_review_cost + us_cost + urine_24_hr_cost)
+
 ## XR + US FU
-year_1_hr_sf_fu_cost_current_xr_us <- 2 * (clinic_review_cost + imaging_cost + us_cost) + urine_24_hr_cost
-year_1_hr_sf_fu_cost_eau_xr_us <- 2 * (clinic_review_cost + imaging_cost + us_cost + urine_24_hr_cost)
+year_1_hr_sf_fu_cost_current_xr_us <- 2 * (clinic_review_cost + (imaging_cost * 0.8) + (us_cost * 0.2)) + urine_24_hr_cost # 20% radiolucent and therefore across a population this will be accurate
+year_1_hr_sf_fu_cost_eau_xr_us <- 2 * (clinic_review_cost + (imaging_cost * 0.8) + (us_cost * 0.2) + urine_24_hr_cost)
 
-year_2_hr_sf_fu_cost_current_xr_us <- 1 * (clinic_review_cost + imaging_cost + us_cost + urine_24_hr_cost)
-year_2_hr_sf_fu_cost_eau_xr_us <- 1 * (clinic_review_cost + imaging_cost + us_cost + urine_24_hr_cost)
+year_2_hr_sf_fu_cost_current_xr_us <- 1 * (clinic_review_cost + (imaging_cost * 0.8) + (us_cost * 0.2) + urine_24_hr_cost)
+year_2_hr_sf_fu_cost_eau_xr_us <- 1 * (clinic_review_cost + (imaging_cost * 0.8) + (us_cost * 0.2) + urine_24_hr_cost)
 
-year_3_onwards_hr_sf_fu_cost_current_xr_us <- 1 * (clinic_review_cost + imaging_cost + us_cost + urine_24_hr_cost)
-year_3_onwards_hr_sf_fu_cost_eau_xr_us <- 1 * (clinic_review_cost + imaging_cost + us_cost + urine_24_hr_cost)
+year_3_onwards_hr_sf_fu_cost_current_xr_us <- 1 * (clinic_review_cost + (imaging_cost * 0.8) + (us_cost * 0.2) + urine_24_hr_cost)
+year_3_onwards_hr_sf_fu_cost_eau_xr_us <- 1 * (clinic_review_cost + (imaging_cost * 0.8) + (us_cost * 0.2) + urine_24_hr_cost)
 
-year_3_hr_sf_fu_cost_current_xr_us <- 2 * (clinic_review_cost + imaging_cost + us_cost + urine_24_hr_cost)
-year_3_hr_sf_fu_cost_eau_xr_us <- 1 * (clinic_review_cost + imaging_cost + us_cost + urine_24_hr_cost)
-year_4_hr_sf_fu_cost_eau_xr_us <- 1 * (clinic_review_cost + imaging_cost + us_cost + urine_24_hr_cost)
-year_5_hr_sf_fu_cost_eau_xr_us <- 1 * (clinic_review_cost + imaging_cost + us_cost + urine_24_hr_cost)
+year_3_hr_sf_fu_cost_current_xr_us <- 2 * (clinic_review_cost + (imaging_cost * 0.8) + (us_cost * 0.2) + urine_24_hr_cost)
+year_3_hr_sf_fu_cost_eau_xr_us <- 1 * (clinic_review_cost + (imaging_cost * 0.8) + (us_cost * 0.2) + urine_24_hr_cost)
+year_4_hr_sf_fu_cost_eau_xr_us <- 1 * (clinic_review_cost + (imaging_cost * 0.8) + (us_cost * 0.2) + urine_24_hr_cost)
+year_5_hr_sf_fu_cost_eau_xr_us <- 1 * (clinic_review_cost + (imaging_cost * 0.8) + (us_cost * 0.2) + urine_24_hr_cost)
 
-year_1_hr_less4_fu_cost_eau_xr_us <- 2 * (clinic_review_cost + imaging_cost + us_cost + urine_24_hr_cost)
-year_2_hr_less4_fu_cost_eau_xr_us <- 1 * (clinic_review_cost + imaging_cost + us_cost + urine_24_hr_cost)
-year_3_hr_less4_fu_cost_eau_xr_us <- 1 * (clinic_review_cost + imaging_cost + us_cost + urine_24_hr_cost)
-year_4_hr_less4_fu_cost_eau_xr_us <- 1 * (clinic_review_cost + imaging_cost + us_cost + urine_24_hr_cost)
-year_5_hr_less4_fu_cost_eau_xr_us <- 1 * (clinic_review_cost + imaging_cost + us_cost + urine_24_hr_cost)
+year_1_hr_less4_fu_cost_eau_xr_us <- 2 * (clinic_review_cost + (imaging_cost * 0.8) + (us_cost * 0.2) + urine_24_hr_cost)
+year_2_hr_less4_fu_cost_eau_xr_us <- 1 * (clinic_review_cost + (imaging_cost * 0.8) + (us_cost * 0.2) + urine_24_hr_cost)
+year_3_hr_less4_fu_cost_eau_xr_us <- 1 * (clinic_review_cost + (imaging_cost * 0.8) + (us_cost * 0.2) + urine_24_hr_cost)
+year_4_hr_less4_fu_cost_eau_xr_us <- 1 * (clinic_review_cost + (imaging_cost * 0.8) + (us_cost * 0.2) + urine_24_hr_cost)
+year_5_hr_less4_fu_cost_eau_xr_us <- 1 * (clinic_review_cost + (imaging_cost * 0.8) + (us_cost * 0.2) + urine_24_hr_cost)
 
-year_1_hr_less4_fu_cost_eau_xr_us <- 2 * (clinic_review_cost + imaging_cost + us_cost + urine_24_hr_cost)
-year_2_hr_more4_fu_cost_eau_xr_us <- 2 * (clinic_review_cost + imaging_cost + us_cost) + urine_24_hr_cost
-year_3_hr_more4_fu_cost_eau_xr_us <- 1 * (clinic_review_cost + imaging_cost + us_cost + urine_24_hr_cost)
-year_4_hr_more4_fu_cost_eau_xr_us <- 1 * (clinic_review_cost + imaging_cost + us_cost + urine_24_hr_cost)
-year_5_hr_more4_fu_cost_eau_xr_us <- 1 * (clinic_review_cost + imaging_cost + us_cost + urine_24_hr_cost)
+year_1_hr_less4_fu_cost_eau_xr_us <- 2 * (clinic_review_cost + (imaging_cost * 0.8) + (us_cost * 0.2) + urine_24_hr_cost)
+year_2_hr_more4_fu_cost_eau_xr_us <- 2 * (clinic_review_cost + (imaging_cost * 0.8) + (us_cost * 0.2)) + urine_24_hr_cost
+year_3_hr_more4_fu_cost_eau_xr_us <- 1 * (clinic_review_cost + (imaging_cost * 0.8) + (us_cost * 0.2) + urine_24_hr_cost)
+year_4_hr_more4_fu_cost_eau_xr_us <- 1 * (clinic_review_cost + (imaging_cost * 0.8) + (us_cost * 0.2) + urine_24_hr_cost)
+year_5_hr_more4_fu_cost_eau_xr_us <- 1 * (clinic_review_cost + (imaging_cost * 0.8) + (us_cost * 0.2) + urine_24_hr_cost)
 
 ## CT FU
 year_1_hr_sf_fu_cost_current_ct <- 2 * (clinic_review_cost + ct_cost) + urine_24_hr_cost
@@ -762,6 +808,82 @@ fu_costs <- as_tibble(cbind(
     "year_5_hr_more4_fu_cost_eau"
   ),
   imaging_type = "ct"
+)) %>% rbind(cbind(
+  cost = c(
+    year_1_lr_sf_fu_cost_us,
+    year_2_lr_sf_fu_cost_us,
+    year_3_lr_sf_fu_cost_us,
+    year_4_lr_sf_fu_cost_us,
+    year_5_lr_sf_fu_cost_us,
+    year_1_lr_less4_fu_cost_us,
+    year_2_lr_less4_fu_cost_us,
+    year_3_lr_less4_fu_cost_us,
+    year_4_lr_less4_fu_cost_us,
+    year_5_lr_less4_fu_cost_us,
+    year_1_lr_more4_fu_cost_us,
+    year_2_lr_more4_fu_cost_us,
+    year_3_lr_more4_fu_cost_us,
+    year_4_lr_more4_fu_cost_us,
+    year_5_lr_more4_fu_cost_us,
+    year_1_hr_sf_fu_cost_current_us,
+    year_1_hr_sf_fu_cost_eau_us,
+    year_2_hr_sf_fu_cost_current_us,
+    year_2_hr_sf_fu_cost_eau_us,
+    year_3_onwards_hr_sf_fu_cost_current_us,
+    year_3_onwards_hr_sf_fu_cost_eau_us,
+    year_3_hr_sf_fu_cost_current_us,
+    year_3_hr_sf_fu_cost_eau_us,
+    year_4_hr_sf_fu_cost_eau_us,
+    year_5_hr_sf_fu_cost_eau_us,
+    year_1_hr_less4_fu_cost_eau_us,
+    year_2_hr_less4_fu_cost_eau_us,
+    year_3_hr_less4_fu_cost_eau_us,
+    year_4_hr_less4_fu_cost_eau_us,
+    year_5_hr_less4_fu_cost_eau_us,
+    year_1_hr_less4_fu_cost_eau_us,
+    year_2_hr_more4_fu_cost_eau_us,
+    year_3_hr_more4_fu_cost_eau_us,
+    year_4_hr_more4_fu_cost_eau_us,
+    year_5_hr_more4_fu_cost_eau_us
+  ),
+  point_and_type_of_fu = c(
+    "year_1_lr_sf_fu_cost",
+    "year_2_lr_sf_fu_cost",
+    "year_3_lr_sf_fu_cost",
+    "year_4_lr_sf_fu_cost",
+    "year_5_lr_sf_fu_cost",
+    "year_1_lr_less4_fu_cost",
+    "year_2_lr_less4_fu_cost",
+    "year_3_lr_less4_fu_cost",
+    "year_4_lr_less4_fu_cost",
+    "year_5_lr_less4_fu_cost",
+    "year_1_lr_more4_fu_cost",
+    "year_2_lr_more4_fu_cost",
+    "year_3_lr_more4_fu_cost",
+    "year_4_lr_more4_fu_cost",
+    "year_5_lr_more4_fu_cost",
+    "year_1_hr_sf_fu_cost_current",
+    "year_1_hr_sf_fu_cost_eau",
+    "year_2_hr_sf_fu_cost_current",
+    "year_2_hr_sf_fu_cost_eau",
+    "year_3_onwards_hr_sf_fu_cost_current",
+    "year_3_onwards_hr_sf_fu_cost_eau",
+    "year_3_hr_sf_fu_cost_current",
+    "year_3_hr_sf_fu_cost_eau",
+    "year_4_hr_sf_fu_cost_eau",
+    "year_5_hr_sf_fu_cost_eau",
+    "year_1_hr_less4_fu_cost_eau",
+    "year_2_hr_less4_fu_cost_eau",
+    "year_3_hr_less4_fu_cost_eau",
+    "year_4_hr_less4_fu_cost_eau",
+    "year_5_hr_less4_fu_cost_eau",
+    "year_1_hr_more4_fu_cost_eau",
+    "year_2_hr_more4_fu_cost_eau",
+    "year_3_hr_more4_fu_cost_eau",
+    "year_4_hr_more4_fu_cost_eau",
+    "year_5_hr_more4_fu_cost_eau"
+  ),
+  imaging_type = "us"
 )) %>% select(point_and_type_of_fu, imaging_type, cost)
 
 # Minimum Costs associated with recurrence
