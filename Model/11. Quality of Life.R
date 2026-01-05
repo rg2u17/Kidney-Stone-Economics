@@ -1,4 +1,4 @@
-# 11. Quality of Life ####
+# 11. Quality of Life - USIQoL ####
 ## 11.1 Load libraries ####
 library(tidyverse)
 library(janitor)
@@ -948,7 +948,7 @@ calculate_qol <- function(complete_pop_yr_fu,
                           target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
                           fu_type = c("min", "max"),
                           post_op_imaging = c("none", "ct", "xr", "us"),
-                          imaging_fu_type = c("ct", "xr", "xr_us"),
+                          imaging_fu_type = c("ct", "us", "xr_us"),
                           xr_sens = 0.67,
                           xr_spec = 0.98,
                           us_sens = 0.54,
@@ -996,31 +996,61 @@ calculate_qol <- function(complete_pop_yr_fu,
     rand_sens <- runif(nrow(complete_pop_yr_fu2))
     rand_spec <- runif(nrow(complete_pop_yr_fu2))
     
-    complete_pop_yr_fu1 <- complete_pop_yr_fu2 %>%
-      mutate(
-        stone_free_status_original = stone_free_status,
-        stone_free_status1 = case_when(
-          imaging_fu_type %in% c("xr", "xr_us") &
-            stone_free_status_original %in% c("less4", "more4") & 
-            rand_sens <= ifelse(imaging_fu_type=="xr", xr_sens, us_sens) ~ stone_free_status_original,
-          
-          imaging_fu_type %in% c("xr", "xr_us") &
-            stone_free_status_original %in% c("less4", "more4") & 
-            rand_sens > ifelse(imaging_fu_type=="xr", xr_sens, us_sens) ~ "SF",  
-          
-          imaging_fu_type %in% c("xr", "xr_us") &
-            stone_free_status_original == "SF" & 
-            rand_spec <= ifelse(imaging_fu_type=="xr", xr_spec, us_spec) ~ "SF",  
-          
-          imaging_fu_type %in% c("xr", "xr_us") &
-            stone_free_status_original == "SF" & 
-            rand_spec > ifelse(imaging_fu_type=="xr", xr_spec, us_spec) ~
-            if_else(runif(n()) <= less4_prob, "less4", "more4"),
-          
-          TRUE ~ stone_free_status_original
-        ),
-        .keep = "all"
-      )
+    # Distribute SF status as determined by imaging
+    if (imaging_fu_type == "xr") {
+      
+      
+      # Generate random numbers once
+      rand_sens <- runif(nrow(complete_pop_yr_fu))
+      rand_spec <- runif(nrow(complete_pop_yr_fu))
+      
+      complete_pop_yr_fu1 <- complete_pop_yr_fu %>%
+        mutate(
+          stone_free_status_original = stone_free_status,
+          stone_free_status1 = case_when(
+            stone_free_status_original %in% c("less4", "more4") & rand_sens <= xr_sens ~ stone_free_status_original,
+            stone_free_status_original %in% c("less4", "more4") & rand_sens > xr_sens ~ "SF", 
+            stone_free_status_original == "sf" & rand_spec <= xr_spec ~ "SF", 
+            stone_free_status_original == "sf" & rand_spec > xr_spec ~ ifelse(
+              runif(n()) <= less4_prob, "less4", "more4"
+            ),
+            TRUE ~ stone_free_status_original # Handle any other cases
+          ),
+          .keep = "all"
+        )
+    } else if (imaging_fu_type == "xr_us") {
+      rand_sens <- runif(nrow(complete_pop_yr_fu))
+      rand_spec <- runif(nrow(complete_pop_yr_fu))
+      
+      complete_pop_yr_fu1 <- complete_pop_yr_fu %>%
+        mutate(
+          stone_free_status_original = stone_free_status,
+          stone_free_status1 = case_when(
+            stone_free_status_original %in% c("less4", "more4") & lucency == "No" & rand_sens <= xr_sens ~ stone_free_status_original,
+            stone_free_status_original %in% c("less4", "more4") & lucency == "No" & rand_sens > xr_sens ~ "SF", 
+            stone_free_status_original %in% c("less4", "more4") & lucency == "Yes" & rand_sens <= us_sens ~ stone_free_status_original,
+            stone_free_status_original %in% c("less4", "more4") & lucency == "Yes" & rand_sens > us_sens ~ "SF", 
+            stone_free_status_original == "sf" & lucency == "No" & rand_spec <= xr_spec ~ "SF", 
+            stone_free_status_original == "sf" & lucency == "Yes" & rand_spec <= us_spec ~ "SF", 
+            stone_free_status_original == "sf" & lucency == "No" & rand_spec > xr_spec ~ ifelse(
+              runif(n()) <= less4_prob, "less4", "more4"
+            ),
+            stone_free_status_original == "sf" & lucency == "Yes" & rand_spec > us_spec ~ ifelse(
+              runif(n()) <= less4_prob, "less4", "more4"
+            ),
+            TRUE ~ stone_free_status_original
+          ),
+          .keep = "all"
+        )
+    } else {
+      # For CT imaging, no sensitivity/specificity adjustment needed
+      complete_pop_yr_fu1 <- complete_pop_yr_fu %>%
+        mutate(
+          stone_free_status_original = stone_free_status,
+          stone_free_status1 = stone_free_status,
+          .keep = "all"
+        )
+    }
     
     # Precalculate first intervention year
     complete_pop_yr_fu1 <- complete_pop_yr_fu1 %>% 
