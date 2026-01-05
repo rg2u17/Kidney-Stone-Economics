@@ -1,11 +1,11 @@
- # Examine costs associated with just recurrence ####
+### 6.2.4 Examine costs associated with just recurrence ####
 calculate_economic_costs_rec_only <- function(complete_pop_yr_fu,
                                      cutpoints_yr,
                                      year,
                                      auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
                                      fu_type = c("min", "max"),
                                      post_op_imaging = c("none", ct_cost, imaging_cost, us_cost),
-                                     imaging_fu_type = c("ct", "xr", "xr_us")) {
+                                     imaging_fu_type = c("ct", "us", "xr_us")) {
   
   
   results_list <- list()
@@ -90,7 +90,7 @@ calculate_economic_costs_rec_only <- function(complete_pop_yr_fu,
       }
     
     # Distribute SF status as determined by imaging
-    if (imaging_fu_type == "xr") {
+    if (imaging_fu_type == "us") {
       # Generate random numbers once
       rand_sens <- runif(nrow(complete_pop_yr_fu))
       rand_spec <- runif(nrow(complete_pop_yr_fu))
@@ -100,12 +100,12 @@ calculate_economic_costs_rec_only <- function(complete_pop_yr_fu,
           stone_free_status_original = stone_free_status,
           stone_free_status1 = case_when(
             stone_free_status_original %in% c("less4", "more4") & rand_sens <= xr_sens ~ stone_free_status_original,
-            stone_free_status_original %in% c("less4", "more4") & rand_sens > xr_sens ~ "SF", # FIXED: uppercase
-            stone_free_status_original == "sf" & rand_spec <= xr_spec ~ "SF", # FIXED: uppercase
+            stone_free_status_original %in% c("less4", "more4") & rand_sens > xr_sens ~ "SF", 
+            stone_free_status_original == "sf" & rand_spec <= xr_spec ~ "SF", 
             stone_free_status_original == "sf" & rand_spec > xr_spec ~ ifelse(
               runif(n()) <= less4_prob, "less4", "more4"
             ),
-            TRUE ~ stone_free_status_original # Handle any other cases
+            TRUE ~ stone_free_status_original
           ),
           .keep = "all"
         )
@@ -117,10 +117,16 @@ calculate_economic_costs_rec_only <- function(complete_pop_yr_fu,
         mutate(
           stone_free_status_original = stone_free_status,
           stone_free_status1 = case_when(
-            stone_free_status_original %in% c("less4", "more4") & rand_sens <= us_sens ~ stone_free_status_original,
-            stone_free_status_original %in% c("less4", "more4") & rand_sens > us_sens ~ "SF", # FIXED: uppercase
-            stone_free_status_original == "sf" & rand_spec <= us_spec ~ "SF", # FIXED: uppercase
-            stone_free_status_original == "sf" & rand_spec > us_spec ~ ifelse(
+            stone_free_status_original %in% c("less4", "more4") & lucency == "No" & rand_sens <= xr_sens ~ stone_free_status_original,
+            stone_free_status_original %in% c("less4", "more4") & lucency == "No" & rand_sens > xr_sens ~ "SF", 
+            stone_free_status_original %in% c("less4", "more4") & lucency == "Yes" & rand_sens <= us_sens ~ stone_free_status_original,
+            stone_free_status_original %in% c("less4", "more4") & lucency == "Yes" & rand_sens > us_sens ~ "SF", 
+            stone_free_status_original == "sf" & lucency == "No" & rand_spec <= xr_spec ~ "SF", 
+            stone_free_status_original == "sf" & lucency == "Yes" & rand_spec <= us_spec ~ "SF", 
+            stone_free_status_original == "sf" & lucency == "No" & rand_spec > xr_spec ~ ifelse(
+              runif(n()) <= less4_prob, "less4", "more4"
+            ),
+            stone_free_status_original == "sf" & lucency == "Yes" & rand_spec > us_spec ~ ifelse(
               runif(n()) <= less4_prob, "less4", "more4"
             ),
             TRUE ~ stone_free_status_original
@@ -684,7 +690,7 @@ costs_rec_only_2016_xr_min <- calculate_economic_costs_rec_only(
   auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "min",
   post_op_imaging = "none",
-  imaging_fu_type = "xr"
+  imaging_fu_type = "us"
 )
 
 costs_2016_rec_only_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2016_fu,
@@ -693,7 +699,7 @@ costs_2016_rec_only_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
                                               fu_type = "max",
                                               post_op_imaging = "none",
-                                              imaging_fu_type = "xr")
+                                              imaging_fu_type = "us")
 
 costs_2016_rec_only_xr_us_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2016_fu,
                                                  cutpoints_yr = cutpoints_2016,
@@ -734,7 +740,7 @@ costs_2017_rec_only_xr_min <- calculate_economic_costs_rec_only(complete_pop_yr_
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
                                               fu_type = "min",
                                               post_op_imaging = "none",
-                                              imaging_fu_type = "xr")
+                                              imaging_fu_type = "us")
 
 costs_2017_rec_only_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2017_fu,
                                               cutpoints_yr = cutpoints_2017,
@@ -742,7 +748,7 @@ costs_2017_rec_only_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
                                               fu_type = "max",
                                               post_op_imaging = "none",
-                                              imaging_fu_type = "xr")
+                                              imaging_fu_type = "us")
 
 costs_2017_rec_only_xr_us_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2017_fu,
                                                  cutpoints_yr = cutpoints_2017,
@@ -783,7 +789,7 @@ costs_2018_rec_only_xr_min <- calculate_economic_costs_rec_only(complete_pop_yr_
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
                                               fu_type = "min",
                                               post_op_imaging = "none",
-                                              imaging_fu_type = "xr")
+                                              imaging_fu_type = "us")
 
 costs_2018_rec_only_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2018_fu,
                                               cutpoints_yr = cutpoints_2018,
@@ -791,7 +797,7 @@ costs_2018_rec_only_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
                                               fu_type = "max",
                                               post_op_imaging = "none",
-                                              imaging_fu_type = "xr")
+                                              imaging_fu_type = "us")
 
 costs_2018_rec_only_xr_us_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2018_fu,
                                                  cutpoints_yr = cutpoints_2018,
@@ -832,7 +838,7 @@ costs_2019_rec_only_xr_min <- calculate_economic_costs_rec_only(complete_pop_yr_
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
                                               fu_type = "min",
                                               post_op_imaging = "none",
-                                              imaging_fu_type = "xr")
+                                              imaging_fu_type = "us")
 
 costs_2019_rec_only_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2019_fu,
                                               cutpoints_yr = cutpoints_2019,
@@ -840,7 +846,7 @@ costs_2019_rec_only_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
                                               fu_type = "max",
                                               post_op_imaging = "none",
-                                              imaging_fu_type = "xr")
+                                              imaging_fu_type = "us")
 
 costs_2019_rec_only_xr_us_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2019_fu,
                                                  cutpoints_yr = cutpoints_2019,
@@ -881,7 +887,7 @@ costs_2020_rec_only_xr_min <- calculate_economic_costs_rec_only(complete_pop_yr_
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
                                               fu_type = "min",
                                               post_op_imaging = "none",
-                                              imaging_fu_type = "xr")
+                                              imaging_fu_type = "us")
 
 costs_2020_rec_only_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2020_fu,
                                               cutpoints_yr = cutpoints_2020,
@@ -889,7 +895,7 @@ costs_2020_rec_only_xr_max <- calculate_economic_costs_rec_only(complete_pop_yr_
                                               auc_targets = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
                                               fu_type = "max",
                                               post_op_imaging = "none",
-                                              imaging_fu_type = "xr")
+                                              imaging_fu_type = "us")
 
 costs_2020_rec_only_xr_us_min <- calculate_economic_costs_rec_only(complete_pop_yr_fu = complete_pop_2020_fu,
                                                  cutpoints_yr = cutpoints_2020,
@@ -934,52 +940,52 @@ aggregate_cost_cohorts <- function(auc_target = c(1,2,3,4,5,6,7,8,9)) {
     message("Processing AUC = ", key)
     
     message("  Loading 2016 data...")
-    cohort_2016_rec_only_min_xr <- costs_2016_rec_only_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2016_rec_only_min_us <- costs_2016_rec_only_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
     cohort_2016_rec_only_min_ct <- costs_2016_rec_only_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2016_rec_only_max_xr <- costs_2016_rec_only_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2016_rec_only_max_us <- costs_2016_rec_only_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
     cohort_2016_rec_only_max_ct <- costs_2016_rec_only_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
     cohort_2016_rec_only_min_xr_us <- costs_2016_rec_only_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
     cohort_2016_rec_only_max_xr_us <- costs_2016_rec_only_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     
     message("  Loading 2017 data...")
-    cohort_2017_rec_only_min_xr <- costs_2017_rec_only_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2017_rec_only_min_us <- costs_2017_rec_only_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
     cohort_2017_rec_only_min_ct <- costs_2017_rec_only_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2017_rec_only_max_xr <- costs_2017_rec_only_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2017_rec_only_max_us <- costs_2017_rec_only_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
     cohort_2017_rec_only_max_ct <- costs_2017_rec_only_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
     cohort_2017_rec_only_min_xr_us <- costs_2017_rec_only_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
     cohort_2017_rec_only_max_xr_us <- costs_2017_rec_only_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     
     message("  Loading 2018 data...")
-    cohort_2018_rec_only_min_xr <- costs_2018_rec_only_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2018_rec_only_min_us <- costs_2018_rec_only_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
     cohort_2018_rec_only_min_ct <- costs_2018_rec_only_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2018_rec_only_max_xr <- costs_2018_rec_only_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2018_rec_only_max_us <- costs_2018_rec_only_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
     cohort_2018_rec_only_max_ct <- costs_2018_rec_only_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
     cohort_2018_rec_only_min_xr_us <- costs_2018_rec_only_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
     cohort_2018_rec_only_max_xr_us <- costs_2018_rec_only_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     
     message("  Loading 2019 data...")
-    cohort_2019_rec_only_min_xr <- costs_2019_rec_only_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2019_rec_only_min_us <- costs_2019_rec_only_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
     cohort_2019_rec_only_min_ct <- costs_2019_rec_only_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2019_rec_only_max_xr <- costs_2019_rec_only_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2019_rec_only_max_us <- costs_2019_rec_only_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
     cohort_2019_rec_only_max_ct <- costs_2019_rec_only_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
     cohort_2019_rec_only_min_xr_us <- costs_2019_rec_only_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
     cohort_2019_rec_only_max_xr_us <- costs_2019_rec_only_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     
     message("  Loading 2020 data...")
-    cohort_2020_rec_only_min_xr <- costs_2020_rec_only_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2020_rec_only_min_us <- costs_2020_rec_only_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
     cohort_2020_rec_only_min_ct <- costs_2020_rec_only_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2020_rec_only_max_xr <- costs_2020_rec_only_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2020_rec_only_max_us <- costs_2020_rec_only_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
     cohort_2020_rec_only_max_ct <- costs_2020_rec_only_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
     cohort_2020_rec_only_min_xr_us <- costs_2020_rec_only_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
     cohort_2020_rec_only_max_xr_us <- costs_2020_rec_only_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     
     message("  Combining cohorts for AUC = ", key)
     overall_cohort <- dplyr::bind_rows(
-      cohort_2016_rec_only_min_xr, cohort_2016_rec_only_min_ct, cohort_2016_rec_only_max_xr, cohort_2016_rec_only_max_ct, cohort_2016_rec_only_min_xr_us, cohort_2016_rec_only_max_xr_us,
-      cohort_2017_rec_only_min_xr, cohort_2017_rec_only_min_ct, cohort_2017_rec_only_max_xr, cohort_2017_rec_only_max_ct, cohort_2017_rec_only_min_xr_us, cohort_2017_rec_only_max_xr_us,
-      cohort_2018_rec_only_min_xr, cohort_2018_rec_only_min_ct, cohort_2018_rec_only_max_xr, cohort_2018_rec_only_max_ct, cohort_2018_rec_only_min_xr_us, cohort_2018_rec_only_max_xr_us,
-      cohort_2019_rec_only_min_xr, cohort_2019_rec_only_min_ct, cohort_2019_rec_only_max_xr, cohort_2019_rec_only_max_ct, cohort_2019_rec_only_min_xr_us, cohort_2019_rec_only_max_xr_us,
-      cohort_2020_rec_only_min_xr, cohort_2020_rec_only_min_ct, cohort_2020_rec_only_max_xr, cohort_2020_rec_only_max_ct, cohort_2020_rec_only_min_xr_us, cohort_2020_rec_only_max_xr_us
+      cohort_2016_rec_only_min_us, cohort_2016_rec_only_min_ct, cohort_2016_rec_only_max_us, cohort_2016_rec_only_max_ct, cohort_2016_rec_only_min_xr_us, cohort_2016_rec_only_max_xr_us,
+      cohort_2017_rec_only_min_us, cohort_2017_rec_only_min_ct, cohort_2017_rec_only_max_us, cohort_2017_rec_only_max_ct, cohort_2017_rec_only_min_xr_us, cohort_2017_rec_only_max_xr_us,
+      cohort_2018_rec_only_min_us, cohort_2018_rec_only_min_ct, cohort_2018_rec_only_max_us, cohort_2018_rec_only_max_ct, cohort_2018_rec_only_min_xr_us, cohort_2018_rec_only_max_xr_us,
+      cohort_2019_rec_only_min_us, cohort_2019_rec_only_min_ct, cohort_2019_rec_only_max_us, cohort_2019_rec_only_max_ct, cohort_2019_rec_only_min_xr_us, cohort_2019_rec_only_max_xr_us,
+      cohort_2020_rec_only_min_us, cohort_2020_rec_only_min_ct, cohort_2020_rec_only_max_us, cohort_2020_rec_only_max_ct, cohort_2020_rec_only_min_xr_us, cohort_2020_rec_only_max_xr_us
     )
     
     all_cohorts[[key]] <- overall_cohort
@@ -1084,10 +1090,10 @@ summary_df <- summary_df %>% mutate(
 # Factor levels for ordering
 summary_df <- summary_df %>%
   mutate(
-    cohort_type = factor(cohort_type, levels = c("Minimum FU, XR", 
+    cohort_type = factor(cohort_type, levels = c("Minimum FU, US", 
                                                  "Minimum FU, CT", 
                                                  "Minimum FU, XR + US",
-                                                 "Maximum FU, XR", 
+                                                 "Maximum FU, US", 
                                                  "Maximum FU, CT", 
                                                  "Maximum FU, XR + US"
     )),
@@ -1097,10 +1103,10 @@ summary_df <- summary_df %>%
 # Prepare data_for_plot factors similarly
 data_for_plot <- data_for_plot %>%
   mutate(
-    cohort_type = factor(cohort_type, levels = c("Minimum FU, XR", 
+    cohort_type = factor(cohort_type, levels = c("Minimum FU, US", 
                                                  "Minimum FU, CT", 
                                                  "Minimum FU, XR + US",
-                                                 "Maximum FU, XR", 
+                                                 "Maximum FU, US", 
                                                  "Maximum FU, CT", 
                                                  "Maximum FU, XR + US")),
     risk_status = factor(risk_status, levels = c("Low Risk", "High Risk"))
