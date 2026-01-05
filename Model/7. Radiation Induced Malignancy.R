@@ -178,13 +178,13 @@ aggregate_radiation_cohorts <- function(auc_target = c(1,2,3,4,5,6,7,8,9)) {
     message("Processing AUC = ", key)
     
     message("  Loading 2016 data...")
-    cohort_2016_min_xr <- rad_doses_2016_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i,
+    cohort_2016_min_us <- rad_doses_2016_cohort_min_us[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i,
                                                                          year = 2016)
     cohort_2016_min_xr_us <- rad_doses_2016_cohort_min_xr_us[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i,
                                                                                year = 2016)
     cohort_2016_min_ct <- rad_doses_2016_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i,
                                                                          year = 2016)
-    cohort_2016_max_xr <- rad_doses_2016_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i,
+    cohort_2016_max_us <- rad_doses_2016_cohort_max_us[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i,
                                                                          year = 2016)
     cohort_2016_max_xr_us <- rad_doses_2016_cohort_max_xr_us[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i,
                                                                                year = 2016)
@@ -192,13 +192,13 @@ aggregate_radiation_cohorts <- function(auc_target = c(1,2,3,4,5,6,7,8,9)) {
                                                                          year = 2016)
     
     message("  Loading 2017 data...")
-    cohort_2017_min_xr <- rad_doses_2017_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i,
+    cohort_2017_min_us <- rad_doses_2017_cohort_min_us[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i,
                                                                          year = 2017)
     cohort_2017_min_xr_us <- rad_doses_2017_cohort_min_xr_us[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i,
                                                                                year = 2017)
     cohort_2017_min_ct <- rad_doses_2017_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i,
                                                                          year = 2017)
-    cohort_2017_max_xr <- rad_doses_2017_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i,
+    cohort_2017_max_us <- rad_doses_2017_cohort_max_us[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i,
                                                                          year = 2017)
     cohort_2017_max_xr_us <- rad_doses_2017_cohort_max_xr_us[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i,
                                                                                year = 2017)
@@ -206,13 +206,13 @@ aggregate_radiation_cohorts <- function(auc_target = c(1,2,3,4,5,6,7,8,9)) {
                                                                          year = 2017)
     
     message("  Loading 2018 data...")
-    cohort_2018_min_xr <- rad_doses_2018_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i,
+    cohort_2018_min_us <- rad_doses_2018_cohort_min_us[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i,
                                                                          year = 2018)
     cohort_2018_min_xr_us <- rad_doses_2018_cohort_min_xr_us[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i,
                                                                                year = 2018)
     cohort_2018_min_ct <- rad_doses_2018_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i,
                                                                          year = 2018)
-    cohort_2018_max_xr <- rad_doses_2018_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i,
+    cohort_2018_max_us <- rad_doses_2018_cohort_max_us[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i,
                                                                          year = 2018)
     cohort_2018_max_xr_us <- rad_doses_2018_cohort_max_xr_us[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i,
                                                                                year = 2018)
@@ -220,13 +220,13 @@ aggregate_radiation_cohorts <- function(auc_target = c(1,2,3,4,5,6,7,8,9)) {
                                                                          year = 2018)
     
     message("  Loading 2019 data...")
-    cohort_2019_min_xr <- rad_doses_2019_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i,
+    cohort_2019_min_us <- rad_doses_2019_cohort_min_us[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i,
                                                                          year = 2019)
     cohort_2019_min_xr_us <- rad_doses_2019_cohort_min_xr_us[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i,
                                                                                year = 2019)
     cohort_2019_min_ct <- rad_doses_2019_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i,
                                                                          year = 2019)
-    cohort_2019_max_xr <- rad_doses_2019_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i,
+    cohort_2019_max_us <- rad_doses_2019_cohort_max_us[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i,
                                                                          year = 2019)
     cohort_2019_max_xr_us <- rad_doses_2019_cohort_max_xr_us[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i,
                                                                                year = 2019)
@@ -234,13 +234,13 @@ aggregate_radiation_cohorts <- function(auc_target = c(1,2,3,4,5,6,7,8,9)) {
                                                                          year = 2019)
     
     message("  Loading 2020 data...")
-    cohort_2020_min_xr <- rad_doses_2020_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i,
+    cohort_2020_min_us <- rad_doses_2020_cohort_min_us[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i,
                                                                          year = 2020)
     cohort_2020_min_xr_us <- rad_doses_2020_cohort_min_xr_us[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i,
                                                                                year = 2020)
     cohort_2020_min_ct <- rad_doses_2020_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i,
                                                                          year = 2020)
-    cohort_2020_max_xr <- rad_doses_2020_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i,
+    cohort_2020_max_us <- rad_doses_2020_cohort_max_us[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i,
                                                                          year = 2020)
     cohort_2020_max_xr_us <- rad_doses_2020_cohort_max_xr_us[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i,
                                                                                year = 2020)
@@ -249,11 +249,11 @@ aggregate_radiation_cohorts <- function(auc_target = c(1,2,3,4,5,6,7,8,9)) {
     
     message("  Combining cohorts for AUC = ", key)
     overall_cohort <- dplyr::bind_rows(
-      cohort_2016_min_xr, cohort_2016_min_xr_us, cohort_2016_min_ct, cohort_2016_max_xr, cohort_2016_max_xr_us, cohort_2016_max_ct,
-      cohort_2017_min_xr, cohort_2017_min_xr_us, cohort_2017_min_ct, cohort_2017_max_xr, cohort_2017_max_xr_us, cohort_2017_max_ct,
-      cohort_2018_min_xr, cohort_2018_min_xr_us, cohort_2018_min_ct, cohort_2018_max_xr, cohort_2018_max_xr_us, cohort_2018_max_ct,
-      cohort_2019_min_xr, cohort_2019_min_xr_us, cohort_2019_min_ct, cohort_2019_max_xr, cohort_2019_max_xr_us, cohort_2019_max_ct,
-      cohort_2020_min_xr, cohort_2020_min_xr_us, cohort_2020_min_ct, cohort_2020_max_xr, cohort_2020_max_xr_us, cohort_2020_max_ct
+      cohort_2016_min_us, cohort_2016_min_xr_us, cohort_2016_min_ct, cohort_2016_max_us, cohort_2016_max_xr_us, cohort_2016_max_ct,
+      cohort_2017_min_us, cohort_2017_min_xr_us, cohort_2017_min_ct, cohort_2017_max_us, cohort_2017_max_xr_us, cohort_2017_max_ct,
+      cohort_2018_min_us, cohort_2018_min_xr_us, cohort_2018_min_ct, cohort_2018_max_us, cohort_2018_max_xr_us, cohort_2018_max_ct,
+      cohort_2019_min_us, cohort_2019_min_xr_us, cohort_2019_min_ct, cohort_2019_max_us, cohort_2019_max_xr_us, cohort_2019_max_ct,
+      cohort_2020_min_us, cohort_2020_min_xr_us, cohort_2020_min_ct, cohort_2020_max_us, cohort_2020_max_xr_us, cohort_2020_max_ct
     ) %>%
       mutate(
         cohort_type = as.factor(cohort_type)
@@ -1770,125 +1770,125 @@ risk_combined_with_sf_status_sf <- bind_rows(risk_summary_monte_carlo_final_with
 
 
 ## 6.5 Plot ####
-risk_smoothed_sf <- risk_combined_with_sf_status_sf %>%
-  select(age, risk_status, cohort_type, recurrence, auc_target, cumulative_lifetime_risk, ci_lower_95, ci_upper_95) %>%
-  mutate(
-    cohort_type_recurrence = paste0(cohort_type, recurrence)
-  )
-  group_by(risk_status, cohort_type_recurrence, auc_target) %>%
-  drop_na(cumulative_lifetime_risk) %>%
-  arrange(age) %>%
-  summarise(
-    y = loess(cumulative_lifetime_risk ~ age, data = cur_data(), span = 0.6)$fitted,
-    ymin = loess(ci_lower_95 ~ age, data = cur_data(), span = 0.6)$fitted,
-    ymax = loess(ci_upper_95 ~ age, data = cur_data(), span = 0.6)$fitted,
-    age = age,
-    .groups = "drop"
-  )
+#risk_smoothed_sf <- risk_combined_with_sf_status_sf %>%
+#  select(age, risk_status, cohort_type, recurrence, auc_target, cumulative_lifetime_risk, ci_lower_95, ci_upper_95) %>%
+#  mutate(
+#    cohort_type_recurrence = paste0(cohort_type, recurrence)
+#  ) %>%
+#  group_by(risk_status, cohort_type_recurrence, auc_target) %>%
+#  drop_na(cumulative_lifetime_risk) %>%
+#  arrange(age) %>%
+#  summarise(
+#    y = loess(cumulative_lifetime_risk ~ age, data = cur_data(), span = 0.6)$fitted,
+#    ymin = loess(ci_lower_95 ~ age, data = cur_data(), span = 0.6)$fitted,
+#    ymax = loess(ci_upper_95 ~ age, data = cur_data(), span = 0.6)$fitted,
+#    age = age,
+#    .groups = "drop"
+#  )
 
-malignancy_risk_plot_sf <- ggplot(risk_smoothed_sf, aes(x = age, y = y, color = risk_status, fill = risk_status)) +
-  geom_ribbon(aes(ymin = ymin, ymax = ymax), alpha = 0.2, color = NA) +
-  geom_line(size = 0.8) +
-  facet_grid(
-    cohort_type_recurrence ~ auc_target,
-    labeller = labeller(
-      auc_target = label_value,  
-      cohort_type_recurrence = label_wrap_gen(10)
-    )
-  ) +
-  scale_color_manual(values = c("All" = "#d32f2f", "High Risk" = "#1976d2", "Low Risk" = "#2e7d32")) +
-  scale_fill_manual(values = c("All" = "#d32f2f", "High Risk" = "#1976d2", "Low Risk" = "#2e7d32")) +
-  labs(
-    x = "Age at First Imaging (years)",
-    y = "Excess Additional Lifetime Risk of Malignancy",
-    color = "Risk Status",
-    fill = "Risk Status",
-    title = "Lifetime Malignancy Risk"
-  ) +
-  theme_minimal() +
-  theme(
-    strip.text = element_text(size = 9),
-    legend.position = "bottom",
-    panel.spacing = unit(0.5, "lines"),
-    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8),
-    strip.background = element_rect(color = "black", fill = "#f0f0f0", linewidth = 0.8)
-  ) +
-  xlim(10, 85) + ylim(0, 1.5)
+#malignancy_risk_plot_sf <- ggplot(risk_smoothed_sf, aes(x = age, y = y, color = risk_status, fill = risk_status)) +
+#  geom_ribbon(aes(ymin = ymin, ymax = ymax), alpha = 0.2, color = NA) +
+#  geom_line(size = 0.8) +
+#  facet_grid(
+#    cohort_type_recurrence ~ auc_target,
+#    labeller = labeller(
+#      auc_target = label_value,  
+#      cohort_type_recurrence = label_wrap_gen(10)
+#    )
+#  ) +
+#  scale_color_manual(values = c("All" = "#d32f2f", "High Risk" = "#1976d2", "Low Risk" = "#2e7d32")) +
+#  scale_fill_manual(values = c("All" = "#d32f2f", "High Risk" = "#1976d2", "Low Risk" = "#2e7d32")) +
+#  labs(
+#    x = "Age at First Imaging (years)",
+#    y = "Excess Additional Lifetime Risk of Malignancy",
+#    color = "Risk Status",
+#    fill = "Risk Status",
+#    title = "Lifetime Malignancy Risk"
+#  ) +
+#  theme_minimal() +
+#  theme(
+#    strip.text = element_text(size = 9),
+#    legend.position = "bottom",
+#    panel.spacing = unit(0.5, "lines"),
+#    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8),
+#    strip.background = element_rect(color = "black", fill = "#f0f0f0", linewidth = 0.8)
+#  ) +
+#  xlim(10, 85) + ylim(0, 1.5)
 
-print(malignancy_risk_plot_sf)
+# print(malignancy_risk_plot_sf)
 
 # 7. Get Index Patients for Comparison ####
-risk_combined_with_sf_status_sf %>% 
-  filter(age %in% c(15, 25, 45, 60)) %>% 
-  mutate(age = factor(age, levels = c(15, 25, 45, 60))) %>%
-  subset(select = c(age, sex, auc_target, risk_status, cohort_type_recurrence, cumulative_lifetime_risk,
-                    ci_lower_95, ci_upper_95)) %>%
-  mutate(
-    cohort_type_recurrence = case_when(
-      cohort_type_recurrence == "Maximum FU, CT_recurrence_No" ~  "Max CT, Rec No",
-      cohort_type_recurrence == "Maximum FU, CT_recurrence_Yes" ~  "Max CT, Rec Yes",
-      cohort_type_recurrence == "Maximum FU, XR_recurrence_No" ~  "Max XR, Rec No",
-      cohort_type_recurrence == "Maximum FU, XR_recurrence_Yes" ~  "Max XR, Rec Yes",
-      cohort_type_recurrence == "Minimum FU, CT_recurrence_No" ~  "Min CT, Rec No",
-      cohort_type_recurrence == "Minimum FU, CT_recurrence_Yes" ~ "Min CT, Rec Yes",
-      cohort_type_recurrence == "Minimum FU, XR_recurrence_No" ~ "Min XR, Rec No",
-      cohort_type_recurrence == "Minimum FU, XR_recurrence_Yes" ~ "Min XR, Rec Yes"
-    )
-  ) %>%
-  group_by(age, sex, risk_status, cohort_type_recurrence, auc_target) %>%
-  summarise(
-    cumulative_lifetime_risk = round(mean(cumulative_lifetime_risk), digits = 2),
-    ci_lower_95 = round(mean(ci_lower_95), digits = 2),
-    ci_upper_95 = round(mean(ci_upper_95), digits = 2)
-  ) %>%
-  ggplot(aes(x = age, 
-             y = cumulative_lifetime_risk, 
-             color = risk_status, 
-             fill = risk_status)) + 
-  geom_col(position = position_dodge(width = 0.8), width = 0.7) +
-  geom_errorbar(aes(ymin = ci_lower_95, ymax = ci_upper_95), 
-                position = position_dodge(width = 0.8), 
-                width = 0.2, linewidth = 0.6) +
-  facet_grid(
-    cohort_type_recurrence ~ auc_target,
-    labeller = labeller(
-      auc_target = label_value,
-      cohort_type_recurrence = label_wrap_gen(10)
-    )
-  ) +
-  scale_color_manual(values = c("All" = "#d32f2f", "High Risk" = "#1976d2", "Low Risk" = "#2e7d32")) +
-  scale_fill_manual(values = c("All" = "#d32f2f", "High Risk" = "#1976d2", "Low Risk" = "#2e7d32")) +
-  labs(
-    x = "Age at First Imaging (years)",
-    y = "Excess Additional Absolute Lifetime Risk of Malignancy",
-    color = "Risk Status",
-    fill = "Risk Status",
-    title = "Lifetime Malignancy Risk for Index Patients"
-  ) +
-  theme_minimal() +
-  theme(
-    strip.text = element_text(size = 9),
-    legend.position = "bottom",
-    panel.spacing = unit(0.5, "lines"),
-    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8),   # facet panel box
-    strip.background = element_rect(color = "black", fill = "#f0f0f0", linewidth = 0.8) # strip box
-  ) +
-  ylim(0, 2) 
+#risk_combined_with_sf_status_sf %>% 
+#  filter(age %in% c(15, 25, 45, 60)) %>% 
+#  mutate(age = factor(age, levels = c(15, 25, 45, 60))) %>%
+#  subset(select = c(age, sex, auc_target, risk_status, cohort_type_recurrence, cumulative_lifetime_risk,
+#                    ci_lower_95, ci_upper_95)) %>%
+#  mutate(
+#    cohort_type_recurrence = case_when(
+#      cohort_type_recurrence == "Maximum FU, CT_recurrence_No" ~  "Max CT, Rec No",
+#      cohort_type_recurrence == "Maximum FU, CT_recurrence_Yes" ~  "Max CT, Rec Yes",
+#      cohort_type_recurrence == "Maximum FU, US_recurrence_No" ~  "Max US, Rec No",
+#      cohort_type_recurrence == "Maximum FU, US_recurrence_Yes" ~  "Max US, Rec Yes",
+#      cohort_type_recurrence == "Minimum FU, CT_recurrence_No" ~  "Min CT, Rec No",
+#      cohort_type_recurrence == "Minimum FU, CT_recurrence_Yes" ~ "Min CT, Rec Yes",
+#      cohort_type_recurrence == "Minimum FU, US_recurrence_No" ~ "Min US, Rec No",
+#      cohort_type_recurrence == "Minimum FU, US_recurrence_Yes" ~ "Min US, Rec Yes"
+#    )
+#  ) %>%
+#  group_by(age, sex, risk_status, cohort_type_recurrence, auc_target) %>%
+#  summarise(
+#    cumulative_lifetime_risk = round(mean(cumulative_lifetime_risk), digits = 2),
+#    ci_lower_95 = round(mean(ci_lower_95), digits = 2),
+#    ci_upper_95 = round(mean(ci_upper_95), digits = 2)
+#  ) %>%
+#  ggplot(aes(x = age, 
+#             y = cumulative_lifetime_risk, 
+#             color = risk_status, 
+#             fill = risk_status)) + 
+#  geom_col(position = position_dodge(width = 0.8), width = 0.7) +
+#  geom_errorbar(aes(ymin = ci_lower_95, ymax = ci_upper_95), 
+#                position = position_dodge(width = 0.8), 
+#                width = 0.2, linewidth = 0.6) +
+#  facet_grid(
+#    cohort_type_recurrence ~ auc_target,
+#    labeller = labeller(
+#      auc_target = label_value,
+#      cohort_type_recurrence = label_wrap_gen(10)
+#    )
+#  ) +
+#  scale_color_manual(values = c("All" = "#d32f2f", "High Risk" = "#1976d2", "Low Risk" = "#2e7d32")) +
+#  scale_fill_manual(values = c("All" = "#d32f2f", "High Risk" = "#1976d2", "Low Risk" = "#2e7d32")) +
+#  labs(
+#    x = "Age at First Imaging (years)",
+#    y = "Excess Additional Absolute Lifetime Risk of Malignancy",
+#    color = "Risk Status",
+#    fill = "Risk Status",
+#    title = "Lifetime Malignancy Risk for Index Patients"
+#  ) +
+#  theme_minimal() +
+#  theme(
+#    strip.text = element_text(size = 9),
+#    legend.position = "bottom",
+#    panel.spacing = unit(0.5, "lines"),
+#    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8),   # facet panel box
+#    strip.background = element_rect(color = "black", fill = "#f0f0f0", linewidth = 0.8) # strip box
+#  ) +
+#  ylim(0, 2) 
 
 
-risk_combined_with_sf_status_sf %>% 
-  filter(age %in% c(15, 25, 45, 60)) %>% 
-  mutate(age = factor(age, levels = c(15, 25, 45, 60))) %>% 
-  subset(select = c(age, sex, auc_target, risk_status, cohort_type_recurrence, cumulative_lifetime_risk,
-                    ci_lower_95, ci_upper_95)) %>%
-  group_by(age, sex, risk_status, cohort_type_recurrence, auc_target) %>%
-  summarise(
-    cumulative_lifetime_risk = round(mean(cumulative_lifetime_risk), digits = 2),
-    ci_lower_95 = round(mean(ci_lower_95), digits = 2),
-    ci_upper_95 = round(mean(ci_upper_95), digits = 2)
-  ) %>%
-  gt() %>% 
-  gt_theme_espn()
+#risk_combined_with_sf_status_sf %>% 
+#  filter(age %in% c(15, 25, 45, 60)) %>% 
+#  mutate(age = factor(age, levels = c(15, 25, 45, 60))) %>% 
+#  subset(select = c(age, sex, auc_target, risk_status, cohort_type_recurrence, cumulative_lifetime_risk,
+#                    ci_lower_95, ci_upper_95)) %>%
+#  group_by(age, sex, risk_status, cohort_type_recurrence, auc_target) %>%
+#  summarise(
+#    cumulative_lifetime_risk = round(mean(cumulative_lifetime_risk), digits = 2),
+#    ci_lower_95 = round(mean(ci_lower_95), digits = 2),
+#    ci_upper_95 = round(mean(ci_upper_95), digits = 2)
+#  ) %>%
+#  gt() %>% 
+#  gt_theme_espn()
 
 # 8. Plot additional risk of malignancy per AUC + risk status ####
 ## 8.1 Proportions ####
