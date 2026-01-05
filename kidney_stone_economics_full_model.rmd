@@ -2,14 +2,16 @@
 title: "kidney_stone_economics_full_model"
 author: "R Geraghty"
 date: "`r Sys.Date()`"
-output: 
+output:
+  word_document:
+    toc: true
   html_document:
     toc: true
     toc_float: true
     fig_width: 10
     fig_height: 10
     number_sections: true
-    code_folding: TRUE
+    code_folding: true
 ---
 # Setup
 ```{r, include = FALSE, warning=FALSE}
@@ -38,39 +40,39 @@ library(patchwork)
 
 # 1. Define Inputs
 ```{r}
-source("Model/1. Define Inputs.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/1. Define Inputs.R")
 ```
 \newpage
 
 # 2. Total Cost Calculation for Stone Free Patients
 ```{r}
-source("Model/2. Total Cost Calculation for Stone Free Patients.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/2. Total Cost Calculation for Stone Free Patients.R")
 ```
 \newpage
 
 # 3. Visualise Model 
 ```{r}
-source("Model/3. Visualise Model.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/3. Visualise Model.R")
 ```
 \newpage
 
 # 4. Distribution of Scores - Pick one!
 ## 4.1 Beta Distribution - e.g modelling a machine learning model output
 ```{r}
-source("Model/4. Model - Beta Distribution for Scores.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/4. Model - Beta Distribution for Scores.R")
 ```
 \newpage
 
 ## 4.2 Normal Distribution - e.g modelling a blood test output
 <br> **uncomment to run** <br>
 ```{r}
-#source("Model/4. Model - Normal Distribution for Scores.R")
+#source("~/Desktop/Kidney-Stone-Economics/Model/4. Model - Normal Distribution for Scores.R")
 ```
 \newpage
 
 # 5. Run Model
 ```{r}
-source("Model/5. Run Model.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/5. Run Model.R")
 ```
 \newpage
 
@@ -94,7 +96,7 @@ overall_simulation_plot
 
 # 6. Radiation Dose
 ```{r}
-source("Model/6. Radiation Dose.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/6. Radiation Dose.R")
 ```
 \newpage
 
@@ -162,7 +164,7 @@ data_for_plot %>% ggplot(aes(x = auc_label, y=cumulative_rad_dose, fill = risk_s
 
 # 7. Radiation Induced Malignancy
 ```{r}
-source("Model/7. Radiation Induced Malignancy.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/7. Radiation Induced Malignancy.R")
 ```
 \newpage
 
@@ -253,10 +255,10 @@ malignancy_plot_data <- malignancy_grand_total %>%
   )
 
 comparisons <- list(
-  c("Maximum FU, CT", "Maximum FU, XR"),
-  c("Minimum FU, CT", "Minimum FU, XR"),
+  c("Maximum FU, CT", "Maximum FU, US"),
+  c("Minimum FU, CT", "Minimum FU, US"),
   c("Maximum FU, CT", "Minimum FU, CT"),
-  c("Maximum FU, XR", "Minimum FU, XR")
+  c("Maximum FU, US", "Minimum FU, US")
 )
 
 calc_chisq_pvalue <- function(data, group1, group2) {
@@ -622,10 +624,10 @@ baseline_malignancies_perc_plot <- malignancy_plot_data %>%
     cohort_type = factor(
       cohort_type,
       levels = c(
-        "Minimum FU, XR",
+        "Minimum FU, US",
         "Minimum FU, XR + US",
         "Minimum FU, CT",
-        "Maximum FU, XR",
+        "Maximum FU, US",
         "Maximum FU, XR + US",
         "Maximum FU, CT"
       )
@@ -687,7 +689,7 @@ baseline_malignancies_perc_plot
 
 # 8. Economic Costs - All Patients
 ```{r}
-source("Model/8. Economic Costs - All Patients.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/8. Economic Costs - All Patients.R")
 ```
 \newpage
 
@@ -738,11 +740,11 @@ summary_df_full_cost_plot <- summary_df_full_cost_data %>%
   mutate(
     cohort_type = factor(cohort_type,
                          levels = c(
-                           "Minimum FU, XR",
                            "Minimum FU, XR + US",
+                           "Minimum FU, US",
                            "Minimum FU, CT",
-                           "Maximum FU, XR",
                            "Maximum FU, XR + US",
+                           "Maximum FU, US",
                            "Maximum FU, CT"
                          )),
     total_cost = case_when(
@@ -826,7 +828,7 @@ summary_df_full_cost_data_all_patients <- summary_df_full_cost_data
 
 # 9. Economic Costs - Recurrence only
 ```{r}
-source("Model/9. Economic Costs - Recurrence only.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/9. Economic Costs - Recurrence only.R")
 ```
 \newpage
 
@@ -855,7 +857,7 @@ summary_df_rec_only %>%
 ```{r}
 baseline_costs_rec_only <- summary_df_rec_only %>%
   filter(auc_label == "AUC 0.55") %>%
-  filter(cohort_type == "Minimum FU, XR") %>%
+  filter(cohort_type == "Minimum FU, US") %>%
   mutate(auc_label == "Baseline")
 
 baseline_cost_all_rec_only <- baseline_costs_rec_only %>%
@@ -964,7 +966,7 @@ summary_df_rec_only %>% subset(risk_status == "All") %>% group_by(auc_label,
 
 # 10. Clinician Time - Number of Appointments
 ```{r}
-source("Model/10. Clinician Time.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/10. Clinician Time.R")
 ```
 \newpage
 
@@ -1013,10 +1015,10 @@ summary_df_appts_plot <- summary_df_appts %>%
   mutate(
     cohort_type = factor(cohort_type,
                          levels = c(
-                           "Minimum FU, XR",
+                           "Minimum FU, US",
                            "Minimum FU, XR + US",
                            "Minimum FU, CT",
-                           "Maximum FU, XR",
+                           "Maximum FU, US",
                            "Maximum FU, XR + US",
                            "Maximum FU, CT"
                          )),
@@ -1059,7 +1061,7 @@ summary_df_appts %>%
 
 # 11. Quality of Life
 ```{r}
-source("Model/11. Quality of Life.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/11. Quality of Life.R")
 ```
 \newpage
 
@@ -1127,10 +1129,10 @@ summary_df_full_qol_plot <- summary_df_full_qol_data %>%
   mutate(
     cohort_type = factor(cohort_type,
                          levels = c(
-                           "Minimum FU, XR",
+                           "Minimum FU, US",
                            "Minimum FU, XR + US",
                            "Minimum FU, CT",
-                           "Maximum FU, XR",
+                           "Maximum FU, US",
                            "Maximum FU, XR + US",
                            "Maximum FU, CT"
                          )),
@@ -1182,7 +1184,7 @@ summary_df_full_qol_plot
 
 # 12. Calculate ICER 
 ```{r}
-source("Model/12. Calculate ICER.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/12. Calculate ICER.R")
 ```
 \newpage
 
@@ -1207,7 +1209,7 @@ icer_results %>%
 
 # 13. CO2 Emissions
 ```{r}
-source("Model/13. Calculate CO2 emissions.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/13. Calculate CO2 emissions.R")
 ```
 \newpage
 
@@ -1222,10 +1224,10 @@ summary_df_full_cost_plot_paper1 <- summary_df_full_cost_data %>%
     cohort_type = factor(cohort_type,
                          levels = c(
                            "Minimum FU, XR + US",
-                           "Minimum FU, XR",
+                           "Minimum FU, US",
                            "Minimum FU, CT",
                            "Maximum FU, XR + US",
-                           "Maximum FU, XR",
+                           "Maximum FU, US",
                            "Maximum FU, CT"
                          )),
     total_cost = case_when(
@@ -1257,10 +1259,10 @@ summary_df_appts_plot_paper1 <- summary_df_appts %>%
     cohort_type = factor(cohort_type,
                          levels = c(
                            "Minimum FU, XR + US",
-                           "Minimum FU, XR",
+                           "Minimum FU, US",
                            "Minimum FU, CT",
                            "Maximum FU, XR + US",
-                           "Maximum FU, XR",
+                           "Maximum FU, US",
                            "Maximum FU, CT"
                          )),
     total_appts = case_when(
@@ -1297,10 +1299,10 @@ baseline_malignancies_perc_plot_paper1 <- malignancy_plot_data %>%
       cohort_type,
       levels = c(
         "Minimum FU, XR + US",
-                           "Minimum FU, XR",
+                           "Minimum FU, US",
                            "Minimum FU, CT",
                            "Maximum FU, XR + US",
-                           "Maximum FU, XR",
+                           "Maximum FU, US",
                            "Maximum FU, CT"
       )
     ),
@@ -1361,10 +1363,10 @@ summary_df_full_qol_plot_paper1 <- summary_df_full_qol_data %>%
     cohort_type = factor(cohort_type,
                          levels = c(
                            "Minimum FU, XR + US",
-                           "Minimum FU, XR",
+                           "Minimum FU, US",
                            "Minimum FU, CT",
                            "Maximum FU, XR + US",
-                           "Maximum FU, XR",
+                           "Maximum FU, US",
                            "Maximum FU, CT"
                          )),
     mean_qaly_5yr_comp = case_when(
@@ -1445,7 +1447,7 @@ paper_2_plot
 
 # 15. QoL - EQ-5D
 ```{r}
-source("Model/11. Quality of Life - EQ-5D.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/11. Quality of Life - EQ-5D.R")
 ```
 \newpage
 
@@ -1481,10 +1483,10 @@ summary_df_full_qol_data_eq_5d %>%
   mutate(cohort_type = factor(cohort_type,
                          levels = c(
                            "Minimum FU, XR + US",
-                           "Minimum FU, XR",
+                           "Minimum FU, US",
                            "Minimum FU, CT",
                            "Maximum FU, XR + US",
-                           "Maximum FU, XR",
+                           "Maximum FU, US",
                            "Maximum FU, CT"
                          ))) %>%
   group_by(auc_label) %>%
@@ -1549,10 +1551,10 @@ summary_df_full_qol_plot <- summary_df_full_qol_data %>%
     cohort_type = factor(cohort_type,
                          levels = c(
                            "Minimum FU, XR + US",
-                           "Minimum FU, XR",
+                           "Minimum FU, US",
                            "Minimum FU, CT",
                            "Maximum FU, XR + US",
-                           "Maximum FU, XR",
+                           "Maximum FU, US",
                            "Maximum FU, CT"
                          )),
     mean_qaly_5yr_comp = case_when(
@@ -1602,7 +1604,7 @@ summary_df_full_qol_plot
 
 # 16. Calculate ICER with EQ-5D data
 ```{r}
-source("Model/12. Calculate ICER.R")
+source("~/Desktop/Kidney-Stone-Economics/Model/12. Calculate ICER.R")
 ```
 \newpage
 
@@ -1638,10 +1640,10 @@ summary_df_full_qol_plot_eq5d_paper1 <- summary_df_full_qol_data_eq_5d %>%
     cohort_type = factor(cohort_type,
                          levels = c(
                            "Minimum FU, XR + US",
-                           "Minimum FU, XR",
+                           "Minimum FU, US",
                            "Minimum FU, CT",
                            "Maximum FU, XR + US",
-                           "Maximum FU, XR",
+                           "Maximum FU, US",
                            "Maximum FU, CT"
                          )),
     mean_qaly_5yr_comp = case_when(
