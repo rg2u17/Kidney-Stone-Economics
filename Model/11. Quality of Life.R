@@ -947,7 +947,7 @@ calculate_qol <- function(complete_pop_yr_fu,
                           years = c(1,2,3,4,5),
                           target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
                           fu_type = c("min", "max"),
-                          post_op_imaging = c("none", "ct", "xr", "us"),
+                          post_op_imaging = c("none", "ct", "us", "us"),
                           imaging_fu_type = c("ct", "us", "xr_us"),
                           xr_sens = 0.67,
                           xr_spec = 0.98,
@@ -997,7 +997,7 @@ calculate_qol <- function(complete_pop_yr_fu,
     rand_spec <- runif(nrow(complete_pop_yr_fu2))
     
     # Distribute SF status as determined by imaging
-    if (imaging_fu_type == "xr") {
+    if (imaging_fu_type == "us") {
       
       
       # Generate random numbers once
@@ -1151,24 +1151,24 @@ calculate_qol <- function(complete_pop_yr_fu,
 ### 11.4.1 2016 ####
 complete_pop_2016_fu_baseline_qol <- assign_baseline_qol(df = complete_pop_2016_fu)
 
-qol_2016_xr_min <- calculate_qol(
+qol_2016_us_min <- calculate_qol(
   complete_pop_yr_fu = complete_pop_2016_fu_baseline_qol,
   cutpoints_yr = cutpoints_2016,
   start_year = 2016,
   years = c(1,2,3,4,5),
   target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "min",
-  imaging_fu_type = "xr"
+  imaging_fu_type = "us"
 )
 
-qol_2016_xr_max <- calculate_qol(
+qol_2016_us_max <- calculate_qol(
   complete_pop_yr_fu = complete_pop_2016_fu_baseline_qol,
   cutpoints_yr = cutpoints_2016,
   start_year = 2016,
   years = c(1,2,3,4,5),
   target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "max",
-  imaging_fu_type = "xr"
+  imaging_fu_type = "us"
 )
 
 qol_2016_xr_us_min <- calculate_qol(
@@ -1214,24 +1214,24 @@ qol_2016_ct_max <- calculate_qol(
 ### 11.4.2 2017 ####
 complete_pop_2017_fu_baseline_qol <- assign_baseline_qol(df = complete_pop_2017_fu)
 
-qol_2017_xr_min <- calculate_qol(
+qol_2017_us_min <- calculate_qol(
   complete_pop_yr_fu = complete_pop_2017_fu_baseline_qol,
   cutpoints_yr = cutpoints_2017,
   start_year = 2017,
   years = c(1,2,3,4,5),
   target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "min",
-  imaging_fu_type = "xr"
+  imaging_fu_type = "us"
 )
 
-qol_2017_xr_max <- calculate_qol(
+qol_2017_us_max <- calculate_qol(
   complete_pop_yr_fu = complete_pop_2017_fu_baseline_qol,
   cutpoints_yr = cutpoints_2017,
   start_year = 2017,
   years = c(1,2,3,4,5),
   target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "max",
-  imaging_fu_type = "xr"
+  imaging_fu_type = "us"
 )
 
 qol_2017_xr_us_min <- calculate_qol(
@@ -1277,24 +1277,24 @@ qol_2017_ct_max <- calculate_qol(
 ### 11.4.3 2018 ####
 complete_pop_2018_fu_baseline_qol <- assign_baseline_qol(df = complete_pop_2018_fu)
 
-qol_2018_xr_min <- calculate_qol(
+qol_2018_us_min <- calculate_qol(
   complete_pop_yr_fu = complete_pop_2018_fu_baseline_qol,
   cutpoints_yr = cutpoints_2018,
   start_year = 2018,
   years = c(1,2,3,4,5),
   target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "min",
-  imaging_fu_type = "xr"
+  imaging_fu_type = "us"
 )
 
-qol_2018_xr_max <- calculate_qol(
+qol_2018_us_max <- calculate_qol(
   complete_pop_yr_fu = complete_pop_2018_fu_baseline_qol,
   cutpoints_yr = cutpoints_2018,
   start_year = 2018,
   years = c(1,2,3,4,5),
   target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "max",
-  imaging_fu_type = "xr"
+  imaging_fu_type = "us"
 )
 
 qol_2018_xr_us_min <- calculate_qol(
@@ -1341,24 +1341,24 @@ qol_2018_ct_max <- calculate_qol(
 complete_pop_2019_fu_baseline_qol <- assign_baseline_qol(df = complete_pop_2019_fu)
 
 
-qol_2019_xr_min <- calculate_qol(
+qol_2019_us_min <- calculate_qol(
   complete_pop_yr_fu = complete_pop_2019_fu_baseline_qol,
   cutpoints_yr = cutpoints_2019,
   start_year = 2019,
   years = c(1,2,3,4,5),
   target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "min",
-  imaging_fu_type = "xr"
+  imaging_fu_type = "us"
 )
 
-qol_2019_xr_max <- calculate_qol(
+qol_2019_us_max <- calculate_qol(
   complete_pop_yr_fu = complete_pop_2019_fu_baseline_qol,
   cutpoints_yr = cutpoints_2019,
   start_year = 2019,
   years = c(1,2,3,4,5),
   target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "max",
-  imaging_fu_type = "xr"
+  imaging_fu_type = "us"
 )
 
 qol_2019_xr_us_min <- calculate_qol(
@@ -1404,24 +1404,24 @@ qol_2019_ct_max <- calculate_qol(
 ### 11.4.5 2020 ####
 complete_pop_2020_fu_baseline_qol <- assign_baseline_qol(df = complete_pop_2020_fu)
 
-qol_2020_xr_min <- calculate_qol(
+qol_2020_us_min <- calculate_qol(
   complete_pop_yr_fu = complete_pop_2020_fu_baseline_qol,
   cutpoints_yr = cutpoints_2020,
   start_year = 2020,
   years = c(1,2,3,4,5),
   target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "min",
-  imaging_fu_type = "xr"
+  imaging_fu_type = "us"
 )
 
-qol_2020_xr_max <- calculate_qol(
+qol_2020_us_max <- calculate_qol(
   complete_pop_yr_fu = complete_pop_2020_fu_baseline_qol,
   cutpoints_yr = cutpoints_2020,
   start_year = 2020,
   years = c(1,2,3,4,5),
   target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
   fu_type = "max",
-  imaging_fu_type = "xr"
+  imaging_fu_type = "us"
 )
 
 qol_2020_xr_us_min <- calculate_qol(
@@ -1474,52 +1474,52 @@ aggregate_qol_cohorts <- function(auc_target = c(1,2,3,4,5,6,7,8,9)) {
     message("Processing AUC = ", key)
     
     message("  Loading 2016 data...")
-    cohort_2016_min_xr <- qol_2016_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2016_min_us <- qol_2016_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
     cohort_2016_min_ct <- qol_2016_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2016_max_xr <- qol_2016_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2016_max_us <- qol_2016_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
     cohort_2016_max_ct <- qol_2016_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
     cohort_2016_min_xr_us <- qol_2016_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
     cohort_2016_max_xr_us <- qol_2016_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     
     message("  Loading 2017 data...")
-    cohort_2017_min_xr <- qol_2017_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2017_min_us <- qol_2017_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
     cohort_2017_min_ct <- qol_2017_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2017_max_xr <- qol_2017_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2017_max_us <- qol_2017_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
     cohort_2017_max_ct <- qol_2017_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
     cohort_2017_min_xr_us <- qol_2017_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
     cohort_2017_max_xr_us <- qol_2017_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     
     message("  Loading 2018 data...")
-    cohort_2018_min_xr <- qol_2018_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2018_min_us <- qol_2018_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
     cohort_2018_min_ct <- qol_2018_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2018_max_xr <- qol_2018_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2018_max_us <- qol_2018_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
     cohort_2018_max_ct <- qol_2018_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
     cohort_2018_min_xr_us <- qol_2018_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
     cohort_2018_max_xr_us <- qol_2018_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     
     message("  Loading 2019 data...")
-    cohort_2019_min_xr <- qol_2019_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2019_min_us <- qol_2019_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
     cohort_2019_min_ct <- qol_2019_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2019_max_xr <- qol_2019_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2019_max_us <- qol_2019_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
     cohort_2019_max_ct <- qol_2019_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
     cohort_2019_min_xr_us <- qol_2019_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
     cohort_2019_max_xr_us <- qol_2019_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     
     message("  Loading 2020 data...")
-    cohort_2020_min_xr <- qol_2020_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2020_min_us <- qol_2020_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
     cohort_2020_min_ct <- qol_2020_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2020_max_xr <- qol_2020_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2020_max_us <- qol_2020_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
     cohort_2020_max_ct <- qol_2020_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
     cohort_2020_min_xr_us <- qol_2020_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
     cohort_2020_max_xr_us <- qol_2020_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     
     message("  Combining cohorts for AUC = ", key)
     overall_cohort <- dplyr::bind_rows(
-      cohort_2016_min_xr, cohort_2016_min_ct, cohort_2016_max_xr, cohort_2016_max_ct, cohort_2016_min_xr_us, cohort_2016_max_xr_us,
-      cohort_2017_min_xr, cohort_2017_min_ct, cohort_2017_max_xr, cohort_2017_max_ct, cohort_2017_min_xr_us, cohort_2017_max_xr_us,
-      cohort_2018_min_xr, cohort_2018_min_ct, cohort_2018_max_xr, cohort_2018_max_ct, cohort_2018_min_xr_us, cohort_2018_max_xr_us,
-      cohort_2019_min_xr, cohort_2019_min_ct, cohort_2019_max_xr, cohort_2019_max_ct, cohort_2019_min_xr_us, cohort_2019_max_xr_us,
-      cohort_2020_min_xr, cohort_2020_min_ct, cohort_2020_max_xr, cohort_2020_max_ct, cohort_2020_min_xr_us, cohort_2020_max_xr_us
+      cohort_2016_min_us, cohort_2016_min_ct, cohort_2016_max_us, cohort_2016_max_ct, cohort_2016_min_xr_us, cohort_2016_max_xr_us,
+      cohort_2017_min_us, cohort_2017_min_ct, cohort_2017_max_us, cohort_2017_max_ct, cohort_2017_min_xr_us, cohort_2017_max_xr_us,
+      cohort_2018_min_us, cohort_2018_min_ct, cohort_2018_max_us, cohort_2018_max_ct, cohort_2018_min_xr_us, cohort_2018_max_xr_us,
+      cohort_2019_min_us, cohort_2019_min_ct, cohort_2019_max_us, cohort_2019_max_ct, cohort_2019_min_xr_us, cohort_2019_max_xr_us,
+      cohort_2020_min_us, cohort_2020_min_ct, cohort_2020_max_us, cohort_2020_max_ct, cohort_2020_min_xr_us, cohort_2020_max_xr_us
     )
     
     all_cohorts[[key]] <- overall_cohort
@@ -1692,10 +1692,10 @@ summary_df_qol <- summary_df_qol %>% mutate(
 # Factor levels for ordering
 summary_df_full_qol_data <- summary_df_qol %>%
   mutate(
-    cohort_type = factor(cohort_type, levels = c("Minimum FU, XR", 
+    cohort_type = factor(cohort_type, levels = c("Minimum FU, US", 
                                                  "Minimum FU, CT", 
                                                  "Minimum FU, XR + US",
-                                                 "Maximum FU, XR", 
+                                                 "Maximum FU, US", 
                                                  "Maximum FU, CT", 
                                                  "Maximum FU, XR + US"
     )),
@@ -1705,10 +1705,10 @@ summary_df_full_qol_data <- summary_df_qol %>%
 # Prepare data_for_plot factors similarly
 data_for_plot_qol2 <- data_for_plot_qol %>%
   mutate(
-    cohort_type = factor(cohort_type, levels = c("Minimum FU, XR", 
+    cohort_type = factor(cohort_type, levels = c("Minimum FU, US", 
                                                  "Minimum FU, CT", 
                                                  "Minimum FU, XR + US",
-                                                 "Maximum FU, XR", 
+                                                 "Maximum FU, US", 
                                                  "Maximum FU, CT", 
                                                  "Maximum FU, XR + US")),
     risk_status = factor(risk_status, levels = c("Low Risk", "High Risk"))
