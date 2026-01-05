@@ -5,7 +5,7 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
                                       cutpoints_yr, 
                                       auc_targets = c(0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9, 0.95), 
                                       fu_type = "min",
-                                      imaging_fu_type = "xr") {
+                                      imaging_fu_type = "us") {
   
   results_list <- list()
   
@@ -17,6 +17,7 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
       risk_status = ifelse(score < cutpoint, "LR", "HR")
     )
     
+    # Sort SF status distribution
     less4_prob <- complete_pop_yr_fu %>%
       filter(stone_free_status %in% c("less4", "more4")) %>%
       {
@@ -36,9 +37,9 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
       }
     
     # Distribute SF status as determined by imaging
-    if (imaging_fu_type == "xr") {
-      imaging1 <- xr_dose
-      imaging2 <- xr_dose
+    if (imaging_fu_type == "us") {
+      imaging1 <- us_dose
+      imaging2 <- us_dose
       
       # Generate random numbers once
       rand_sens <- runif(nrow(complete_pop_yr_fu))
@@ -48,10 +49,10 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
         mutate(
           stone_free_status_original = stone_free_status,
           stone_free_status1 = case_when(
-            stone_free_status_original %in% c("less4", "more4") & rand_sens <= xr_sens ~ stone_free_status_original,
-            stone_free_status_original %in% c("less4", "more4") & rand_sens > xr_sens ~ "SF", 
-            stone_free_status_original == "sf" & rand_spec <= xr_spec ~ "SF", 
-            stone_free_status_original == "sf" & rand_spec > xr_spec ~ ifelse(
+            stone_free_status_original %in% c("less4", "more4") & rand_sens <= us_sens ~ stone_free_status_original,
+            stone_free_status_original %in% c("less4", "more4") & rand_sens > us_sens ~ "SF", 
+            stone_free_status_original == "sf" & rand_spec <= us_spec ~ "SF", 
+            stone_free_status_original == "sf" & rand_spec > us_spec ~ ifelse(
               runif(n()) <= less4_prob, "less4", "more4"
             ),
             TRUE ~ stone_free_status_original 
@@ -69,10 +70,16 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
         mutate(
           stone_free_status_original = stone_free_status,
           stone_free_status1 = case_when(
-            stone_free_status_original %in% c("less4", "more4") & rand_sens <= us_sens ~ stone_free_status_original,
-            stone_free_status_original %in% c("less4", "more4") & rand_sens > us_sens ~ "SF", 
-            stone_free_status_original == "sf" & rand_spec <= us_spec ~ "SF", 
-            stone_free_status_original == "sf" & rand_spec > us_spec ~ ifelse(
+            stone_free_status_original %in% c("less4", "more4") & lucency == "No" & rand_sens <= xr_sens ~ stone_free_status_original,
+            stone_free_status_original %in% c("less4", "more4") & lucency == "No" & rand_sens > xr_sens ~ "SF", 
+            stone_free_status_original %in% c("less4", "more4") & lucency == "Yes" & rand_sens <= us_sens ~ stone_free_status_original,
+            stone_free_status_original %in% c("less4", "more4") & lucency == "Yes" & rand_sens > us_sens ~ "SF", 
+            stone_free_status_original == "sf" & lucency == "No" & rand_spec <= xr_spec ~ "SF", 
+            stone_free_status_original == "sf" & lucency == "Yes" & rand_spec <= us_spec ~ "SF", 
+            stone_free_status_original == "sf" & lucency == "No" & rand_spec > xr_spec ~ ifelse(
+              runif(n()) <= less4_prob, "less4", "more4"
+            ),
+            stone_free_status_original == "sf" & lucency == "Yes" & rand_spec > us_spec ~ ifelse(
               runif(n()) <= less4_prob, "less4", "more4"
             ),
             TRUE ~ stone_free_status_original
@@ -832,22 +839,22 @@ create_radiation_dose_barplot <- function(results_list, title, cohort) {
 
 ##### 6.1.1.3 2016 ####
 # Minimum follow-up XR
-rad_doses_2016_cohort_min_xr <- calculate_radiation_doses(complete_pop_2016_fu, 
+rad_doses_2016_cohort_min_us <- calculate_radiation_doses(complete_pop_2016_fu, 
                                                        cutpoints_2016, 
                                                        fu_type = "min",
-                                                       imaging_fu_type = "xr")
+                                                       imaging_fu_type = "us")
 
-create_radiation_dose_barplot(rad_doses_2016_cohort_min_xr,
+create_radiation_dose_barplot(rad_doses_2016_cohort_min_us,
                               title = "XR only, Minimum EAU Follow-up",
                               cohort = 2016)
 
 # Maximum follow-up XR
-rad_doses_2016_cohort_max_xr <- calculate_radiation_doses(complete_pop_2016_fu, 
+rad_doses_2016_cohort_max_us <- calculate_radiation_doses(complete_pop_2016_fu, 
                                                        cutpoints_2016, 
                                                        fu_type = "max",
-                                                       imaging_fu_type = "xr")
+                                                       imaging_fu_type = "us")
 
-create_radiation_dose_barplot(rad_doses_2016_cohort_max_xr,
+create_radiation_dose_barplot(rad_doses_2016_cohort_max_us,
                               title = "XR only, Maximum EAU Follow-up",
                               cohort = 2016)
 
@@ -885,16 +892,16 @@ create_radiation_dose_barplot(rad_doses_2016_cohort_max_ct,
 
 ##### 6.1.1.4 2017 ####
 # Minimum follow-up XR
-rad_doses_2017_cohort_min_xr <- calculate_radiation_doses(complete_pop_2017_fu, 
+rad_doses_2017_cohort_min_us <- calculate_radiation_doses(complete_pop_2017_fu, 
                                                           cutpoints_2017, 
                                                           fu_type = "min",
-                                                          imaging_fu_type = "xr")
+                                                          imaging_fu_type = "us")
 
 # Maximum follow-up XR
-rad_doses_2017_cohort_max_xr <- calculate_radiation_doses(complete_pop_2017_fu, 
+rad_doses_2017_cohort_max_us <- calculate_radiation_doses(complete_pop_2017_fu, 
                                                           cutpoints_2017, 
                                                           fu_type = "max",
-                                                          imaging_fu_type = "xr")
+                                                          imaging_fu_type = "us")
 
 # Minimum follow-up XR + US
 rad_doses_2017_cohort_min_xr_us <- calculate_radiation_doses(complete_pop_2017_fu, 
@@ -923,17 +930,17 @@ rad_doses_2017_cohort_max_ct <- calculate_radiation_doses(complete_pop_2017_fu,
 
 ##### 6.1.1.5 2018 ####
 # Minimum follow-up XR
-rad_doses_2018_cohort_min_xr <- calculate_radiation_doses(complete_pop_2018_fu, 
+rad_doses_2018_cohort_min_us <- calculate_radiation_doses(complete_pop_2018_fu, 
                                                           cutpoints_2018, 
                                                           fu_type = "min",
-                                                          imaging_fu_type = "xr")
+                                                          imaging_fu_type = "us")
 
 
 # Maximum follow-up XR
-rad_doses_2018_cohort_max_xr <- calculate_radiation_doses(complete_pop_2018_fu, 
+rad_doses_2018_cohort_max_us <- calculate_radiation_doses(complete_pop_2018_fu, 
                                                           cutpoints_2018, 
                                                           fu_type = "max",
-                                                          imaging_fu_type = "xr")
+                                                          imaging_fu_type = "us")
 
 
 # Minimum follow-up XR + US
@@ -964,17 +971,17 @@ rad_doses_2018_cohort_max_ct <- calculate_radiation_doses(complete_pop_2018_fu,
 
 ##### 6.1.1.6 2019 ####
 # Minimum follow-up XR
-rad_doses_2019_cohort_min_xr <- calculate_radiation_doses(complete_pop_2019_fu, 
+rad_doses_2019_cohort_min_us <- calculate_radiation_doses(complete_pop_2019_fu, 
                                                           cutpoints_2019, 
                                                           fu_type = "min",
-                                                          imaging_fu_type = "xr")
+                                                          imaging_fu_type = "us")
 
 
 # Maximum follow-up XR
-rad_doses_2019_cohort_max_xr <- calculate_radiation_doses(complete_pop_2019_fu, 
+rad_doses_2019_cohort_max_us <- calculate_radiation_doses(complete_pop_2019_fu, 
                                                           cutpoints_2019, 
                                                           fu_type = "max",
-                                                          imaging_fu_type = "xr")
+                                                          imaging_fu_type = "us")
 
 
 # Minimum follow-up XR + US
@@ -1005,17 +1012,17 @@ rad_doses_2019_cohort_max_ct <- calculate_radiation_doses(complete_pop_2019_fu,
 
 ##### 6.1.1.7 2020 ####
 # Minimum follow-up XR
-rad_doses_2020_cohort_min_xr <- calculate_radiation_doses(complete_pop_2020_fu, 
+rad_doses_2020_cohort_min_us <- calculate_radiation_doses(complete_pop_2020_fu, 
                                                           cutpoints_2020, 
                                                           fu_type = "min",
-                                                          imaging_fu_type = "xr")
+                                                          imaging_fu_type = "us")
 
 
 # Maximum follow-up XR
-rad_doses_2020_cohort_max_xr <- calculate_radiation_doses(complete_pop_2020_fu, 
+rad_doses_2020_cohort_max_us <- calculate_radiation_doses(complete_pop_2020_fu, 
                                                           cutpoints_2020, 
                                                           fu_type = "max",
-                                                          imaging_fu_type = "xr")
+                                                          imaging_fu_type = "us")
 
 # Minimum follow-up XR + US
 rad_doses_2020_cohort_min_xr_us <- calculate_radiation_doses(complete_pop_2020_fu, 
@@ -1053,52 +1060,52 @@ aggregate_radiation_cohorts <- function(auc_target = c(1,2,3,4,5,6,7,8,9)) {
     message("Processing AUC = ", key)
     
     message("  Loading 2016 data...")
-    cohort_2016_min_xr <- rad_doses_2016_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2016_min_us <- rad_doses_2016_cohort_min_us[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
     cohort_2016_min_xr_us <- rad_doses_2016_cohort_min_xr_us[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
     cohort_2016_min_ct <- rad_doses_2016_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2016_max_xr <- rad_doses_2016_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2016_max_us <- rad_doses_2016_cohort_max_us[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
     cohort_2016_max_xr_us <- rad_doses_2016_cohort_max_xr_us[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     cohort_2016_max_ct <- rad_doses_2016_cohort_max_ct[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
     
     message("  Loading 2017 data...")
-    cohort_2017_min_xr <- rad_doses_2017_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2017_min_us <- rad_doses_2017_cohort_min_us[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
     cohort_2017_min_xr_us <- rad_doses_2017_cohort_min_xr_us[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
     cohort_2017_min_ct <- rad_doses_2017_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2017_max_xr <- rad_doses_2017_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2017_max_us <- rad_doses_2017_cohort_max_us[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
     cohort_2017_max_xr_us <- rad_doses_2017_cohort_max_xr_us[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     cohort_2017_max_ct <- rad_doses_2017_cohort_max_ct[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
     
     message("  Loading 2018 data...")
-    cohort_2018_min_xr <- rad_doses_2018_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2018_min_us <- rad_doses_2018_cohort_min_us[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
     cohort_2018_min_xr_us <- rad_doses_2018_cohort_min_xr_us[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
     cohort_2018_min_ct <- rad_doses_2018_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2018_max_xr <- rad_doses_2018_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2018_max_us <- rad_doses_2018_cohort_max_us[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
     cohort_2018_max_xr_us <- rad_doses_2018_cohort_max_xr_us[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     cohort_2018_max_ct <- rad_doses_2018_cohort_max_ct[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
     
     message("  Loading 2019 data...")
-    cohort_2019_min_xr <- rad_doses_2019_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2019_min_us <- rad_doses_2019_cohort_min_us[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
     cohort_2019_min_xr_us <- rad_doses_2019_cohort_min_xr_us[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
     cohort_2019_min_ct <- rad_doses_2019_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2019_max_xr <- rad_doses_2019_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2019_max_us <- rad_doses_2019_cohort_max_us[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
     cohort_2019_max_xr_us <- rad_doses_2019_cohort_max_xr_us[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     cohort_2019_max_ct <- rad_doses_2019_cohort_max_ct[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
     
     message("  Loading 2020 data...")
-    cohort_2020_min_xr <- rad_doses_2020_cohort_min_xr[[key]] %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2020_min_us <- rad_doses_2020_cohort_min_us[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
     cohort_2020_min_xr_us <- rad_doses_2020_cohort_min_xr_us[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
     cohort_2020_min_ct <- rad_doses_2020_cohort_min_ct[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2020_max_xr <- rad_doses_2020_cohort_max_xr[[key]] %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2020_max_us <- rad_doses_2020_cohort_max_us[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
     cohort_2020_max_xr_us <- rad_doses_2020_cohort_max_xr_us[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     cohort_2020_max_ct <- rad_doses_2020_cohort_max_ct[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
     
     message("  Combining cohorts for AUC = ", key)
     overall_cohort <- dplyr::bind_rows(
-      cohort_2016_min_xr, cohort_2016_min_xr_us, cohort_2016_min_ct, cohort_2016_max_xr, cohort_2016_max_xr_us, cohort_2016_max_ct,
-      cohort_2017_min_xr, cohort_2017_min_xr_us, cohort_2017_min_ct, cohort_2017_max_xr, cohort_2017_max_xr_us, cohort_2017_max_ct,
-      cohort_2018_min_xr, cohort_2018_min_xr_us, cohort_2018_min_ct, cohort_2018_max_xr, cohort_2018_max_xr_us, cohort_2018_max_ct,
-      cohort_2019_min_xr, cohort_2019_min_xr_us, cohort_2019_min_ct, cohort_2019_max_xr, cohort_2019_max_xr_us, cohort_2019_max_ct,
-      cohort_2020_min_xr, cohort_2020_min_xr_us, cohort_2020_min_ct, cohort_2020_max_xr, cohort_2020_max_xr_us, cohort_2020_max_ct
+      cohort_2016_min_us, cohort_2016_min_xr_us, cohort_2016_min_ct, cohort_2016_max_us, cohort_2016_max_xr_us, cohort_2016_max_ct,
+      cohort_2017_min_us, cohort_2017_min_xr_us, cohort_2017_min_ct, cohort_2017_max_us, cohort_2017_max_xr_us, cohort_2017_max_ct,
+      cohort_2018_min_us, cohort_2018_min_xr_us, cohort_2018_min_ct, cohort_2018_max_us, cohort_2018_max_xr_us, cohort_2018_max_ct,
+      cohort_2019_min_us, cohort_2019_min_xr_us, cohort_2019_min_ct, cohort_2019_max_us, cohort_2019_max_xr_us, cohort_2019_max_ct,
+      cohort_2020_min_us, cohort_2020_min_xr_us, cohort_2020_min_ct, cohort_2020_max_us, cohort_2020_max_xr_us, cohort_2020_max_ct
     )
     
     all_cohorts[[key]] <- overall_cohort
@@ -1163,7 +1170,7 @@ data_for_plot <- bind_rows(
   combine_auc_data(auc_0.85, "AUC 0.85"),
   combine_auc_data(auc_0.9,  "AUC 0.9"),
   combine_auc_data(auc_0.95, "AUC 0.95")
-) %>% filter(cohort_type %in% c("Maximum FU, XR", "Maximum FU, XR + US", "Maximum FU, CT"))
+) %>% filter(cohort_type %in% c("Maximum FU, US", "Maximum FU, XR + US", "Maximum FU, CT"))
 
 data_for_plot$auc_label <- as.factor(data_for_plot$auc_label)
 data_for_plot$cohort_type <- as.factor(data_for_plot$cohort_type)
@@ -1196,14 +1203,14 @@ summary_df <- bind_rows(summary_df, summary_all)
 # Factor levels for ordering
 summary_df <- summary_df %>%
   mutate(
-    cohort_type = factor(cohort_type, levels = c("Maximum FU, XR", "Maximum FU, XR + US", "Maximum FU, CT")),
+    cohort_type = factor(cohort_type, levels = c("Maximum FU, US", "Maximum FU, XR + US", "Maximum FU, CT")),
     risk_status = factor(risk_status, levels = c("All", "Low Risk", "High Risk"))
   )
 
 # Prepare data_for_plot factors similarly
 data_for_plot <- data_for_plot %>%
   mutate(
-    cohort_type = factor(cohort_type, levels = c("Maximum FU, XR", "Maximum FU, XR + US", "Maximum FU, CT")),
+    cohort_type = factor(cohort_type, levels = c("Maximum FU, US", "Maximum FU, XR + US", "Maximum FU, CT")),
     risk_status = factor(risk_status, levels = c("Low Risk", "High Risk"))
   )
 
@@ -1243,10 +1250,10 @@ summary_df %>%
     `Risk Status` = risk_status,
     mean_dose_ct = "mean_dose_Maximum FU, CT",
     mean_dose_xr_us = "mean_dose_Maximum FU, XR + US",
-    mean_dose_xr = "mean_dose_Maximum FU, XR",
+    mean_dose_xr = "mean_dose_Maximum FU, US",
     sd_ct = "sd_Maximum FU, CT",
     sd_xr_us = "sd_Maximum FU, XR + US",
-    sd_xr = "sd_Maximum FU, XR"
+    sd_xr = "sd_Maximum FU, US"
   ) %>%
   gt() %>% cols_merge(
     columns = c(mean_dose_ct, sd_ct),
@@ -1281,7 +1288,7 @@ data_for_plot <- bind_rows(
   combine_auc_data(auc_0.85, "AUC 0.85"),
   combine_auc_data(auc_0.9,  "AUC 0.9"),
   combine_auc_data(auc_0.95, "AUC 0.95")
-) %>% filter(cohort_type %in% c("Minimum FU, XR", "Minimum FU, XR + US", "Minimum FU, CT"))
+) %>% filter(cohort_type %in% c("Minimum FU, US", "Minimum FU, XR + US", "Minimum FU, CT"))
 
 data_for_plot$auc_label <- as.factor(data_for_plot$auc_label)
 data_for_plot$cohort_type <- as.factor(data_for_plot$cohort_type)
@@ -1313,14 +1320,14 @@ summary_df <- bind_rows(summary_df, summary_all)
 # Factor levels for ordering
 summary_df <- summary_df %>%
   mutate(
-    cohort_type = factor(cohort_type, levels = c("Minimum FU, XR", "Minimum FU, XR + US", "Minimum FU, CT")),
+    cohort_type = factor(cohort_type, levels = c("Minimum FU, US", "Minimum FU, XR + US", "Minimum FU, CT")),
     risk_status = factor(risk_status, levels = c("All", "Low Risk", "High Risk"))
   )
 
 # Prepare data_for_plot factors similarly
 data_for_plot <- data_for_plot %>%
   mutate(
-    cohort_type = factor(cohort_type, levels = c("Minimum FU, XR", "Minimum FU, CT")),
+    cohort_type = factor(cohort_type, levels = c("Minimum FU, US", "Minimum FU, CT")),
     risk_status = factor(risk_status, levels = c("Low Risk", "High Risk"))
   )
 
@@ -1370,10 +1377,10 @@ summary_df %>%
   rename(
     `Risk Status` = risk_status,
     mean_dose_ct = "mean_dose_Minimum FU, CT",
-    mean_dose_xr = "mean_dose_Minimum FU, XR",
+    mean_dose_xr = "mean_dose_Minimum FU, US",
     mean_dose_xr_us = "mean_dose_Minimum FU, XR + US",
     sd_ct = "sd_Minimum FU, CT",
-    sd_xr = "sd_Minimum FU, XR",
+    sd_xr = "sd_Minimum FU, US",
     sd_xr_us = "sd_Minimum FU, XR + US",
   ) %>%
   gt() %>% cols_merge(
@@ -1451,10 +1458,10 @@ summary_df2 %>% ggplot(aes(x = auc_label, y=mean_dose)) +
 
 data_for_plot$cohort_type <- factor(data_for_plot$cohort_type,
                                   levels= c(
-                                    "Minimum FU, XR",
-                                    "Maximum FU, XR",
                                     "Minimum FU, XR + US",
                                     "Maximum FU, XR + US",
+                                    "Minimum FU, US",
+                                    "Maximum FU, US",
                                     "Minimum FU, CT",
                                     "Maximum FU, CT"
                                   ))
