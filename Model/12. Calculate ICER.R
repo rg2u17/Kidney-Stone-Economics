@@ -11,6 +11,7 @@ library(lubridate)
 library(purrr)
 library(future)
 library(furrr)
+library(boot)
 
 ## 12.2 Sort Cost data ####
 ### 12.2.1 Function to strip out auc, id and qalys ####
@@ -49,65 +50,65 @@ strip_out_costs <- function(data) {
 }
 
 ### 12.2.2 2016 ####
-costs_2016_xr_min_stripped <- strip_out_costs(costs_2016_xr_min)
+costs_2016_us_min_stripped <- strip_out_costs(costs_2016_us_min)
 
 costs_2016_xr_us_min_stripped <- strip_out_costs(costs_2016_xr_us_min)
 
 costs_2016_ct_min_stripped <- strip_out_costs(costs_2016_ct_min)
 
-costs_2016_xr_max_stripped <- strip_out_costs(costs_2016_xr_max)
+costs_2016_us_max_stripped <- strip_out_costs(costs_2016_us_max)
 
 costs_2016_xr_us_max_stripped <- strip_out_costs(costs_2016_xr_us_max)
 
 costs_2016_ct_max_stripped <- strip_out_costs(costs_2016_ct_max)
 
 ### 12.2.3 2017 ####
-costs_2017_xr_min_stripped <- strip_out_costs(costs_2017_xr_min)
+costs_2017_us_min_stripped <- strip_out_costs(costs_2017_us_min)
 
 costs_2017_xr_us_min_stripped <- strip_out_costs(costs_2017_xr_us_min)
 
 costs_2017_ct_min_stripped <- strip_out_costs(costs_2017_ct_min)
 
-costs_2017_xr_max_stripped <- strip_out_costs(costs_2017_xr_max)
+costs_2017_us_max_stripped <- strip_out_costs(costs_2017_us_max)
 
 costs_2017_xr_us_max_stripped <- strip_out_costs(costs_2017_xr_us_max)
 
 costs_2017_ct_max_stripped <- strip_out_costs(costs_2017_ct_max)
 
 ### 12.2.4 2018 ####
-costs_2018_xr_min_stripped <- strip_out_costs(costs_2018_xr_min)
+costs_2018_us_min_stripped <- strip_out_costs(costs_2018_us_min)
 
 costs_2018_xr_us_min_stripped <- strip_out_costs(costs_2018_xr_us_min)
 
 costs_2018_ct_min_stripped <- strip_out_costs(costs_2018_ct_min)
 
-costs_2018_xr_max_stripped <- strip_out_costs(costs_2018_xr_max)
+costs_2018_us_max_stripped <- strip_out_costs(costs_2018_us_max)
 
 costs_2018_xr_us_max_stripped <- strip_out_costs(costs_2018_xr_us_max)
 
 costs_2018_ct_max_stripped <- strip_out_costs(costs_2018_ct_max)
 
 ### 12.2.5 2019 ####
-costs_2019_xr_min_stripped <- strip_out_costs(costs_2019_xr_min)
+costs_2019_us_min_stripped <- strip_out_costs(costs_2019_us_min)
 
 costs_2019_xr_us_min_stripped <- strip_out_costs(costs_2019_xr_us_min)
 
 costs_2019_ct_min_stripped <- strip_out_costs(costs_2019_ct_min)
 
-costs_2019_xr_max_stripped <- strip_out_costs(costs_2019_xr_max)
+costs_2019_us_max_stripped <- strip_out_costs(costs_2019_us_max)
 
 costs_2019_xr_us_max_stripped <- strip_out_costs(costs_2019_xr_us_max)
 
 costs_2019_ct_max_stripped <- strip_out_costs(costs_2019_ct_max)
 
 ### 12.2.6 2020 ####
-costs_2020_xr_min_stripped <- strip_out_costs(costs_2020_xr_min)
+costs_2020_us_min_stripped <- strip_out_costs(costs_2020_us_min)
 
 costs_2020_xr_us_min_stripped <- strip_out_costs(costs_2020_xr_us_min)
 
 costs_2020_ct_min_stripped <- strip_out_costs(costs_2020_ct_min)
 
-costs_2020_xr_max_stripped <- strip_out_costs(costs_2020_xr_max)
+costs_2020_us_max_stripped <- strip_out_costs(costs_2020_us_max)
 
 costs_2020_xr_us_max_stripped <- strip_out_costs(costs_2020_xr_us_max)
 
@@ -257,65 +258,65 @@ strip_out_qol <- function(data) {
 }
 
 ### 12.3.2 2016 ####
-qol_2016_xr_min_stripped <- strip_out_qol(qol_2016_xr_min)
+qol_2016_us_min_stripped <- strip_out_qol(qol_2016_us_min)
 
 qol_2016_xr_us_min_stripped <- strip_out_qol(qol_2016_xr_us_min)
 
 qol_2016_ct_min_stripped <- strip_out_qol(qol_2016_ct_min)
 
-qol_2016_xr_max_stripped <- strip_out_qol(qol_2016_xr_max)
+qol_2016_us_max_stripped <- strip_out_qol(qol_2016_us_max)
 
 qol_2016_xr_us_max_stripped <- strip_out_qol(qol_2016_xr_us_max)
 
 qol_2016_ct_max_stripped <- strip_out_qol(qol_2016_ct_max)
 
 ### 12.3.3 2017 ####
-qol_2017_xr_min_stripped <- strip_out_qol(qol_2017_xr_min)
+qol_2017_us_min_stripped <- strip_out_qol(qol_2017_us_min)
 
 qol_2017_xr_us_min_stripped <- strip_out_qol(qol_2017_xr_us_min)
 
 qol_2017_ct_min_stripped <- strip_out_qol(qol_2017_ct_min)
 
-qol_2017_xr_max_stripped <- strip_out_qol(qol_2017_xr_max)
+qol_2017_us_max_stripped <- strip_out_qol(qol_2017_us_max)
 
 qol_2017_xr_us_max_stripped <- strip_out_qol(qol_2017_xr_us_max)
 
 qol_2017_ct_max_stripped <- strip_out_qol(qol_2017_ct_max)
 
 ### 12.3.4 2018 ####
-qol_2018_xr_min_stripped <- strip_out_qol(qol_2018_xr_min)
+qol_2018_us_min_stripped <- strip_out_qol(qol_2018_us_min)
 
 qol_2018_xr_us_min_stripped <- strip_out_qol(qol_2018_xr_us_min)
 
 qol_2018_ct_min_stripped <- strip_out_qol(qol_2018_ct_min)
 
-qol_2018_xr_max_stripped <- strip_out_qol(qol_2018_xr_max)
+qol_2018_us_max_stripped <- strip_out_qol(qol_2018_us_max)
 
 qol_2018_xr_us_max_stripped <- strip_out_qol(qol_2018_xr_us_max)
 
 qol_2018_ct_max_stripped <- strip_out_qol(qol_2018_ct_max)
 
 ### 12.3.5 2019 ####
-qol_2019_xr_min_stripped <- strip_out_qol(qol_2019_xr_min)
+qol_2019_us_min_stripped <- strip_out_qol(qol_2019_us_min)
 
 qol_2019_xr_us_min_stripped <- strip_out_qol(qol_2019_xr_us_min)
 
 qol_2019_ct_min_stripped <- strip_out_qol(qol_2019_ct_min)
 
-qol_2019_xr_max_stripped <- strip_out_qol(qol_2019_xr_max)
+qol_2019_us_max_stripped <- strip_out_qol(qol_2019_us_max)
 
 qol_2019_xr_us_max_stripped <- strip_out_qol(qol_2019_xr_us_max)
 
 qol_2019_ct_max_stripped <- strip_out_qol(qol_2019_ct_max)
 
 ### 12.3.6 2020 ####
-qol_2020_xr_min_stripped <- strip_out_qol(qol_2020_xr_min)
+qol_2020_us_min_stripped <- strip_out_qol(qol_2020_us_min)
 
 qol_2020_xr_us_min_stripped <- strip_out_qol(qol_2020_xr_us_min)
 
 qol_2020_ct_min_stripped <- strip_out_qol(qol_2020_ct_min)
 
-qol_2020_xr_max_stripped <- strip_out_qol(qol_2020_xr_max)
+qol_2020_us_max_stripped <- strip_out_qol(qol_2020_us_max)
 
 qol_2020_xr_us_max_stripped <- strip_out_qol(qol_2020_xr_us_max)
 
@@ -331,18 +332,18 @@ aggregate_qol_and_cost_cohorts <- function(auc_target = c(1,2,3,4,5,6,7,8,9)) {
     message("Processing AUC = ", key)
     
     message("  Loading 2016 data...")
-    cohort_2016_min_xr <- left_join(qol_2016_xr_min_stripped[[key]],
-                                    costs_2016_xr_min_stripped[[key]],
-                                    by = "id") %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2016_min_us <- left_join(qol_2016_us_min_stripped[[key]],
+                                    costs_2016_us_min_stripped[[key]],
+                                    by = "id") %>% mutate(cohort_type = "Minimum FU, US", auc = i)
     cohort_2016_min_ct <- left_join(qol_2016_ct_min_stripped[[key]],
                                     costs_2016_ct_min_stripped[[key]],
                                     by = "id") %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
     cohort_2016_min_xr_us <- left_join(qol_2016_xr_us_min_stripped[[key]],
                                     costs_2016_xr_us_min_stripped[[key]],
                                     by = "id") %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
-    cohort_2016_max_xr <- left_join(qol_2016_xr_max_stripped[[key]],
+    cohort_2016_max_us <- left_join(qol_2016_us_max_stripped[[key]],
                                     costs_2016_xr_max_stripped[[key]],
-                                    by = "id") %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+                                    by = "id") %>% mutate(cohort_type = "Maximum FU, US", auc = i)
     cohort_2016_max_ct <- left_join(qol_2016_ct_max_stripped[[key]],
                                     costs_2016_ct_max_stripped[[key]],
                                     by = "id") %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
@@ -351,18 +352,18 @@ aggregate_qol_and_cost_cohorts <- function(auc_target = c(1,2,3,4,5,6,7,8,9)) {
                                     by = "id") %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     
     message("  Loading 2017 data...")
-    cohort_2017_min_xr <- left_join(qol_2017_xr_min_stripped[[key]],
-                                    costs_2017_xr_min_stripped[[key]],
-                                    by = "id") %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2017_min_us <- left_join(qol_2017_us_min_stripped[[key]],
+                                    costs_2017_us_min_stripped[[key]],
+                                    by = "id") %>% mutate(cohort_type = "Minimum FU, US", auc = i)
     cohort_2017_min_ct <- left_join(qol_2017_ct_min_stripped[[key]],
                                     costs_2017_ct_min_stripped[[key]],
                                     by = "id") %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
     cohort_2017_min_xr_us <- left_join(qol_2017_xr_us_min_stripped[[key]],
                                        costs_2017_xr_us_min_stripped[[key]],
                                        by = "id") %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
-    cohort_2017_max_xr <- left_join(qol_2017_xr_max_stripped[[key]],
-                                    costs_2017_xr_max_stripped[[key]],
-                                    by = "id") %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2017_max_us <- left_join(qol_2017_us_max_stripped[[key]],
+                                    costs_2017_us_max_stripped[[key]],
+                                    by = "id") %>% mutate(cohort_type = "Maximum FU, US", auc = i)
     cohort_2017_max_ct <- left_join(qol_2017_ct_max_stripped[[key]],
                                     costs_2017_ct_max_stripped[[key]],
                                     by = "id") %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
@@ -371,18 +372,18 @@ aggregate_qol_and_cost_cohorts <- function(auc_target = c(1,2,3,4,5,6,7,8,9)) {
                                        by = "id") %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     
     message("  Loading 2018 data...")
-    cohort_2018_min_xr <- left_join(qol_2018_xr_min_stripped[[key]],
-                                    costs_2018_xr_min_stripped[[key]],
-                                    by = "id") %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2018_min_us <- left_join(qol_2018_us_min_stripped[[key]],
+                                    costs_2018_us_min_stripped[[key]],
+                                    by = "id") %>% mutate(cohort_type = "Minimum FU, US", auc = i)
     cohort_2018_min_ct <- left_join(qol_2018_ct_min_stripped[[key]],
                                     costs_2018_ct_min_stripped[[key]],
                                     by = "id") %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
     cohort_2018_min_xr_us <- left_join(qol_2018_xr_us_min_stripped[[key]],
                                        costs_2018_xr_us_min_stripped[[key]],
                                        by = "id") %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
-    cohort_2018_max_xr <- left_join(qol_2018_xr_max_stripped[[key]],
-                                    costs_2018_xr_max_stripped[[key]],
-                                    by = "id") %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2018_max_us <- left_join(qol_2018_us_max_stripped[[key]],
+                                    costs_2018_us_max_stripped[[key]],
+                                    by = "id") %>% mutate(cohort_type = "Maximum FU, US", auc = i)
     cohort_2018_max_ct <- left_join(qol_2018_ct_max_stripped[[key]],
                                     costs_2018_ct_max_stripped[[key]],
                                     by = "id") %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
@@ -391,18 +392,18 @@ aggregate_qol_and_cost_cohorts <- function(auc_target = c(1,2,3,4,5,6,7,8,9)) {
                                        by = "id") %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     
     message("  Loading 2019 data...")
-    cohort_2019_min_xr <- left_join(qol_2019_xr_min_stripped[[key]],
-                                    costs_2019_xr_min_stripped[[key]],
-                                    by = "id") %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2019_min_us <- left_join(qol_2019_us_min_stripped[[key]],
+                                    costs_2019_us_min_stripped[[key]],
+                                    by = "id") %>% mutate(cohort_type = "Minimum FU, US", auc = i)
     cohort_2019_min_ct <- left_join(qol_2019_ct_min_stripped[[key]],
                                     costs_2019_ct_min_stripped[[key]],
                                     by = "id") %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
     cohort_2019_min_xr_us <- left_join(qol_2019_xr_us_min_stripped[[key]],
                                        costs_2019_xr_us_min_stripped[[key]],
                                        by = "id") %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
-    cohort_2019_max_xr <- left_join(qol_2019_xr_max_stripped[[key]],
-                                    costs_2019_xr_max_stripped[[key]],
-                                    by = "id") %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2019_max_us <- left_join(qol_2019_us_max_stripped[[key]],
+                                    costs_2019_us_max_stripped[[key]],
+                                    by = "id") %>% mutate(cohort_type = "Maximum FU, US", auc = i)
     cohort_2019_max_ct <- left_join(qol_2019_ct_max_stripped[[key]],
                                     costs_2019_ct_max_stripped[[key]],
                                     by = "id") %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
@@ -410,18 +411,18 @@ aggregate_qol_and_cost_cohorts <- function(auc_target = c(1,2,3,4,5,6,7,8,9)) {
                                        costs_2019_xr_us_max_stripped[[key]],
                                        by = "id") %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     message("  Loading 2020 data...")
-    cohort_2020_min_xr <- left_join(qol_2020_xr_min_stripped[[key]],
-                                    costs_2020_xr_min_stripped[[key]],
-                                    by = "id") %>% mutate(cohort_type = "Minimum FU, XR", auc = i)
+    cohort_2020_min_us <- left_join(qol_2020_us_min_stripped[[key]],
+                                    costs_2020_us_min_stripped[[key]],
+                                    by = "id") %>% mutate(cohort_type = "Minimum FU, US", auc = i)
     cohort_2020_min_ct <- left_join(qol_2020_ct_min_stripped[[key]],
                                     costs_2020_ct_min_stripped[[key]],
                                     by = "id") %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
     cohort_2020_min_xr_us <- left_join(qol_2020_xr_us_min_stripped[[key]],
                                        costs_2020_xr_us_min_stripped[[key]],
                                        by = "id") %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
-    cohort_2020_max_xr <- left_join(qol_2020_xr_max_stripped[[key]],
-                                    costs_2020_xr_max_stripped[[key]],
-                                    by = "id") %>% mutate(cohort_type = "Maximum FU, XR", auc = i)
+    cohort_2020_max_us <- left_join(qol_2020_us_max_stripped[[key]],
+                                    costs_2020_us_max_stripped[[key]],
+                                    by = "id") %>% mutate(cohort_type = "Maximum FU, US", auc = i)
     cohort_2020_max_ct <- left_join(qol_2020_ct_max_stripped[[key]],
                                     costs_2020_ct_max_stripped[[key]],
                                     by = "id") %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
@@ -430,11 +431,11 @@ aggregate_qol_and_cost_cohorts <- function(auc_target = c(1,2,3,4,5,6,7,8,9)) {
                                        by = "id") %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
     message("  Combining cohorts for AUC = ", key)
     overall_cohort <- dplyr::bind_rows(
-      cohort_2016_min_xr, cohort_2016_min_ct, cohort_2016_max_xr, cohort_2016_max_ct, cohort_2016_min_xr_us, cohort_2016_max_xr_us,
-      cohort_2017_min_xr, cohort_2017_min_ct, cohort_2017_max_xr, cohort_2017_max_ct, cohort_2017_min_xr_us, cohort_2017_max_xr_us,
-      cohort_2018_min_xr, cohort_2018_min_ct, cohort_2018_max_xr, cohort_2018_max_ct, cohort_2018_min_xr_us, cohort_2018_max_xr_us,
-      cohort_2019_min_xr, cohort_2019_min_ct, cohort_2019_max_xr, cohort_2019_max_ct, cohort_2019_min_xr_us, cohort_2019_max_xr_us,
-      cohort_2020_min_xr, cohort_2020_min_ct, cohort_2020_max_xr, cohort_2020_max_ct, cohort_2020_min_xr_us, cohort_2020_max_xr_us
+      cohort_2016_min_us, cohort_2016_min_ct, cohort_2016_max_us, cohort_2016_max_ct, cohort_2016_min_xr_us, cohort_2016_max_xr_us,
+      cohort_2017_min_us, cohort_2017_min_ct, cohort_2017_max_us, cohort_2017_max_ct, cohort_2017_min_xr_us, cohort_2017_max_xr_us,
+      cohort_2018_min_us, cohort_2018_min_ct, cohort_2018_max_us, cohort_2018_max_ct, cohort_2018_min_xr_us, cohort_2018_max_xr_us,
+      cohort_2019_min_us, cohort_2019_min_ct, cohort_2019_max_us, cohort_2019_max_ct, cohort_2019_min_xr_us, cohort_2019_max_xr_us,
+      cohort_2020_min_us, cohort_2020_min_ct, cohort_2020_max_us, cohort_2020_max_ct, cohort_2020_min_xr_us, cohort_2020_max_xr_us
     )
     
     all_cohorts[[key]] <- overall_cohort
@@ -482,14 +483,35 @@ baseline_for_icer <- auc_0.55_for_icer %>%
   
 ## 12.5 Calculate ICER - Compare to AUC 0.55, Minimum FU XR + US ####  
 ### 12.5.1 Function to calculate ICER ####
-calculate_icer <- function(intervention_data) {
-  
+calculate_icer <- function(intervention_data, n_bootstrap = 1000, ci_level = 0.95) {
+
   intervention_data$cohort_type <- as.factor(intervention_data$cohort_type)
   cohort_types <- levels(intervention_data$cohort_type)
   wtp = 20000
   
   # Initialize results dataframe
   results <- data.frame()
+  
+  # Bootstrap function for ICER and related metrics
+  boot_icer_function <- function(data, indices, wtp) {
+    d <- data[indices, ]
+    
+    inc_cost <- mean(d$inc_cost, na.rm = TRUE)
+    inc_qaly <- mean(d$inc_qaly, na.rm = TRUE)
+    
+    # Calculate ICER (handle division by zero)
+    icer <- if (inc_qaly != 0) inc_cost / inc_qaly else NA
+    
+    # Calculate NMB
+    nmb <- wtp * inc_qaly - inc_cost
+    
+    return(c(
+      icer = icer, 
+      nmb = nmb, 
+      inc_cost = inc_cost, 
+      inc_qaly = inc_qaly
+    ))
+  }
   
   # Loop through each cohort_type with AUC 0.55 & Minimum FU, XR as baseline
   for (cohort in cohort_types) {
@@ -523,7 +545,7 @@ calculate_icer <- function(intervention_data) {
       icer <- NA 
     }
     
-    # Calculate incremental NMB using mean values (this is the correct approach)
+    # Calculate incremental NMB using mean values
     incremental_nmb <- wtp * incremental_qaly - incremental_cost
     
     # Calculate NMB for each group (for reference)
@@ -547,8 +569,35 @@ calculate_icer <- function(intervention_data) {
       )
     
     # Probability cost-effective = proportion where incremental NMB > 0
-    # (i.e., new strategy provides positive net benefit)
     prob_cost_effective <- mean(incremental_data$nmb > 0, na.rm = TRUE)
+    
+    # Bootstrap confidence intervals
+    set.seed(123)  # For reproducibility
+    boot_results <- boot(
+      data = incremental_data,
+      statistic = boot_icer_function,
+      R = n_bootstrap,
+      wtp = wtp
+    )
+    
+    # Extract confidence intervals
+    alpha <- (1 - ci_level) / 2
+    
+    # ICER CI (index 1)
+    icer_lower <- quantile(boot_results$t[, 1], probs = alpha, na.rm = TRUE)
+    icer_upper <- quantile(boot_results$t[, 1], probs = 1 - alpha, na.rm = TRUE)
+    
+    # NMB CI (index 2)
+    nmb_lower <- quantile(boot_results$t[, 2], probs = alpha, na.rm = TRUE)
+    nmb_upper <- quantile(boot_results$t[, 2], probs = 1 - alpha, na.rm = TRUE)
+    
+    # Incremental Cost CI (index 3)
+    inc_cost_lower <- quantile(boot_results$t[, 3], probs = alpha, na.rm = TRUE)
+    inc_cost_upper <- quantile(boot_results$t[, 3], probs = 1 - alpha, na.rm = TRUE)
+    
+    # Incremental QALY CI (index 4)
+    inc_qaly_lower <- quantile(boot_results$t[, 4], probs = alpha, na.rm = TRUE)
+    inc_qaly_upper <- quantile(boot_results$t[, 4], probs = 1 - alpha, na.rm = TRUE)
     
     # Determine cost-effectiveness based on incremental NMB
     cost_effective_decision <- case_when(
@@ -571,6 +620,9 @@ calculate_icer <- function(intervention_data) {
         round(intervention_mean_cost, 0), " ± ", round(intervention_mean_cost_sd, 0)
       ),
       "Incremental Cost (£)" = round(incremental_cost, 0),
+      "Incremental Cost 95% CI" = paste0(
+        "[", round(inc_cost_lower, 0), ", ", round(inc_cost_upper, 0), "]"
+      ),
       "Baseline, Mean QALYs ± SD (EQ-5D)" = paste0(
         round(baseline_mean_qaly, 2), " ± ", round(baseline_mean_qaly_sd, 2)
       ),
@@ -578,10 +630,21 @@ calculate_icer <- function(intervention_data) {
         round(intervention_mean_qaly, 2), " ± ", round(intervention_mean_qaly_sd, 2)
       ),
       "Incremental QALYs" = round(incremental_qaly, 4),
+      "Incremental QALYs 95% CI" = paste0(
+        "[", round(inc_qaly_lower, 4), ", ", round(inc_qaly_upper, 4), "]"
+      ),
       "ICER (£/QALY)" = ifelse(!is.na(icer), round(icer, 0), NA),
+      "ICER 95% CI" = ifelse(
+        !is.na(icer), 
+        paste0("[", round(icer_lower, 0), ", ", round(icer_upper, 0), "]"),
+        NA
+      ),
       "Baseline NMB (£)" = round(baseline_nmb, 0),
       "New FU Strategy NMB (£)" = round(intervention_nmb, 0),
       "Incremental NMB (£)" = round(incremental_nmb, 0),
+      "Incremental NMB 95% CI" = paste0(
+        "[", round(nmb_lower, 0), ", ", round(nmb_upper, 0), "]"
+      ),
       "Probability Cost-Effective" = round(prob_cost_effective, 2),
       "Cost-Effectiveness Decision" = cost_effective_decision
     )
@@ -821,8 +884,8 @@ plot_cost_effectiveness <- function(
   all_cohort_levels <- c(
     "Minimum FU, XR + US",
     "Maximum FU, XR + US",
-    "Minimum FU, XR",
-    "Maximum FU, XR",
+    "Minimum FU, US",
+    "Maximum FU, US",
     "Minimum FU, CT",
     "Maximum FU, CT"
   )
