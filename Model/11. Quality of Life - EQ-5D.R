@@ -744,7 +744,7 @@ assign_baseline_qol <- function(df,
   
   # Merge back
   df_final <- df %>%
-    left_join(df_assignments, by = "id")
+    left_join(df_assignments, by = "id") 
   
   message("✅ Baseline QoL assignment complete")
   return(df_final)
@@ -816,6 +816,7 @@ assign_qol_chunked <- function(data,
       prev_pain <- if (fu_year == 1) "baseline_pain" else paste0("pain_year_", fu_year - 1)
       prev_anxiety <- if (fu_year == 1) "baseline_anxiety" else paste0("anxiety_year_", fu_year - 1)
       intervention_col <- paste0("colic_intervention_type_year_", fu_year)
+      death_col <- paste0("death_year_", fu_year)
       
       # Prepare dimension change data with renamed columns
       temp_changes <- dimension_changes %>%
@@ -933,6 +934,33 @@ assign_qol_chunked <- function(data,
           !!paste0("qol_upper_year_", fu_year) := rowQuantiles(mc_utils, probs = 1 - alpha),
           !!paste0("qol_se_year_", fu_year) := rowSds(mc_utils)
         )
+      
+      # Override QoL values to 0 if patient is dead
+      if (death_col %in% names(chunk)) {
+        chunk <- chunk %>%
+          mutate(
+            !!paste0("qol_mean_year_", fu_year) := if_else(
+              .data[[death_col]] == TRUE | .data[[death_col]] == 1,
+              0,
+              .data[[paste0("qol_mean_year_", fu_year)]]
+            ),
+            !!paste0("qol_lower_year_", fu_year) := if_else(
+              .data[[death_col]] == TRUE | .data[[death_col]] == 1,
+              0,
+              .data[[paste0("qol_lower_year_", fu_year)]]
+            ),
+            !!paste0("qol_upper_year_", fu_year) := if_else(
+              .data[[death_col]] == TRUE | .data[[death_col]] == 1,
+              0,
+              .data[[paste0("qol_upper_year_", fu_year)]]
+            ),
+            !!paste0("qol_se_year_", fu_year) := if_else(
+              .data[[death_col]] == TRUE | .data[[death_col]] == 1,
+              0,
+              .data[[paste0("qol_se_year_", fu_year)]]
+            )
+          )
+      }
       
       # Clean up temporary columns
       chunk <- chunk %>%
