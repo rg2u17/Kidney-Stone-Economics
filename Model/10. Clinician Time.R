@@ -29,154 +29,154 @@ calculate_no_appts <- function(complete_pop_yr_fu,
   if (imaging_fu_type == "xr_us") {
     fu_appts_1 <- fu_appts %>% filter(imaging_type == "xr")
     
-    year_1_lr_sf_fu_cost1 <- fu_appts_1$cost[1] %>% as.integer()
-    year_2_lr_sf_fu_cost1 <- fu_appts_1$cost[2] %>% as.integer()
-    year_3_lr_sf_fu_cost1 <- fu_appts_1$cost[3] %>% as.integer()
-    year_4_lr_sf_fu_cost1 <- fu_appts_1$cost[4] %>% as.integer()
-    year_5_lr_sf_fu_cost1  <- fu_appts_1$cost[5] %>% as.integer()
-    year_1_lr_less4_fu_cost1 <- fu_appts_1$cost[6] %>% as.integer()
-    year_2_lr_less4_fu_cost1 <- fu_appts_1$cost[7] %>% as.integer()
-    year_3_lr_less4_fu_cost1 <- fu_appts_1$cost[8] %>% as.integer()
-    year_4_lr_less4_fu_cost1 <- fu_appts_1$cost[9] %>% as.integer()
-    year_5_lr_less4_fu_cost1 <- fu_appts_1$cost[10] %>% as.integer()
-    year_1_lr_more4_fu_cost1 <- fu_appts_1$cost[11] %>% as.integer()
-    year_2_lr_more4_fu_cost1 <- fu_appts_1$cost[12] %>% as.integer()
-    year_3_lr_more4_fu_cost1 <- fu_appts_1$cost[13] %>% as.integer()
-    year_4_lr_more4_fu_cost1 <- fu_appts_1$cost[14] %>% as.integer()
-    year_5_lr_more4_fu_cost1 <- fu_appts_1$cost[15] %>% as.integer()
-    year_1_hr_sf_fu_cost_current1 <- fu_appts_1$cost[16] %>% as.integer()
-    year_1_hr_sf_fu_cost_eau1 <- fu_appts_1$cost[17] %>% as.integer()
-    year_2_hr_sf_fu_cost_current1 <- fu_appts_1$cost[18] %>% as.integer()
-    year_2_hr_sf_fu_cost_eau1 <- fu_appts_1$cost[19] %>% as.integer()
-    year_3_onwards_hr_sf_fu_cost_current1 <- fu_appts_1$cost[20] %>% as.integer()
-    year_3_onwards_hr_sf_fu_cost_eau1 <- fu_appts_1$cost[21] %>% as.integer()
-    year_3_hr_sf_fu_cost_current1 <- fu_appts_1$cost[22] %>% as.integer()
-    year_3_hr_sf_fu_cost_eau1 <- fu_appts_1$cost[23] %>% as.integer()
-    year_4_hr_sf_fu_cost_eau1 <- fu_appts_1$cost[24] %>% as.integer()
-    year_5_hr_sf_fu_cost_eau1 <- fu_appts_1$cost[25] %>% as.integer()
-    year_1_hr_less4_fu_cost_eau1 <- fu_appts_1$cost[26] %>% as.integer()
-    year_2_hr_less4_fu_cost_eau1 <- fu_appts_1$cost[27] %>% as.integer()
-    year_3_hr_less4_fu_cost_eau1 <- fu_appts_1$cost[28] %>% as.integer()
-    year_4_hr_less4_fu_cost_eau1 <- fu_appts_1$cost[29] %>% as.integer()
-    year_5_hr_less4_fu_cost_eau1 <- fu_appts_1$cost[30] %>% as.integer()
-    year_1_hr_more4_fu_cost_eau1 <- fu_appts_1$cost[31] %>% as.integer()
-    year_2_hr_more4_fu_cost_eau1 <- fu_appts_1$cost[32] %>% as.integer()
-    year_3_hr_more4_fu_cost_eau1 <- fu_appts_1$cost[33] %>% as.integer()
-    year_4_hr_more4_fu_cost_eau1 <- fu_appts_1$cost[34] %>% as.integer()
-    year_5_hr_more4_fu_cost_eau1 <- fu_appts_1$cost[35] %>% as.integer()
+    year_1_lr_sf_fu_appts1 <- fu_appts_1$appts[1] %>% as.integer()
+    year_2_lr_sf_fu_appts1 <- fu_appts_1$appts[2] %>% as.integer()
+    year_3_lr_sf_fu_appts1 <- fu_appts_1$appts[3] %>% as.integer()
+    year_4_lr_sf_fu_appts1 <- fu_appts_1$appts[4] %>% as.integer()
+    year_5_lr_sf_fu_appts1  <- fu_appts_1$appts[5] %>% as.integer()
+    year_1_lr_less4_fu_appts1 <- fu_appts_1$appts[6] %>% as.integer()
+    year_2_lr_less4_fu_appts1 <- fu_appts_1$appts[7] %>% as.integer()
+    year_3_lr_less4_fu_appts1 <- fu_appts_1$appts[8] %>% as.integer()
+    year_4_lr_less4_fu_appts1 <- fu_appts_1$appts[9] %>% as.integer()
+    year_5_lr_less4_fu_appts1 <- fu_appts_1$appts[10] %>% as.integer()
+    year_1_lr_more4_fu_appts1 <- fu_appts_1$appts[11] %>% as.integer()
+    year_2_lr_more4_fu_appts1 <- fu_appts_1$appts[12] %>% as.integer()
+    year_3_lr_more4_fu_appts1 <- fu_appts_1$appts[13] %>% as.integer()
+    year_4_lr_more4_fu_appts1 <- fu_appts_1$appts[14] %>% as.integer()
+    year_5_lr_more4_fu_appts1 <- fu_appts_1$appts[15] %>% as.integer()
+    year_1_hr_sf_fu_appts_current1 <- fu_appts_1$appts[16] %>% as.integer()
+    year_1_hr_sf_fu_appts_eau1 <- fu_appts_1$appts[17] %>% as.integer()
+    year_2_hr_sf_fu_appts_current1 <- fu_appts_1$appts[18] %>% as.integer()
+    year_2_hr_sf_fu_appts_eau1 <- fu_appts_1$appts[19] %>% as.integer()
+    year_3_onwards_hr_sf_fu_appts_current1 <- fu_appts_1$appts[20] %>% as.integer()
+    year_3_onwards_hr_sf_fu_appts_eau1 <- fu_appts_1$appts[21] %>% as.integer()
+    year_3_hr_sf_fu_appts_current1 <- fu_appts_1$appts[22] %>% as.integer()
+    year_3_hr_sf_fu_appts_eau1 <- fu_appts_1$appts[23] %>% as.integer()
+    year_4_hr_sf_fu_appts_eau1 <- fu_appts_1$appts[24] %>% as.integer()
+    year_5_hr_sf_fu_appts_eau1 <- fu_appts_1$appts[25] %>% as.integer()
+    year_1_hr_less4_fu_appts_eau1 <- fu_appts_1$appts[26] %>% as.integer()
+    year_2_hr_less4_fu_appts_eau1 <- fu_appts_1$appts[27] %>% as.integer()
+    year_3_hr_less4_fu_appts_eau1 <- fu_appts_1$appts[28] %>% as.integer()
+    year_4_hr_less4_fu_appts_eau1 <- fu_appts_1$appts[29] %>% as.integer()
+    year_5_hr_less4_fu_appts_eau1 <- fu_appts_1$appts[30] %>% as.integer()
+    year_1_hr_more4_fu_appts_eau1 <- fu_appts_1$appts[31] %>% as.integer()
+    year_2_hr_more4_fu_appts_eau1 <- fu_appts_1$appts[32] %>% as.integer()
+    year_3_hr_more4_fu_appts_eau1 <- fu_appts_1$appts[33] %>% as.integer()
+    year_4_hr_more4_fu_appts_eau1 <- fu_appts_1$appts[34] %>% as.integer()
+    year_5_hr_more4_fu_appts_eau1 <- fu_appts_1$appts[35] %>% as.integer()
     
     
     fu_appts_1 <- fu_appts %>% filter(imaging_type == "us")
-    year_1_lr_sf_fu_cost2 <- fu_appts_1$cost[1] %>% as.integer()
-    year_2_lr_sf_fu_cost2 <- fu_appts_1$cost[2] %>% as.integer()
-    year_3_lr_sf_fu_cost2 <- fu_appts_1$cost[3] %>% as.integer()
-    year_4_lr_sf_fu_cost2 <- fu_appts_1$cost[4] %>% as.integer()
-    year_5_lr_sf_fu_cost2  <- fu_appts_1$cost[5] %>% as.integer()
-    year_1_lr_less4_fu_cost2 <- fu_appts_1$cost[6] %>% as.integer()
-    year_2_lr_less4_fu_cost2 <- fu_appts_1$cost[7] %>% as.integer()
-    year_3_lr_less4_fu_cost2 <- fu_appts_1$cost[8] %>% as.integer()
-    year_4_lr_less4_fu_cost2 <- fu_appts_1$cost[9] %>% as.integer()
-    year_5_lr_less4_fu_cost2 <- fu_appts_1$cost[10] %>% as.integer()
-    year_1_lr_more4_fu_cost2 <- fu_appts_1$cost[11] %>% as.integer()
-    year_2_lr_more4_fu_cost2 <- fu_appts_1$cost[12] %>% as.integer()
-    year_3_lr_more4_fu_cost2 <- fu_appts_1$cost[13] %>% as.integer()
-    year_4_lr_more4_fu_cost2 <- fu_appts_1$cost[14] %>% as.integer()
-    year_5_lr_more4_fu_cost2 <- fu_appts_1$cost[15] %>% as.integer()
-    year_1_hr_sf_fu_cost_current2 <- fu_appts_1$cost[16] %>% as.integer()
-    year_1_hr_sf_fu_cost_eau2 <- fu_appts_1$cost[17] %>% as.integer()
-    year_2_hr_sf_fu_cost_current2 <- fu_appts_1$cost[18] %>% as.integer()
-    year_2_hr_sf_fu_cost_eau2 <- fu_appts_1$cost[19] %>% as.integer()
-    year_3_onwards_hr_sf_fu_cost_current2 <- fu_appts_1$cost[20] %>% as.integer()
-    year_3_onwards_hr_sf_fu_cost_eau2 <- fu_appts_1$cost[21] %>% as.integer()
-    year_3_hr_sf_fu_cost_current2 <- fu_appts_1$cost[22] %>% as.integer()
-    year_3_hr_sf_fu_cost_eau2 <- fu_appts_1$cost[23] %>% as.integer()
-    year_4_hr_sf_fu_cost_eau2 <- fu_appts_1$cost[24] %>% as.integer()
-    year_5_hr_sf_fu_cost_eau2 <- fu_appts_1$cost[25] %>% as.integer()
-    year_1_hr_less4_fu_cost_eau2 <- fu_appts_1$cost[26] %>% as.integer()
-    year_2_hr_less4_fu_cost_eau2 <- fu_appts_1$cost[27] %>% as.integer()
-    year_3_hr_less4_fu_cost_eau2 <- fu_appts_1$cost[28] %>% as.integer()
-    year_4_hr_less4_fu_cost_eau2 <- fu_appts_1$cost[29] %>% as.integer()
-    year_5_hr_less4_fu_cost_eau2 <- fu_appts_1$cost[30] %>% as.integer()
-    year_1_hr_more4_fu_cost_eau2 <- fu_appts_1$cost[31] %>% as.integer()
-    year_2_hr_more4_fu_cost_eau2 <- fu_appts_1$cost[32] %>% as.integer()
-    year_3_hr_more4_fu_cost_eau2 <- fu_appts_1$cost[33] %>% as.integer()
-    year_4_hr_more4_fu_cost_eau2 <- fu_appts_1$cost[34] %>% as.integer()
-    year_5_hr_more4_fu_cost_eau2 <- fu_appts_1$cost[35] %>% as.integer()
+    year_1_lr_sf_fu_appts2 <- fu_appts_1$appts[1] %>% as.integer()
+    year_2_lr_sf_fu_appts2 <- fu_appts_1$appts[2] %>% as.integer()
+    year_3_lr_sf_fu_appts2 <- fu_appts_1$appts[3] %>% as.integer()
+    year_4_lr_sf_fu_appts2 <- fu_appts_1$appts[4] %>% as.integer()
+    year_5_lr_sf_fu_appts2  <- fu_appts_1$appts[5] %>% as.integer()
+    year_1_lr_less4_fu_appts2 <- fu_appts_1$appts[6] %>% as.integer()
+    year_2_lr_less4_fu_appts2 <- fu_appts_1$appts[7] %>% as.integer()
+    year_3_lr_less4_fu_appts2 <- fu_appts_1$appts[8] %>% as.integer()
+    year_4_lr_less4_fu_appts2 <- fu_appts_1$appts[9] %>% as.integer()
+    year_5_lr_less4_fu_appts2 <- fu_appts_1$appts[10] %>% as.integer()
+    year_1_lr_more4_fu_appts2 <- fu_appts_1$appts[11] %>% as.integer()
+    year_2_lr_more4_fu_appts2 <- fu_appts_1$appts[12] %>% as.integer()
+    year_3_lr_more4_fu_appts2 <- fu_appts_1$appts[13] %>% as.integer()
+    year_4_lr_more4_fu_appts2 <- fu_appts_1$appts[14] %>% as.integer()
+    year_5_lr_more4_fu_appts2 <- fu_appts_1$appts[15] %>% as.integer()
+    year_1_hr_sf_fu_appts_current2 <- fu_appts_1$appts[16] %>% as.integer()
+    year_1_hr_sf_fu_appts_eau2 <- fu_appts_1$appts[17] %>% as.integer()
+    year_2_hr_sf_fu_appts_current2 <- fu_appts_1$appts[18] %>% as.integer()
+    year_2_hr_sf_fu_appts_eau2 <- fu_appts_1$appts[19] %>% as.integer()
+    year_3_onwards_hr_sf_fu_appts_current2 <- fu_appts_1$appts[20] %>% as.integer()
+    year_3_onwards_hr_sf_fu_appts_eau2 <- fu_appts_1$appts[21] %>% as.integer()
+    year_3_hr_sf_fu_appts_current2 <- fu_appts_1$appts[22] %>% as.integer()
+    year_3_hr_sf_fu_appts_eau2 <- fu_appts_1$appts[23] %>% as.integer()
+    year_4_hr_sf_fu_appts_eau2 <- fu_appts_1$appts[24] %>% as.integer()
+    year_5_hr_sf_fu_appts_eau2 <- fu_appts_1$appts[25] %>% as.integer()
+    year_1_hr_less4_fu_appts_eau2 <- fu_appts_1$appts[26] %>% as.integer()
+    year_2_hr_less4_fu_appts_eau2 <- fu_appts_1$appts[27] %>% as.integer()
+    year_3_hr_less4_fu_appts_eau2 <- fu_appts_1$appts[28] %>% as.integer()
+    year_4_hr_less4_fu_appts_eau2 <- fu_appts_1$appts[29] %>% as.integer()
+    year_5_hr_less4_fu_appts_eau2 <- fu_appts_1$appts[30] %>% as.integer()
+    year_1_hr_more4_fu_appts_eau2 <- fu_appts_1$appts[31] %>% as.integer()
+    year_2_hr_more4_fu_appts_eau2 <- fu_appts_1$appts[32] %>% as.integer()
+    year_3_hr_more4_fu_appts_eau2 <- fu_appts_1$appts[33] %>% as.integer()
+    year_4_hr_more4_fu_appts_eau2 <- fu_appts_1$appts[34] %>% as.integer()
+    year_5_hr_more4_fu_appts_eau2 <- fu_appts_1$appts[35] %>% as.integer()
   }
   else {
     fu_appts_1 <- fu_appts %>% filter(imaging_type == !!imaging_fu_type)
     
-    year_1_lr_sf_fu_cost1 <- fu_appts_1$cost[1] %>% as.integer()
-    year_2_lr_sf_fu_cost1 <- fu_appts_1$cost[2] %>% as.integer()
-    year_3_lr_sf_fu_cost1 <- fu_appts_1$cost[3] %>% as.integer()
-    year_4_lr_sf_fu_cost1 <- fu_appts_1$cost[4] %>% as.integer()
-    year_5_lr_sf_fu_cost1  <- fu_appts_1$cost[5] %>% as.integer()
-    year_1_lr_less4_fu_cost1 <- fu_appts_1$cost[6] %>% as.integer()
-    year_2_lr_less4_fu_cost1 <- fu_appts_1$cost[7] %>% as.integer()
-    year_3_lr_less4_fu_cost1 <- fu_appts_1$cost[8] %>% as.integer()
-    year_4_lr_less4_fu_cost1 <- fu_appts_1$cost[9] %>% as.integer()
-    year_5_lr_less4_fu_cost1 <- fu_appts_1$cost[10] %>% as.integer()
-    year_1_lr_more4_fu_cost1 <- fu_appts_1$cost[11] %>% as.integer()
-    year_2_lr_more4_fu_cost1 <- fu_appts_1$cost[12] %>% as.integer()
-    year_3_lr_more4_fu_cost1 <- fu_appts_1$cost[13] %>% as.integer()
-    year_4_lr_more4_fu_cost1 <- fu_appts_1$cost[14] %>% as.integer()
-    year_5_lr_more4_fu_cost1 <- fu_appts_1$cost[15] %>% as.integer()
-    year_1_hr_sf_fu_cost_current1 <- fu_appts_1$cost[16] %>% as.integer()
-    year_1_hr_sf_fu_cost_eau1 <- fu_appts_1$cost[17] %>% as.integer()
-    year_2_hr_sf_fu_cost_current1 <- fu_appts_1$cost[18] %>% as.integer()
-    year_2_hr_sf_fu_cost_eau1 <- fu_appts_1$cost[19] %>% as.integer()
-    year_3_onwards_hr_sf_fu_cost_current1 <- fu_appts_1$cost[20] %>% as.integer()
-    year_3_onwards_hr_sf_fu_cost_eau1 <- fu_appts_1$cost[21] %>% as.integer()
-    year_3_hr_sf_fu_cost_current1 <- fu_appts_1$cost[22] %>% as.integer()
-    year_3_hr_sf_fu_cost_eau1 <- fu_appts_1$cost[23] %>% as.integer()
-    year_4_hr_sf_fu_cost_eau1 <- fu_appts_1$cost[24] %>% as.integer()
-    year_5_hr_sf_fu_cost_eau1 <- fu_appts_1$cost[25] %>% as.integer()
-    year_1_hr_less4_fu_cost_eau1 <- fu_appts_1$cost[26] %>% as.integer()
-    year_2_hr_less4_fu_cost_eau1 <- fu_appts_1$cost[27] %>% as.integer()
-    year_3_hr_less4_fu_cost_eau1 <- fu_appts_1$cost[28] %>% as.integer()
-    year_4_hr_less4_fu_cost_eau1 <- fu_appts_1$cost[29] %>% as.integer()
-    year_5_hr_less4_fu_cost_eau1 <- fu_appts_1$cost[30] %>% as.integer()
-    year_1_hr_more4_fu_cost_eau1 <- fu_appts_1$cost[31] %>% as.integer()
-    year_2_hr_more4_fu_cost_eau1 <- fu_appts_1$cost[32] %>% as.integer()
-    year_3_hr_more4_fu_cost_eau1 <- fu_appts_1$cost[33] %>% as.integer()
-    year_4_hr_more4_fu_cost_eau1 <- fu_appts_1$cost[34] %>% as.integer()
-    year_5_hr_more4_fu_cost_eau1 <- fu_appts_1$cost[35] %>% as.integer()
+    year_1_lr_sf_fu_appts1 <- fu_appts_1$appts[1] %>% as.integer()
+    year_2_lr_sf_fu_appts1 <- fu_appts_1$appts[2] %>% as.integer()
+    year_3_lr_sf_fu_appts1 <- fu_appts_1$appts[3] %>% as.integer()
+    year_4_lr_sf_fu_appts1 <- fu_appts_1$appts[4] %>% as.integer()
+    year_5_lr_sf_fu_appts1  <- fu_appts_1$appts[5] %>% as.integer()
+    year_1_lr_less4_fu_appts1 <- fu_appts_1$appts[6] %>% as.integer()
+    year_2_lr_less4_fu_appts1 <- fu_appts_1$appts[7] %>% as.integer()
+    year_3_lr_less4_fu_appts1 <- fu_appts_1$appts[8] %>% as.integer()
+    year_4_lr_less4_fu_appts1 <- fu_appts_1$appts[9] %>% as.integer()
+    year_5_lr_less4_fu_appts1 <- fu_appts_1$appts[10] %>% as.integer()
+    year_1_lr_more4_fu_appts1 <- fu_appts_1$appts[11] %>% as.integer()
+    year_2_lr_more4_fu_appts1 <- fu_appts_1$appts[12] %>% as.integer()
+    year_3_lr_more4_fu_appts1 <- fu_appts_1$appts[13] %>% as.integer()
+    year_4_lr_more4_fu_appts1 <- fu_appts_1$appts[14] %>% as.integer()
+    year_5_lr_more4_fu_appts1 <- fu_appts_1$appts[15] %>% as.integer()
+    year_1_hr_sf_fu_appts_current1 <- fu_appts_1$appts[16] %>% as.integer()
+    year_1_hr_sf_fu_appts_eau1 <- fu_appts_1$appts[17] %>% as.integer()
+    year_2_hr_sf_fu_appts_current1 <- fu_appts_1$appts[18] %>% as.integer()
+    year_2_hr_sf_fu_appts_eau1 <- fu_appts_1$appts[19] %>% as.integer()
+    year_3_onwards_hr_sf_fu_appts_current1 <- fu_appts_1$appts[20] %>% as.integer()
+    year_3_onwards_hr_sf_fu_appts_eau1 <- fu_appts_1$appts[21] %>% as.integer()
+    year_3_hr_sf_fu_appts_current1 <- fu_appts_1$appts[22] %>% as.integer()
+    year_3_hr_sf_fu_appts_eau1 <- fu_appts_1$appts[23] %>% as.integer()
+    year_4_hr_sf_fu_appts_eau1 <- fu_appts_1$appts[24] %>% as.integer()
+    year_5_hr_sf_fu_appts_eau1 <- fu_appts_1$appts[25] %>% as.integer()
+    year_1_hr_less4_fu_appts_eau1 <- fu_appts_1$appts[26] %>% as.integer()
+    year_2_hr_less4_fu_appts_eau1 <- fu_appts_1$appts[27] %>% as.integer()
+    year_3_hr_less4_fu_appts_eau1 <- fu_appts_1$appts[28] %>% as.integer()
+    year_4_hr_less4_fu_appts_eau1 <- fu_appts_1$appts[29] %>% as.integer()
+    year_5_hr_less4_fu_appts_eau1 <- fu_appts_1$appts[30] %>% as.integer()
+    year_1_hr_more4_fu_appts_eau1 <- fu_appts_1$appts[31] %>% as.integer()
+    year_2_hr_more4_fu_appts_eau1 <- fu_appts_1$appts[32] %>% as.integer()
+    year_3_hr_more4_fu_appts_eau1 <- fu_appts_1$appts[33] %>% as.integer()
+    year_4_hr_more4_fu_appts_eau1 <- fu_appts_1$appts[34] %>% as.integer()
+    year_5_hr_more4_fu_appts_eau1 <- fu_appts_1$appts[35] %>% as.integer()
     
-    year_1_lr_sf_fu_cost2 <- year_1_lr_sf_fu_cost1
-    year_2_lr_sf_fu_cost2 <- year_2_lr_sf_fu_cost1
-    year_3_lr_sf_fu_cost2 <- year_3_lr_sf_fu_cost1
-    year_4_lr_sf_fu_cost2 <- year_4_lr_sf_fu_cost1
-    year_5_lr_sf_fu_cost2  <- year_5_lr_sf_fu_cost1
-    year_1_lr_less4_fu_cost2 <- year_1_lr_less4_fu_cost1
-    year_2_lr_less4_fu_cost2 <- year_2_lr_less4_fu_cost1
-    year_3_lr_less4_fu_cost2 <- year_3_lr_less4_fu_cost1
-    year_4_lr_less4_fu_cost2 <- year_4_lr_less4_fu_cost1
-    year_5_lr_less4_fu_cost2 <- year_5_lr_less4_fu_cost1
-    year_1_lr_more4_fu_cost2 <- year_1_lr_more4_fu_cost1
-    year_2_lr_more4_fu_cost2 <- year_2_lr_more4_fu_cost1
-    year_3_lr_more4_fu_cost2 <- year_3_lr_more4_fu_cost1
-    year_4_lr_more4_fu_cost2 <- year_4_lr_more4_fu_cost1
-    year_5_lr_more4_fu_cost2 <- year_5_lr_more4_fu_cost1
-    year_1_hr_sf_fu_cost_current2 <- year_1_hr_sf_fu_cost_current1
-    year_1_hr_sf_fu_cost_eau2 <- year_1_hr_sf_fu_cost_eau1
-    year_2_hr_sf_fu_cost_current2 <- year_2_hr_sf_fu_cost_current1
-    year_2_hr_sf_fu_cost_eau2 <- year_2_hr_sf_fu_cost_eau1
-    year_3_onwards_hr_sf_fu_cost_current2 <- year_3_onwards_hr_sf_fu_cost_current1
-    year_3_onwards_hr_sf_fu_cost_eau2 <- year_3_onwards_hr_sf_fu_cost_eau1
-    year_3_hr_sf_fu_cost_current2 <- year_3_hr_sf_fu_cost_current1
-    year_3_hr_sf_fu_cost_eau2 <- year_3_hr_sf_fu_cost_eau1
-    year_4_hr_sf_fu_cost_eau2 <- year_4_hr_sf_fu_cost_eau1
-    year_5_hr_sf_fu_cost_eau2 <- year_5_hr_sf_fu_cost_eau1
-    year_1_hr_less4_fu_cost_eau2 <- year_1_hr_less4_fu_cost_eau1
-    year_2_hr_less4_fu_cost_eau2 <- year_2_hr_less4_fu_cost_eau1
-    year_3_hr_less4_fu_cost_eau2 <- year_3_hr_less4_fu_cost_eau1
-    year_4_hr_less4_fu_cost_eau2 <- year_4_hr_less4_fu_cost_eau1
-    year_5_hr_less4_fu_cost_eau2 <- year_5_hr_less4_fu_cost_eau1
-    year_1_hr_more4_fu_cost_eau2 <- year_1_hr_more4_fu_cost_eau1
-    year_2_hr_more4_fu_cost_eau2 <- year_2_hr_more4_fu_cost_eau1
-    year_3_hr_more4_fu_cost_eau2 <- year_3_hr_more4_fu_cost_eau1
-    year_4_hr_more4_fu_cost_eau2 <- year_4_hr_more4_fu_cost_eau1
-    year_5_hr_more4_fu_cost_eau2 <- year_5_hr_more4_fu_cost_eau1
+    year_1_lr_sf_fu_appts2 <- year_1_lr_sf_fu_appts1
+    year_2_lr_sf_fu_appts2 <- year_2_lr_sf_fu_appts1
+    year_3_lr_sf_fu_appts2 <- year_3_lr_sf_fu_appts1
+    year_4_lr_sf_fu_appts2 <- year_4_lr_sf_fu_appts1
+    year_5_lr_sf_fu_appts2  <- year_5_lr_sf_fu_appts1
+    year_1_lr_less4_fu_appts2 <- year_1_lr_less4_fu_appts1
+    year_2_lr_less4_fu_appts2 <- year_2_lr_less4_fu_appts1
+    year_3_lr_less4_fu_appts2 <- year_3_lr_less4_fu_appts1
+    year_4_lr_less4_fu_appts2 <- year_4_lr_less4_fu_appts1
+    year_5_lr_less4_fu_appts2 <- year_5_lr_less4_fu_appts1
+    year_1_lr_more4_fu_appts2 <- year_1_lr_more4_fu_appts1
+    year_2_lr_more4_fu_appts2 <- year_2_lr_more4_fu_appts1
+    year_3_lr_more4_fu_appts2 <- year_3_lr_more4_fu_appts1
+    year_4_lr_more4_fu_appts2 <- year_4_lr_more4_fu_appts1
+    year_5_lr_more4_fu_appts2 <- year_5_lr_more4_fu_appts1
+    year_1_hr_sf_fu_appts_current2 <- year_1_hr_sf_fu_appts_current1
+    year_1_hr_sf_fu_appts_eau2 <- year_1_hr_sf_fu_appts_eau1
+    year_2_hr_sf_fu_appts_current2 <- year_2_hr_sf_fu_appts_current1
+    year_2_hr_sf_fu_appts_eau2 <- year_2_hr_sf_fu_appts_eau1
+    year_3_onwards_hr_sf_fu_appts_current2 <- year_3_onwards_hr_sf_fu_appts_current1
+    year_3_onwards_hr_sf_fu_appts_eau2 <- year_3_onwards_hr_sf_fu_appts_eau1
+    year_3_hr_sf_fu_appts_current2 <- year_3_hr_sf_fu_appts_current1
+    year_3_hr_sf_fu_appts_eau2 <- year_3_hr_sf_fu_appts_eau1
+    year_4_hr_sf_fu_appts_eau2 <- year_4_hr_sf_fu_appts_eau1
+    year_5_hr_sf_fu_appts_eau2 <- year_5_hr_sf_fu_appts_eau1
+    year_1_hr_less4_fu_appts_eau2 <- year_1_hr_less4_fu_appts_eau1
+    year_2_hr_less4_fu_appts_eau2 <- year_2_hr_less4_fu_appts_eau1
+    year_3_hr_less4_fu_appts_eau2 <- year_3_hr_less4_fu_appts_eau1
+    year_4_hr_less4_fu_appts_eau2 <- year_4_hr_less4_fu_appts_eau1
+    year_5_hr_less4_fu_appts_eau2 <- year_5_hr_less4_fu_appts_eau1
+    year_1_hr_more4_fu_appts_eau2 <- year_1_hr_more4_fu_appts_eau1
+    year_2_hr_more4_fu_appts_eau2 <- year_2_hr_more4_fu_appts_eau1
+    year_3_hr_more4_fu_appts_eau2 <- year_3_hr_more4_fu_appts_eau1
+    year_4_hr_more4_fu_appts_eau2 <- year_4_hr_more4_fu_appts_eau1
+    year_5_hr_more4_fu_appts_eau2 <- year_5_hr_more4_fu_appts_eau1
   }
   
   # Assign recurrence times
@@ -281,19 +281,19 @@ calculate_no_appts <- function(complete_pop_yr_fu,
             # Yr 1 FU divided by risk status
             death_year_1 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_1_lr_sf_fu_appts1,
             death_year_1 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_1_lr_sf_fu_appts2,
             death_year_1 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_1_hr_sf_fu_appts_eau1,
             death_year_1 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_1_hr_sf_fu_appts_eau2,
             # Death
             death_year_1 == "Yes" ~ 0,
@@ -313,19 +313,19 @@ calculate_no_appts <- function(complete_pop_yr_fu,
             # Yr 2 FU divided by risk status
             death_year_2 == "No" &
               recurrence_year_2 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_2_lr_sf_fu_appts1,
             death_year_2 == "No" &
               recurrence_year_2 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_2_lr_sf_fu_appts2,
             death_year_2 == "No" &
               recurrence_year_2 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_2_hr_sf_fu_appts_eau1,
             death_year_2 == "No" &
               recurrence_year_2 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_2_hr_sf_fu_appts_eau2,
             # Death
             death_year_2 == "Yes" ~ 0,
@@ -346,22 +346,22 @@ calculate_no_appts <- function(complete_pop_yr_fu,
             death_year_2 == "No" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_1_lr_sf_fu_appts1,
             death_year_2 == "No" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_1_lr_sf_fu_appts2,
             death_year_2 == "No" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_1_hr_sf_fu_appts_eau1,
             death_year_2 == "No" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_1_hr_sf_fu_appts_eau2,
             TRUE ~ NA_real_
           ),
@@ -370,19 +370,19 @@ calculate_no_appts <- function(complete_pop_yr_fu,
             # Yr 3 FU divided by risk status
             death_year_3 == "No" &
               recurrence_year_3 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_3_lr_sf_fu_appts1,
             death_year_3 == "No" &
               recurrence_year_3 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_3_lr_sf_fu_appts2,
             death_year_3 == "No" &
               recurrence_year_3 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_3_hr_sf_fu_appts_eau1,
             death_year_3 == "No" &
               recurrence_year_3 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_3_hr_sf_fu_appts_eau2,
             # Death
             death_year_3 == "Yes" |
@@ -405,50 +405,50 @@ calculate_no_appts <- function(complete_pop_yr_fu,
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_1_lr_sf_fu_appts1,
             death_year_3 == "No" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_1_lr_sf_fu_appts2,
             death_year_3 == "No" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_1_hr_sf_fu_appts_eau1,
             death_year_3 == "No" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_1_hr_sf_fu_appts_eau2,
             # Yr 2 FU for Recurrence in Yr 1
             death_year_3 == "No" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_2_lr_sf_fu_appts1,
             death_year_3 == "No" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_2_lr_sf_fu_appts2,
             death_year_3 == "No" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_2_hr_sf_fu_appts_eau1,
             death_year_3 == "No" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_2_hr_sf_fu_appts_eau2,
             TRUE ~ NA_real_
           ),
@@ -459,11 +459,11 @@ calculate_no_appts <- function(complete_pop_yr_fu,
               recurrence_year_4 == "No" & risk_status == "LR" ~ 0,
             death_year_4 == "No" &
               recurrence_year_4 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_4_hr_sf_fu_appts_eau1,
             death_year_4 == "No" &
               recurrence_year_4 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_4_hr_sf_fu_appts_eau2,
             # Death
             death_year_4 == "Yes" |
@@ -487,75 +487,75 @@ calculate_no_appts <- function(complete_pop_yr_fu,
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_1_lr_sf_fu_appts1,
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_1_lr_sf_fu_appts2,
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_1_hr_sf_fu_appts_eau1,
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_1_hr_sf_fu_appts_eau2,
             # Yr 2 FU for Recurrence in Yr 2
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_2_lr_sf_fu_appts1,
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_2_lr_sf_fu_appts2,
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_2_hr_sf_fu_appts_eau1,
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_2_hr_sf_fu_appts_eau2,
             # Yr 3 FU for Recurrence in Yr 1
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_3_lr_sf_fu_appts1,
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_3_lr_sf_fu_appts2,
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_3_hr_sf_fu_appts_eau1,
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_3_hr_sf_fu_appts_eau2,
             TRUE ~ NA_real_
           ),
@@ -566,11 +566,11 @@ calculate_no_appts <- function(complete_pop_yr_fu,
               recurrence_year_5 == "No" & risk_status == "LR" ~ 0,
             death_year_5 == "No" &
               recurrence_year_5 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_5_hr_sf_fu_appts_eau1,
             death_year_5 == "No" &
               recurrence_year_5 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_5_hr_sf_fu_appts_eau2,
             # Death
             death_year_5 == "Yes" |
@@ -596,28 +596,28 @@ calculate_no_appts <- function(complete_pop_yr_fu,
               recurrence_year_3 == "No" &
               recurrence_year_2 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_1_lr_sf_fu_appts1,
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
               recurrence_year_4 == "Yes" &
               recurrence_year_3 == "No" &
               recurrence_year_2 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_1_lr_sf_fu_appts2,
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
               recurrence_year_4 == "Yes" &
               recurrence_year_3 == "No" &
               recurrence_year_2 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_1_hr_sf_fu_appts_eau1,
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
               recurrence_year_4 == "Yes" &
               recurrence_year_3 == "No" &
               recurrence_year_2 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_1_hr_sf_fu_appts_eau2,
             # Yr 2 FU for Recurrence in Yr 3
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
@@ -625,28 +625,28 @@ calculate_no_appts <- function(complete_pop_yr_fu,
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_2_lr_sf_fu_appts1,
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
               recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_2_lr_sf_fu_appts2,
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
               recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_2_hr_sf_fu_appts_eau1,
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
               recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_2_hr_sf_fu_appts_eau2,
             # Yr 3 FU for Recurrence in Yr 2
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
@@ -654,28 +654,28 @@ calculate_no_appts <- function(complete_pop_yr_fu,
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_3_lr_sf_fu_appts1,
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
               recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_3_lr_sf_fu_appts2,
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
               recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_3_hr_sf_fu_appts_eau1,
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
               recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_3_hr_sf_fu_appts_eau2,
             # Yr 4 FU for Recurrence in Yr 1
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
@@ -688,14 +688,14 @@ calculate_no_appts <- function(complete_pop_yr_fu,
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_4_hr_sf_fu_appts_eau1,
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
               recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_4_hr_sf_fu_appts_eau2,
             TRUE ~ NA_real_
           )
@@ -718,19 +718,19 @@ calculate_no_appts <- function(complete_pop_yr_fu,
             # Yr 1 FU divided by risk status
             death_year_1 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_1_lr_sf_fu_appts1,
             death_year_1 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_1_lr_sf_fu_appts2,
             death_year_1 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_1_hr_sf_fu_appts_eau1,
             death_year_1 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_1_hr_sf_fu_appts_eau2,
             # Death
             death_year_1 == "Yes" ~ 0,
@@ -750,19 +750,19 @@ calculate_no_appts <- function(complete_pop_yr_fu,
             # Yr 2 FU divided by risk status
             death_year_2 == "No" &
               recurrence_year_2 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_2_lr_sf_fu_appts1,
             death_year_2 == "No" &
               recurrence_year_2 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_2_lr_sf_fu_appts2,
             death_year_2 == "No" &
               recurrence_year_2 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_2_hr_sf_fu_appts_eau1,
             death_year_2 == "No" &
               recurrence_year_2 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_2_hr_sf_fu_appts_eau2,
             # Death
             death_year_2 == "Yes" | death_year_1 == "Yes" ~ 0,
@@ -783,11 +783,23 @@ calculate_no_appts <- function(complete_pop_yr_fu,
             death_year_2 == "No" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              risk_status == "LR" ~ year_1_lr_sf_fu_appts,
+              lucency == "No" &
+              risk_status == "LR" ~ year_1_lr_sf_fu_appts1,
             death_year_2 == "No" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              risk_status == "HR" ~ year_1_hr_sf_fu_appts_eau,
+              lucency == "Yes" &
+              risk_status == "LR" ~ year_1_lr_sf_fu_appts2,
+            death_year_2 == "No" &
+              recurrence_year_2 == "Yes" &
+              recurrence_year_1 == "Yes" &
+              lucency == "No" &
+              risk_status == "HR" ~ year_1_hr_sf_fu_appts_eau1,
+            death_year_2 == "No" &
+              recurrence_year_2 == "Yes" &
+              recurrence_year_1 == "Yes" &
+              lucency == "Yes" &
+              risk_status == "HR" ~ year_1_hr_sf_fu_appts_eau2,
             TRUE ~ NA_real_
           ),
           
@@ -795,19 +807,19 @@ calculate_no_appts <- function(complete_pop_yr_fu,
             # Yr 3 FU divided by risk status
             death_year_3 == "No" &
               recurrence_year_3 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_3_lr_sf_fu_appts1,
             death_year_3 == "No" &
               recurrence_year_3 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_3_lr_sf_fu_appts2,
             death_year_3 == "No" &
               recurrence_year_3 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_3_hr_sf_fu_appts_eau1,
             death_year_3 == "No" &
               recurrence_year_3 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_3_hr_sf_fu_appts_eau2,
             # Death
             death_year_3 == "Yes" |
@@ -830,50 +842,50 @@ calculate_no_appts <- function(complete_pop_yr_fu,
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_1_lr_sf_fu_appts1,
             death_year_3 == "No" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_1_lr_sf_fu_appts2,
             death_year_3 == "No" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_1_hr_sf_fu_appts_eau1,
             death_year_3 == "No" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_1_hr_sf_fu_appts_eau2,
             # Yr 2 FU for Recurrence in Yr 1
             death_year_3 == "No" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_2_lr_sf_fu_appts1,
             death_year_3 == "No" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_2_lr_sf_fu_appts2,
             death_year_3 == "No" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_2_hr_sf_fu_appts_eau1,
             death_year_3 == "No" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_2_hr_sf_fu_appts_eau2,
             TRUE ~ NA_real_
           ),
@@ -884,11 +896,11 @@ calculate_no_appts <- function(complete_pop_yr_fu,
               recurrence_year_4 == "No" & risk_status == "LR" ~ 0,
             death_year_4 == "No" &
               recurrence_year_4 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_4_hr_sf_fu_appts_eau1,
             death_year_4 == "No" &
               recurrence_year_4 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_4_hr_sf_fu_appts_eau2,
             # Death
             death_year_4 == "Yes" |
@@ -912,75 +924,75 @@ calculate_no_appts <- function(complete_pop_yr_fu,
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_1_lr_sf_fu_appts1,
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_1_lr_sf_fu_appts2,
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_1_hr_sf_fu_appts_eau1,
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_1_hr_sf_fu_appts_eau2,
             # Yr 2 FU for Recurrence in Yr 2
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_2_lr_sf_fu_appts1,
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_2_lr_sf_fu_appts2,
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_2_hr_sf_fu_appts_eau1,
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_2_hr_sf_fu_appts_eau2,
             # Yr 3 FU for Recurrence in Yr 1
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_3_lr_sf_fu_appts1,
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_3_lr_sf_fu_appts2,
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_3_hr_sf_fu_appts_eau1,
             death_year_4 == "No" & recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_3_hr_sf_fu_appts_eau2,
             TRUE ~ NA_real_
           ),
@@ -989,19 +1001,19 @@ calculate_no_appts <- function(complete_pop_yr_fu,
             # Yr 5 FU divided by risk status
             death_year_5 == "No" &
               recurrence_year_5 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_5_lr_sf_fu_appts1,
             death_year_5 == "No" &
               recurrence_year_5 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_5_lr_sf_fu_appts2,
             death_year_5 == "No" &
               recurrence_year_5 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_5_hr_sf_fu_appts_eau1,
             death_year_5 == "No" &
               recurrence_year_5 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_5_hr_sf_fu_appts_eau2,
             # Death
             death_year_5 == "Yes" |
@@ -1027,28 +1039,28 @@ calculate_no_appts <- function(complete_pop_yr_fu,
               recurrence_year_3 == "No" &
               recurrence_year_2 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_1_lr_sf_fu_appts1,
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
               recurrence_year_4 == "Yes" &
               recurrence_year_3 == "No" &
               recurrence_year_2 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_1_lr_sf_fu_appts2,
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
               recurrence_year_4 == "Yes" &
               recurrence_year_3 == "No" &
               recurrence_year_2 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_1_hr_sf_fu_appts_eau1,
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
               recurrence_year_4 == "Yes" &
               recurrence_year_3 == "No" &
               recurrence_year_2 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_1_hr_sf_fu_appts_eau2,
             # Yr 2 FU for Recurrence in Yr 3
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
@@ -1056,28 +1068,28 @@ calculate_no_appts <- function(complete_pop_yr_fu,
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_2_lr_sf_fu_appts1,
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
               recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_2_lr_sf_fu_appts2,
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
               recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_2_hr_sf_fu_appts_eau1,
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
               recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "No" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_2_hr_sf_fu_appts_eau2,
             # Yr 3 FU for Recurrence in Yr 2
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
@@ -1085,28 +1097,28 @@ calculate_no_appts <- function(complete_pop_yr_fu,
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_3_lr_sf_fu_appts1,
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
               recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_3_lr_sf_fu_appts2,
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
               recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "No" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_3_hr_sf_fu_appts_eau1,
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
               recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "No" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_3_hr_sf_fu_appts_eau2,
             # Yr 4 FU for Recurrence in Yr 1
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
@@ -1114,28 +1126,28 @@ calculate_no_appts <- function(complete_pop_yr_fu,
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "LR" ~ year_4_lr_sf_fu_appts1,
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
               recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "LR" ~ year_4_lr_sf_fu_appts2,
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
               recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "No" &
+              lucency == "No" &
               risk_status == "HR" ~ year_4_hr_sf_fu_appts_eau1,
             death_year_5 == "No" & recurrence_year_5 == "Yes" &
               recurrence_year_4 == "Yes" &
               recurrence_year_3 == "Yes" &
               recurrence_year_2 == "Yes" &
               recurrence_year_1 == "Yes" &
-              lucency = "Yes" &
+              lucency == "Yes" &
               risk_status == "HR" ~ year_4_hr_sf_fu_appts_eau2,
             TRUE ~ NA_real_
           )
@@ -1159,19 +1171,19 @@ calculate_no_appts <- function(complete_pop_yr_fu,
           # Yr 1 FU divided by risk status
           death_year_1 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_1_lr_less4_fu_appts1,
           death_year_1 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_1_lr_less4_fu_appts2,
           death_year_1 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_1_hr_less4_fu_appts_eau1,
           death_year_1 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_1_hr_less4_fu_appts_eau2,
           # Death
           death_year_1 == "Yes" ~ 0,
@@ -1191,19 +1203,19 @@ calculate_no_appts <- function(complete_pop_yr_fu,
           # Yr 2 FU divided by risk status
           death_year_2 == "No" &
             recurrence_year_2 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_2_lr_less4_fu_appts1,
           death_year_2 == "No" &
             recurrence_year_2 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_2_lr_less4_fu_appts2,
           death_year_2 == "No" &
             recurrence_year_2 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_2_hr_less4_fu_appts_eau1,
           death_year_2 == "No" &
             recurrence_year_2 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_2_hr_less4_fu_appts_eau2,
           # Death
           death_year_2 == "Yes" ~ 0,
@@ -1224,22 +1236,22 @@ calculate_no_appts <- function(complete_pop_yr_fu,
           death_year_2 == "No" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_1_lr_less4_fu_appts1,
           death_year_2 == "No" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_1_lr_less4_fu_appts2,
           death_year_2 == "No" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_1_hr_less4_fu_appts_eau1,
           death_year_2 == "No" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_1_hr_less4_fu_appts_eau2,
           TRUE ~ NA_real_
         ),
@@ -1248,19 +1260,19 @@ calculate_no_appts <- function(complete_pop_yr_fu,
           # Yr 3 FU divided by risk status
           death_year_3 == "No" &
             recurrence_year_3 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_3_lr_less4_fu_appts1,
           death_year_3 == "No" &
             recurrence_year_3 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_3_lr_less4_fu_appts2,
           death_year_3 == "No" &
             recurrence_year_3 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_3_hr_less4_fu_appts_eau1,
           death_year_3 == "No" &
             recurrence_year_3 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_3_hr_less4_fu_appts_eau2,
           # Death
           death_year_3 == "Yes" ~ 0,
@@ -1282,50 +1294,50 @@ calculate_no_appts <- function(complete_pop_yr_fu,
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_1_lr_less4_fu_appts1,
           death_year_3 == "No" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_1_lr_less4_fu_appts2,
           death_year_3 == "No" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_1_hr_less4_fu_appts_eau1,
           death_year_3 == "No" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_1_hr_less4_fu_appts_eau2,
           # Yr 2 FU for Recurrence in Yr 1
           death_year_3 == "No" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_2_lr_less4_fu_appts1,
           death_year_3 == "No" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_2_lr_less4_fu_appts2,
           death_year_3 == "No" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_2_hr_less4_fu_appts_eau1,
           death_year_3 == "No" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_2_hr_less4_fu_appts_eau2,
           TRUE ~ NA_real_
         ),
@@ -1336,11 +1348,11 @@ calculate_no_appts <- function(complete_pop_yr_fu,
             recurrence_year_4 == "No" & risk_status == "LR" ~ 0,
           death_year_4 == "No" &
             recurrence_year_4 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_4_hr_less4_fu_appts_eau1,
           death_year_4 == "No" &
             recurrence_year_4 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_4_hr_less4_fu_appts_eau2,
           # Death
           death_year_4 == "Yes" ~ 0,
@@ -1362,75 +1374,75 @@ calculate_no_appts <- function(complete_pop_yr_fu,
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_1_lr_less4_fu_appts1,
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_1_lr_less4_fu_appts2,
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_1_hr_less4_fu_appts_eau1,
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_1_hr_less4_fu_appts_eau2,
           # Yr 2 FU for Recurrence in Yr 2
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_2_lr_less4_fu_appts1,
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_2_lr_less4_fu_appts2,
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_2_hr_less4_fu_appts_eau1,
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_2_hr_less4_fu_appts_eau2,
           # Yr 3 FU for Recurrence in Yr 1
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_3_lr_sf_fu_appts1,
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_3_lr_sf_fu_appts2,
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_3_hr_sf_fu_appts_eau1,
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_3_hr_sf_fu_appts_eau2,
           TRUE ~ NA_real_
         ),
@@ -1439,19 +1451,19 @@ calculate_no_appts <- function(complete_pop_yr_fu,
           # Yr 5 FU divided by risk status
           death_year_5 == "No" &
             recurrence_year_5 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_5_lr_less4_fu_appts1,
           death_year_5 == "No" &
             recurrence_year_5 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_5_lr_less4_fu_appts2,
           death_year_5 == "No" &
             recurrence_year_5 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_5_hr_less4_fu_appts_eau1,
           death_year_5 == "No" &
             recurrence_year_5 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_5_hr_less4_fu_appts_eau2,
           # Death
           death_year_5 == "Yes" ~ 0,
@@ -1474,28 +1486,28 @@ calculate_no_appts <- function(complete_pop_yr_fu,
             recurrence_year_3 == "No" &
             recurrence_year_2 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_1_lr_less4_fu_appts1,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" &
             recurrence_year_3 == "No" &
             recurrence_year_2 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_1_lr_less4_fu_appts2,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" &
             recurrence_year_3 == "No" &
             recurrence_year_2 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_1_hr_less4_fu_appts_eau1,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" &
             recurrence_year_3 == "No" &
             recurrence_year_2 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_1_hr_less4_fu_appts_eau2,
           # Yr 2 FU for Recurrence in Yr 3
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
@@ -1503,28 +1515,28 @@ calculate_no_appts <- function(complete_pop_yr_fu,
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_2_lr_less4_fu_appts1,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_2_lr_less4_fu_appts2,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_2_hr_less4_fu_appts_eau1,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_2_hr_less4_fu_appts_eau2,
           # Yr 3 FU for Recurrence in Yr 2
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
@@ -1532,28 +1544,28 @@ calculate_no_appts <- function(complete_pop_yr_fu,
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_3_lr_less4_fu_appts1,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_3_lr_less4_fu_appts2,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_3_hr_less4_fu_appts_eau1,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_3_hr_less4_fu_appts_eau2,
           # Yr 4 FU for Recurrence in Yr 1
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
@@ -1561,28 +1573,28 @@ calculate_no_appts <- function(complete_pop_yr_fu,
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_4_lr_less4_fu_appts1,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_4_lr_less4_fu_appts2,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_4_hr_less4_fu_appts_eau1,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_4_hr_less4_fu_appts_eau2,
           TRUE ~ NA_real_
         )
@@ -1605,19 +1617,19 @@ calculate_no_appts <- function(complete_pop_yr_fu,
           # Yr 1 FU divided by risk status
           death_year_1 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_1_lr_more4_fu_appts1,
           death_year_1 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_1_lr_more4_fu_appts2,
           death_year_1 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_1_hr_more4_fu_appts_eau1,
           death_year_1 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_1_hr_more4_fu_appts_eau2,
           # Death
           death_year_1 == "Yes" ~ 0,
@@ -1637,19 +1649,19 @@ calculate_no_appts <- function(complete_pop_yr_fu,
           # Yr 2 FU divided by risk status
           death_year_2 == "No" &
             recurrence_year_2 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_2_lr_more4_fu_appts1,
           death_year_2 == "No" &
             recurrence_year_2 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_2_lr_more4_fu_appts2,
           death_year_2 == "No" &
             recurrence_year_2 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_2_hr_more4_fu_appts_eau1,
           death_year_2 == "No" &
             recurrence_year_2 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_2_hr_more4_fu_appts_eau2,
           # Death
           death_year_2 == "Yes" ~ 0,
@@ -1670,22 +1682,22 @@ calculate_no_appts <- function(complete_pop_yr_fu,
           death_year_2 == "No" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_1_lr_more4_fu_appts1,
           death_year_2 == "No" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_1_lr_more4_fu_appts2,
           death_year_2 == "No" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_1_hr_more4_fu_appts_eau1,
           death_year_2 == "No" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_1_hr_more4_fu_appts_eau2,
           TRUE ~ NA_real_
         ),
@@ -1694,19 +1706,19 @@ calculate_no_appts <- function(complete_pop_yr_fu,
           # Yr 3 FU divided by risk status
           death_year_3 == "No" &
             recurrence_year_3 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_3_lr_more4_fu_appts1,
           death_year_3 == "No" &
             recurrence_year_3 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_3_lr_more4_fu_appts2,
           death_year_3 == "No" &
             recurrence_year_3 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_3_hr_more4_fu_appts_eau1,
           death_year_3 == "No" &
             recurrence_year_3 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_3_hr_more4_fu_appts_eau2,
           # Death
           death_year_3 == "Yes" ~ 0,
@@ -1728,50 +1740,50 @@ calculate_no_appts <- function(complete_pop_yr_fu,
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_1_lr_more4_fu_appts1,
           death_year_3 == "No" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_1_lr_more4_fu_appts2,
           death_year_3 == "No" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_1_hr_more4_fu_appts_eau1,
           death_year_3 == "No" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_1_hr_more4_fu_appts_eau2,
           # Yr 2 FU for Recurrence in Yr 1
           death_year_3 == "No" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_2_lr_more4_fu_appts1,
           death_year_3 == "No" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_2_lr_more4_fu_appts2,
           death_year_3 == "No" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_2_hr_more4_fu_appts_eau1,
           death_year_3 == "No" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_2_hr_more4_fu_appts_eau2,
           TRUE ~ NA_real_
         ),
@@ -1782,11 +1794,11 @@ calculate_no_appts <- function(complete_pop_yr_fu,
             recurrence_year_4 == "No" & risk_status == "LR" ~ 0,
           death_year_4 == "No" &
             recurrence_year_4 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_4_hr_more4_fu_appts_eau1,
           death_year_4 == "No" &
             recurrence_year_4 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_4_hr_more4_fu_appts_eau2,
           # Death
           death_year_4 == "Yes" ~ 0,
@@ -1808,75 +1820,75 @@ calculate_no_appts <- function(complete_pop_yr_fu,
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_1_lr_more4_fu_appts1,
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_1_lr_more4_fu_appts2,
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_1_hr_more4_fu_appts_eau1,
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_1_hr_more4_fu_appts_eau2,
           # Yr 2 FU for Recurrence in Yr 2
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_2_lr_more4_fu_appts1,
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_2_lr_more4_fu_appts2,
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_2_hr_more4_fu_appts_eau1,
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_2_hr_more4_fu_appts_eau2,
           # Yr 3 FU for Recurrence in Yr 1
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_3_lr_sf_fu_appts1,
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_3_lr_sf_fu_appts2,
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_3_hr_sf_fu_appts_eau1,
           death_year_4 == "No" & recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_3_hr_sf_fu_appts_eau2,
           TRUE ~ NA_real_
         ),
@@ -1885,19 +1897,19 @@ calculate_no_appts <- function(complete_pop_yr_fu,
           # Yr 5 FU divided by risk status
           death_year_5 == "No" &
             recurrence_year_5 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_5_lr_more4_fu_appts1,
           death_year_5 == "No" &
             recurrence_year_5 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_5_lr_more4_fu_appts2,
           death_year_5 == "No" &
             recurrence_year_5 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_5_hr_more4_fu_appts_eau1,
           death_year_5 == "No" &
             recurrence_year_5 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_5_hr_more4_fu_appts_eau2,
           # Death
           death_year_5 == "Yes" ~ 0,
@@ -1920,28 +1932,28 @@ calculate_no_appts <- function(complete_pop_yr_fu,
             recurrence_year_3 == "No" &
             recurrence_year_2 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_1_lr_more4_fu_appts1,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" &
             recurrence_year_3 == "No" &
             recurrence_year_2 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_1_lr_more4_fu_appts2,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" &
             recurrence_year_3 == "No" &
             recurrence_year_2 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_1_hr_more4_fu_appts_eau1,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" &
             recurrence_year_3 == "No" &
             recurrence_year_2 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_1_hr_more4_fu_appts_eau2,
           # Yr 2 FU for Recurrence in Yr 3
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
@@ -1949,28 +1961,28 @@ calculate_no_appts <- function(complete_pop_yr_fu,
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_2_lr_more4_fu_appts1,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_2_lr_more4_fu_appts2,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_2_hr_more4_fu_appts_eau1,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "No" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_2_hr_more4_fu_appts_eau2,
           # Yr 3 FU for Recurrence in Yr 2
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
@@ -1978,28 +1990,28 @@ calculate_no_appts <- function(complete_pop_yr_fu,
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_3_lr_more4_fu_appts1,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_3_lr_more4_fu_appts2,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "No" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_3_hr_more4_fu_appts_eau1,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "No" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_3_hr_more4_fu_appts_eau2,
           # Yr 4 FU for Recurrence in Yr 1
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
@@ -2007,28 +2019,28 @@ calculate_no_appts <- function(complete_pop_yr_fu,
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "LR" ~ year_4_lr_more4_fu_appts1,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "LR" ~ year_4_lr_more4_fu_appts2,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "No" &
+            lucency == "No" &
             risk_status == "HR" ~ year_4_hr_more4_fu_appts_eau1,
           death_year_5 == "No" & recurrence_year_5 == "Yes" &
             recurrence_year_4 == "Yes" &
             recurrence_year_3 == "Yes" &
             recurrence_year_2 == "Yes" &
             recurrence_year_1 == "Yes" &
-            lucency = "Yes" &
+            lucency == "Yes" &
             risk_status == "HR" ~ year_4_hr_more4_fu_appts_eau2,
           TRUE ~ NA_real_
         )
