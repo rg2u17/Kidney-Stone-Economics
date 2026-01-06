@@ -1072,7 +1072,27 @@ calculate_qol <- function(complete_pop_yr_fu,
         cutpoint = cutpoint,
         post_op_imaging = post_op_imaging,
         imaging_fu_type = imaging_fu_type,
-        year = start_year
+        year = start_year,
+        qol_mean_year_1 = case_when(
+          death_year_1 == "Yes" ~ 0,
+          TRUE ~ qol_mean_year_1
+        ),
+        qol_mean_year_2 = case_when(
+          death_year_2 == "Yes" ~ 0,
+          TRUE ~ qol_mean_year_2
+        ),
+        qol_mean_year_3 = case_when(
+          death_year_3 == "Yes" ~ 0,
+          TRUE ~ qol_mean_year_3
+        ),
+        qol_mean_year_4 = case_when(
+          death_year_4 == "Yes" ~ 0,
+          TRUE ~ qol_mean_year_4
+        ),
+        qol_mean_year_5 = case_when(
+          death_year_5 == "Yes" ~ 0,
+          TRUE ~ qol_mean_year_5
+        )
       )
     
     # --- QALY calculation ---
