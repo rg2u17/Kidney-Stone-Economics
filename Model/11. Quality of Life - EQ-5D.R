@@ -17,7 +17,7 @@ library(future)
 library(furrr)
 
 # The commented code has been included for transparency as to how 
-# the USIQoL data has been summarised - summarised datasets have been 
+# the EQ-5D data has been summarised - summarised datasets have been 
 # saved for replication
 
 ## 11.2 Load data ####
