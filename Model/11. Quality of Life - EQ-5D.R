@@ -16,6 +16,10 @@ library(matrixStats)
 library(future)
 library(furrr)
 
+# The commented code has been included for transparency as to how 
+# the USIQoL data has been summarised - summarised datasets have been 
+# saved for replication
+
 ## 11.2 Load data ####
 ### 11.2.1 Read in data ####
 #usiqol_scores <- fread("~/Desktop/Sayer/Economics/Markov modelling KSD/usiqol_scores.csv",
