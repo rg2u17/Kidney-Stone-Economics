@@ -59,7 +59,7 @@ Please note that this requires a significant amount of compute to run - Despite 
 We recommend running the scripts sequentially in a HPC cluster (if available), alternatively running it on a local PC may take several days to run. <br>
 <br>
 Prior to running all the scripts please check all packages are installed - if not, then you can run this in the console prior to running all the markdown chunks: <br>
-```install.packages(c("tidyverse", "gt", "gtExtra", "DiagrammeR", "data.table", "janitor", "pROC", "ggplot2", "pracma", "glue", "cutpointr", "caret", "cowplot", "ggsignif", "ggpubr", "broom", "pryr", "lubridate", "sfsmisc", "patchwork", "mice"))``` <br>
+```install.packages(c("tidyverse", "gt", "gtExtra", "DiagrammeR", "data.table", "janitor", "pROC", "ggplot2", "pracma", "glue", "cutpointr", "caret", "cowplot", "ggsignif", "ggpubr", "broom", "pryr", "lubridate", "sfsmisc", "patchwork", "mice", "furrr","purrr","future","boot"))``` <br>
 <br>
 
 **NB: There are two types of test score distribution** - both are labelled no. 4: <br>
