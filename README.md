@@ -3,9 +3,9 @@
 This repository details the underpinning data and R code used to model the European Association of Urology Follow-up Algorithm (see figure 1). <br>
 The model examines differing types of imaging modality (X-ray, ultrasound and CT) and lengths of follow-up (as determined by the EAU Urolithiasis guidelines): <br>
 <br>
-**Low risk** - 3-5 years <br>
-**High risk** - at least 5 years <br>
-<br>
+**Low risk** - 3-5 years follow-up <br>
+**High risk** - at least 5 years follow-up <br>
+Hence the time horizon for the model is 5 years <br>
 
 <img width="760" height="320" alt="image" src="https://github.com/user-attachments/assets/eee4aa40-d19e-4c0a-8518-ad3c1417d280" /> <br>
 **Figure 1.** EAU follow-up algorithm for patients with kidney stones following treatment (see https://uroweb.org/guidelines/urolithiasis/chapter/followup-of-urinary-stones).
