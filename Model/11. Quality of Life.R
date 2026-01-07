@@ -732,6 +732,8 @@ assign_qol_chunked <- function(data,
     # Follow-up years with adjustments
     for (fu_year in 1:5) {
       
+      death_col <- paste0("death_year_", fu_year)
+      
       prev_qol_samples <- if (fu_year == 1) "baseline_qol_samples" else paste0("qol_samples_year_", fu_year - 1)
       prev_qol_mean <- if (fu_year == 1) "baseline_qol_mean" else paste0("qol_mean_year_", fu_year - 1)
       prev_age_bin <- if (fu_year == 1) "baseline_age_bin" else paste0("age_bin_fu_year_", fu_year - 1)
@@ -759,11 +761,16 @@ assign_qol_chunked <- function(data,
               .data[[prev_age_bin]], .data[[current_age_bin]],
               .data[[prev_qol_samples]], .data[[prev_qol_mean]],
               .data[[paste0("intervention_qol_change_", fu_year)]],
-              .data[[paste0("intervention_qol_sd_", fu_year)]]
+              .data[[paste0("intervention_qol_sd_", fu_year)]],
+              .data[[death_col]]  
             ),
             function(mean_val, sd_val, sf_status, pred, first_interv, interv_type,
                      prev_bin, curr_bin, prev_samples, prev_mean,
-                     interv_change, interv_sd) {
+                     interv_change, interv_sd, death_status) {
+              
+              if (!is.na(death_status) && death_status == "Yes") {
+                return(rep(0, mc_reps))  
+              }
               
               # Case 1: Intervention in this year - apply intervention-based QoL change
               if (!is.na(interv_type) && interv_type != "No" && 
@@ -1072,27 +1079,7 @@ calculate_qol <- function(complete_pop_yr_fu,
         cutpoint = cutpoint,
         post_op_imaging = post_op_imaging,
         imaging_fu_type = imaging_fu_type,
-        year = start_year,
-        qol_mean_year_1 = case_when(
-          death_year_1 == "Yes" ~ 0,
-          TRUE ~ qol_mean_year_1
-        ),
-        qol_mean_year_2 = case_when(
-          death_year_2 == "Yes" ~ 0,
-          TRUE ~ qol_mean_year_2
-        ),
-        qol_mean_year_3 = case_when(
-          death_year_3 == "Yes" ~ 0,
-          TRUE ~ qol_mean_year_3
-        ),
-        qol_mean_year_4 = case_when(
-          death_year_4 == "Yes" ~ 0,
-          TRUE ~ qol_mean_year_4
-        ),
-        qol_mean_year_5 = case_when(
-          death_year_5 == "Yes" ~ 0,
-          TRUE ~ qol_mean_year_5
-        )
+        year = start_year
       )
     
     # --- QALY calculation ---
