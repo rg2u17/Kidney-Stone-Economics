@@ -822,88 +822,110 @@ assign_qol_chunked <- function(data,
       intervention_col <- paste0("colic_intervention_type_year_", fu_year)
       death_col <- paste0("death_year_", fu_year)
       
-      # Prepare dimension change data with renamed columns
-      temp_changes <- dimension_changes %>%
-        select(
-          intervention,
-          stone_free_status_pre,
-          mobility_mean_change,
-          mobility_sd_change,
-          pain_mean_change,
-          pain_sd_change
-        ) %>%
-        rename(
-          !!intervention_col := intervention,
-          stone_free_status1 = stone_free_status_pre,
-          mobility_change = mobility_mean_change,
-          mobility_sd = mobility_sd_change,
-          pain_change = pain_mean_change,
-          pain_sd = pain_sd_change
+      # Create death indicator
+      chunk <- chunk %>%
+        mutate(
+          .is_dead = if (death_col %in% names(.)) {
+            .data[[death_col]] == TRUE | .data[[death_col]] == 1 | .data[[death_col]] == "Yes"
+          } else {
+            FALSE
+          },
+          .is_dead = replace_na(.is_dead, FALSE)
         )
       
-      # Join dimension changes to chunk
+      # Join dimension changes (only needed for alive patients, but join to all for simplicity)
+      temp_changes <- dimension_changes %>%
+        select(intervention, stone_free_status_pre,
+               mobility_mean_change, mobility_sd_change,
+               pain_mean_change, pain_sd_change) %>%
+        rename(!!intervention_col := intervention,
+               stone_free_status1 = stone_free_status_pre,
+               mobility_change = mobility_mean_change,
+               mobility_sd = mobility_sd_change,
+               pain_change = pain_mean_change,
+               pain_sd = pain_sd_change)
+      
       chunk <- chunk %>%
-        left_join(
-          temp_changes,
-          by = c(intervention_col, "stone_free_status1")
-        )
+        left_join(temp_changes, by = c(intervention_col, "stone_free_status1"))
       
       # Calculate had_intervention flag
       chunk <- chunk %>%
         mutate(
-          had_intervention = !is.na(.data[[intervention_col]]) & 
+          had_intervention = !.is_dead & !is.na(.data[[intervention_col]]) & 
             .data[[intervention_col]] != "No" &
             !is.na(first_intervention_year) & 
             first_intervention_year <= fu_year
         )
       
-      # Apply intervention effects
+      # Apply intervention effects - ONLY for alive patients
       chunk <- chunk %>%
         mutate(
-          !!paste0("mobility_year_", fu_year) := {
-            mob <- .data[[prev_mobility]]
-            change_val <- if_else(
-              had_intervention & !is.na(mobility_change),
-              as.integer(round(rnorm(n(), mobility_change, mobility_sd))),
-              0L
-            )
-            as.integer(pmin(pmax(mob + change_val, 1), 5))
-          },
+          !!paste0("mobility_year_", fu_year) := if_else(
+            .is_dead,
+            NA_integer_,
+            {
+              mob <- .data[[prev_mobility]]
+              change_val <- if_else(
+                had_intervention & !is.na(mobility_change),
+                as.integer(round(rnorm(n(), mobility_change, mobility_sd))),
+                0L
+              )
+              as.integer(pmin(pmax(mob + change_val, 1), 5))
+            }
+          ),
           
-          !!paste0("pain_year_", fu_year) := {
-            pn <- .data[[prev_pain]]
-            change_val <- if_else(
-              had_intervention & !is.na(pain_change),
-              as.integer(round(rnorm(n(), pain_change, pain_sd))),
-              0L
-            )
-            as.integer(pmin(pmax(pn + change_val, 1), 5))
-          },
+          !!paste0("pain_year_", fu_year) := if_else(
+            .is_dead,
+            NA_integer_,
+            {
+              pn <- .data[[prev_pain]]
+              change_val <- if_else(
+                had_intervention & !is.na(pain_change),
+                as.integer(round(rnorm(n(), pain_change, pain_sd))),
+                0L
+              )
+              as.integer(pmin(pmax(pn + change_val, 1), 5))
+            }
+          ),
           
-          # Keep other dimensions stable
-          !!paste0("selfcare_year_", fu_year) := as.integer(.data[[prev_selfcare]]),
-          !!paste0("usual_act_year_", fu_year) := as.integer(.data[[prev_usual_act]])
+          !!paste0("selfcare_year_", fu_year) := if_else(
+            .is_dead,
+            NA_integer_,
+            as.integer(.data[[prev_selfcare]])
+          ),
+          
+          !!paste0("usual_act_year_", fu_year) := if_else(
+            .is_dead,
+            NA_integer_,
+            as.integer(.data[[prev_usual_act]])
+          )
         )
       
-      # Adjust anxiety - rowwise as complex adjustment to make at scale
+      # Adjust anxiety - only for alive patients
       chunk <- chunk %>%
         rowwise() %>%
         mutate(
-          !!paste0("anxiety_year_", fu_year) := adjust_anxiety_dimension(
-            .data[[prev_anxiety]],
-            stone_free_status,
-            prediction,
-            first_intervention_year,
-            fu_year,
-            had_intervention
+          !!paste0("anxiety_year_", fu_year) := if_else(
+            .is_dead,
+            NA_integer_,
+            adjust_anxiety_dimension(
+              .data[[prev_anxiety]],
+              stone_free_status,
+              prediction,
+              first_intervention_year,
+              fu_year,
+              had_intervention
+            )
           )
         ) %>%
         ungroup()
       
-      # Calculate utility using lookup table
+      # Calculate utility - set to 0 for dead, otherwise use lookup
       chunk <- chunk %>%
         mutate(
-          !!paste0("qol_mean_year_", fu_year) := 
+          !!paste0("qol_mean_year_", fu_year) := if_else(
+            .is_dead,
+            0,
             get_utility_fast(
               .data[[paste0("mobility_year_", fu_year)]],
               .data[[paste0("selfcare_year_", fu_year)]],
@@ -911,64 +933,54 @@ assign_qol_chunked <- function(data,
               .data[[paste0("pain_year_", fu_year)]],
               .data[[paste0("anxiety_year_", fu_year)]]
             )
-        )
-      
-      # Monte Carlo for CI (vectorized)
-      mob_col <- chunk[[paste0("mobility_year_", fu_year)]]
-      sc_col <- chunk[[paste0("selfcare_year_", fu_year)]]
-      ua_col <- chunk[[paste0("usual_act_year_", fu_year)]]
-      pn_col <- chunk[[paste0("pain_year_", fu_year)]]
-      anx_col <- chunk[[paste0("anxiety_year_", fu_year)]]
-      
-      mc_utils <- matrix(NA, nrow = nrow(chunk), ncol = mc_reps)
-      
-      for (mc in 1:mc_reps) {
-        mob_sim <- pmax(1, pmin(5, round(rnorm(nrow(chunk), mob_col, 0.3))))
-        sc_sim <- pmax(1, pmin(5, round(rnorm(nrow(chunk), sc_col, 0.2))))
-        ua_sim <- pmax(1, pmin(5, round(rnorm(nrow(chunk), ua_col, 0.3))))
-        pn_sim <- pmax(1, pmin(5, round(rnorm(nrow(chunk), pn_col, 0.4))))
-        anx_sim <- pmax(1, pmin(5, round(rnorm(nrow(chunk), anx_col, 0.4))))
-        
-        mc_utils[, mc] <- get_utility_fast(mob_sim, sc_sim, ua_sim, pn_sim, anx_sim)
-      }
-      
-      chunk <- chunk %>%
-        mutate(
-          !!paste0("qol_lower_year_", fu_year) := rowQuantiles(mc_utils, probs = alpha),
-          !!paste0("qol_upper_year_", fu_year) := rowQuantiles(mc_utils, probs = 1 - alpha),
-          !!paste0("qol_se_year_", fu_year) := rowSds(mc_utils)
-        )
-      
-      # Override QoL values to 0 if patient is dead
-      if (death_col %in% names(chunk)) {
-        chunk <- chunk %>%
-          mutate(
-            !!paste0("qol_mean_year_", fu_year) := if_else(
-              .data[[death_col]] == TRUE | .data[[death_col]] == 1,
-              0,
-              .data[[paste0("qol_mean_year_", fu_year)]]
-            ),
-            !!paste0("qol_lower_year_", fu_year) := if_else(
-              .data[[death_col]] == TRUE | .data[[death_col]] == 1,
-              0,
-              .data[[paste0("qol_lower_year_", fu_year)]]
-            ),
-            !!paste0("qol_upper_year_", fu_year) := if_else(
-              .data[[death_col]] == TRUE | .data[[death_col]] == 1,
-              0,
-              .data[[paste0("qol_upper_year_", fu_year)]]
-            ),
-            !!paste0("qol_se_year_", fu_year) := if_else(
-              .data[[death_col]] == TRUE | .data[[death_col]] == 1,
-              0,
-              .data[[paste0("qol_se_year_", fu_year)]]
-            )
           )
+        )
+      
+      # Monte Carlo for CI - ONLY for alive patients
+      alive_mask <- !chunk$.is_dead
+      n_alive <- sum(alive_mask)
+      
+      if (n_alive > 0) {
+        # Extract dimensions for alive patients only
+        mob_col <- chunk[[paste0("mobility_year_", fu_year)]][alive_mask]
+        sc_col <- chunk[[paste0("selfcare_year_", fu_year)]][alive_mask]
+        ua_col <- chunk[[paste0("usual_act_year_", fu_year)]][alive_mask]
+        pn_col <- chunk[[paste0("pain_year_", fu_year)]][alive_mask]
+        anx_col <- chunk[[paste0("anxiety_year_", fu_year)]][alive_mask]
+        
+        mc_utils <- matrix(NA, nrow = n_alive, ncol = mc_reps)
+        
+        for (mc in 1:mc_reps) {
+          mob_sim <- pmax(1, pmin(5, round(rnorm(n_alive, mob_col, 0.3))))
+          sc_sim <- pmax(1, pmin(5, round(rnorm(n_alive, sc_col, 0.2))))
+          ua_sim <- pmax(1, pmin(5, round(rnorm(n_alive, ua_col, 0.3))))
+          pn_sim <- pmax(1, pmin(5, round(rnorm(n_alive, pn_col, 0.4))))
+          anx_sim <- pmax(1, pmin(5, round(rnorm(n_alive, anx_col, 0.4))))
+          
+          mc_utils[, mc] <- get_utility_fast(mob_sim, sc_sim, ua_sim, pn_sim, anx_sim)
+        }
+        
+        # Initialize CI columns with 0 for everyone
+        chunk[[paste0("qol_lower_year_", fu_year)]] <- 0
+        chunk[[paste0("qol_upper_year_", fu_year)]] <- 0
+        chunk[[paste0("qol_se_year_", fu_year)]] <- 0
+        
+        # Fill in values for alive patients
+        chunk[[paste0("qol_lower_year_", fu_year)]][alive_mask] <- rowQuantiles(mc_utils, probs = alpha)
+        chunk[[paste0("qol_upper_year_", fu_year)]][alive_mask] <- rowQuantiles(mc_utils, probs = 1 - alpha)
+        chunk[[paste0("qol_se_year_", fu_year)]][alive_mask] <- rowSds(mc_utils)
+      } else {
+        # Everyone is dead
+        chunk[[paste0("qol_lower_year_", fu_year)]] <- 0
+        chunk[[paste0("qol_upper_year_", fu_year)]] <- 0
+        chunk[[paste0("qol_se_year_", fu_year)]] <- 0
       }
       
       # Clean up temporary columns
       chunk <- chunk %>%
-        select(-mobility_change, -mobility_sd, -pain_change, -pain_sd, -had_intervention)
+        select(-mobility_change, -mobility_sd, -pain_change, -pain_sd, 
+               -had_intervention, -.is_dead)
+      gc()
     }
     
     results_list[[i]] <- chunk
