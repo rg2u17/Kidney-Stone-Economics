@@ -179,11 +179,11 @@ Derived from: https://www.england.nhs.uk/publication/2025-26-nhs-payment-scheme/
 
 | Item                         |     Cost |      Code|
 | ---------------------------- | -------: | -------: |
-| Initial urology consultation |     £145 |       |
-| Follow-up clinic review      |      £71 |       |
-| X-ray                        |      £27 |       |
-| Ultrasound                   |      £43 |       |
-| CT                           |      £69 |       |
+| Initial urology consultation |     £165 | First Urology appointment (101; WF01B)|
+| Follow-up clinic review      |      £81 | Follow-up Urology appointment (101; WF01A)|
+| X-ray                        |      £31 | Direct access plain film X-ray|
+| Ultrasound                   |      £43 |  RD40Z|
+| CT                           |      £103|  RD20A|
 | PCNL                         |   £5,274 | LB75B |
 | URS                          |   £2,458 | LB65E |
 | ESWL                         |     £516 |  LB36Z (NB have assumed x2 treatments)|
