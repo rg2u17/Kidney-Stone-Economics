@@ -2,13 +2,14 @@
 ## Table of Contents
 <br>
 
-|Item                                       | Section |
-| ----------------------------------------- | ------: |
-| General Information                       |       1 |
-| Ascertainment of Current Standard of Care |       2 | 
-| How to Download Model                     |       3 |
-| Assumptions                               |       4 |
-| References                                |       5 |
+| Item                                      | Section | Link                                                                   |
+| ----------------------------------------- | ------: | ---------------------------------------------------------------------: |
+| General Information                       |       1 | https://github.com/rg2u17/Kidney-Stone-Economics#1-general-information |
+| Ascertainment of Current Standard of Care |       2 | https://github.com/rg2u17/Kidney-Stone-Economics#2-ascertainment-of-current-standard-of-care |
+| How to Download Model                     |       3 | https://github.com/rg2u17/Kidney-Stone-Economics#3-how-to-download-model |
+| How to Run Model                          |       4 | |
+| Assumptions                               |       5 | |
+| References                                |       6 | |
 
 <br>
 
@@ -65,7 +66,7 @@ We examined **stone event** rates at both 5 and 10 years and these are defined b
 ```git clone https://github.com/rg2u17/Kidney-Stone-Economics.git``` <br>
 <br>
 
-## How to Run Model
+## 4. How to Run Model
 **To run this model we suggest using the rmarkdown file (kidney_stone_economics_full_model.rmd) in RStudio and selecting run all** <br>
 Each script is labelled in numeric order, and those wishing to replicate the model should run each in order. <br>
 Please note that this requires a significant amount of compute to run - Despite efforts to minimise this within each script <br>
@@ -97,7 +98,7 @@ Otherwise you will need to assign the working directory to where the file is sto
 To set the working working directory to an appropriate place <br>
 This will ensure the scripts run without having to alter the file path
 
-## 4. Assumptions
+## 5. Assumptions
 
 These tables details the assumptions made by the model and the reference for those assumptions: <br>
 <br>
@@ -230,7 +231,7 @@ Genomics costs derived from: https://www.ouh.nhs.uk/media/m0omaian/price-list.pd
 | CT         |        0.99 |        0.99 | Kandasamy et al. 2024 |
 | ULDCT      |        0.90 |        0.93 | Kandasamy et al. 2024 |
 
-## References: 
+## 6. References: 
 1. Hill, A. J. et al. Incidence of Kidney Stones in the United States: The Continuous National Health and Nutrition Examination Survey. J. Urol. 207, 851–856 (2022).
 2. Geraghty, R. M. et al. Use of Temporally Validated Machine Learning Models To Predict Outcomes of Percutaneous Nephrolithotomy Using Data from the British Association of Urological Surgeons Percutaneous Nephrolithotomy Audit. Eur. Urol. Focus 10, 290–297 (2024).
 3. Ghani, K. R., Wolf, J. S. & Wolf, J. S. What is the stone-free rate following flexible ureteroscopy for kidney stones? Nat. Rev. Urol. 12, 281–288 (2015).
