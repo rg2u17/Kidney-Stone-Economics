@@ -182,17 +182,17 @@ Derived from: https://www.england.nhs.uk/publication/2025-26-nhs-payment-scheme/
 | Initial urology consultation |     £165 | First Urology appointment (101; WF01B)|
 | Follow-up clinic review      |      £81 | Follow-up Urology appointment (101; WF01A)|
 | X-ray                        |      £31 | Direct access plain film X-ray|
-| Ultrasound                   |      £43 |  RD40Z|
+| Ultrasound                   |      £62 |  RD42Z|
 | CT                           |      £103|  RD20A|
 | PCNL                         |   £5,274 | LB75B |
 | URS                          |   £2,458 | LB65E |
 | ESWL                         |     £516 |  LB36Z (NB have assumed x2 treatments)|
 | Stent insertion              |     £954 |  LB14Z |
-| A&E attendance (Cat 3)       |     £288 |       |
-| R256 genetic panel           |    ~£100 |       |
-| 24-hour urine                |  £190.50 |       |
-| SNP array                    | £200–700 |       |
-| WGS                          |   £1,000 |       |
+| A&E attendance (Cat 3)       |     £396 |   VB03Z|
+| R256 genetic panel           |    ~£100 |      - |
+| 24-hour urine                |  £190.50 |       Estimated from local pricing|
+| SNP array                    | £200–700 |       -|
+| WGS                          |   £1,000 |       -|
 
 ### Radiation Doses
 | Exposure             |     Dose |
