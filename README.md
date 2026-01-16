@@ -173,23 +173,26 @@ Derived from Gonzalez et al. 2012 <br>
 | Uterus      | NA               | 1.2 (0–2.6)      | -0.41 | 2.8 |
 | Pancreas    | 0.49 (0.09–1.1)  | 0.49 (0.09–1.1)  | -0.41 | 2.8 |
 
-### NHS Tariff Costs 23/24
-| Item                         |     Cost |
-| ---------------------------- | -------: |
-| Initial urology consultation |     £145 |
-| Follow-up clinic review      |      £71 |
-| X-ray                        |      £27 |
-| Ultrasound                   |      £43 |
-| CT                           |      £69 |
-| PCNL                         |   £4,548 |
-| URS                          |   £2,386 |
-| ESWL                         |     £445 |
-| Stent insertion              |     £822 |
-| A&E attendance (Cat 3)       |     £288 |
-| R256 genetic panel           |    ~£100 |
-| 24-hour urine                |  £190.50 |
-| SNP array                    | £200–700 |
-| WGS                          |   £1,000 |
+### NHS Tariff Costs 25/26
+
+Derived from: https://www.england.nhs.uk/publication/2025-26-nhs-payment-scheme/ <br>
+
+| Item                         |     Cost |      Code|
+| ---------------------------- | -------: | -------: |
+| Initial urology consultation |     £145 |       |
+| Follow-up clinic review      |      £71 |       |
+| X-ray                        |      £27 |       |
+| Ultrasound                   |      £43 |       |
+| CT                           |      £69 |       |
+| PCNL                         |   £5,274 | LB75B |
+| URS                          |   £2,458 | LB65E |
+| ESWL                         |     £516 |  LB36Z (NB have assumed x2 treatments)|
+| Stent insertion              |     £954 |  LB14Z |
+| A&E attendance (Cat 3)       |     £288 |       |
+| R256 genetic panel           |    ~£100 |       |
+| 24-hour urine                |  £190.50 |       |
+| SNP array                    | £200–700 |       |
+| WGS                          |   £1,000 |       |
 
 ### Radiation Doses
 | Exposure             |     Dose |
