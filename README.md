@@ -1,5 +1,17 @@
 # Discrete Event Simulation of EAU Follow-up Algorithm
-## General Information
+## Table of Contents
+<br>
+|Item                                       | Section |
+| ----------------------------------------- | ------: |
+| General Information                       |       1 |
+| Ascertainment of Current Standard of Care |       2 | 
+| How to Download Model                     |       3 |
+| Assumptions                               |       4 |
+| References                                |       5 |
+<br>
+
+
+## 1. General Information
 This repository details the underpinning data and R code used to model the European Association of Urology Follow-up Algorithm (see figure 1). <br>
 The model examines differing types of imaging modality (X-ray, ultrasound and CT) and lengths of follow-up (as determined by the EAU Urolithiasis guidelines): <br>
 <br>
@@ -19,7 +31,7 @@ The assumptions underlying the model are detailed in ```factor levels.docx```, w
 
 Ascertainment of the current standard of care is detailed below: <br>
 
-## Ascertainment of Current Standard of Care
+## 2. Ascertainment of Current Standard of Care
 We utilised UK Biobank to ascertain the prognostic accuracy of the current standard of care (EAU risk stratification - Table 3.3: https://uroweb.org/guidelines/urolithiasis/chapter/guidelines) <br>
 <br>
 The methodology to do this is detailed in the following link: <br>
@@ -46,7 +58,7 @@ We examined **stone event** rates at both 5 and 10 years and these are defined b
 **Figure 3.** ROC curves for EAU risk stratifcation when predicting 5 year event rates for 1, 2 and 3 (or more) events. <br>
 
 
-## How to Download Model
+## 3. How to Download Model
 **To download this model use:** <br>
 ```git clone https://github.com/rg2u17/Kidney-Stone-Economics.git``` <br>
 <br>
@@ -83,7 +95,7 @@ Otherwise you will need to assign the working directory to where the file is sto
 To set the working working directory to an appropriate place <br>
 This will ensure the scripts run without having to alter the file path
 
-## Assumptions
+## 4. Assumptions
 
 These tables details the assumptions made by the model and the reference for those assumptions: <br>
 <br>
