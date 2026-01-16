@@ -262,7 +262,7 @@ eq_5d_change_with_rx <- fread("Inputs/eq_5d_change_with_rx.csv") %>%
     intervention = as.factor(intervention),
     stone_free_status_pre = as.factor(stone_free_status_pre)
   )
-  
+
 
 mean_change_se_1 <- eq_5d_change_with_rx %>% 
   select(qol_se) %>%
@@ -593,44 +593,39 @@ get_first_intervention_year <- function(df,
 }
 
 ### 11.3.3 Adjust anxiety dimension based on clinical factors ####
-adjust_anxiety_dimension <- function(anxiety_level, stone_free_status, prediction, 
-                                     first_intervention_year, current_year,
-                                     had_intervention = FALSE) {
+### 11.3.3 Adjust anxiety dimension - VECTORIZED VERSION ####
+adjust_anxiety_dimension_vectorized <- function(anxiety_level, stone_free_status, prediction, 
+                                                first_intervention_year, current_year,
+                                                had_intervention) {
   
-  if (is.na(anxiety_level)) return(NA_integer_)
+  # Initialize with base anxiety
+  adjustment <- rep(0, length(anxiety_level))
   
-  adjustment <- 0
+  # Stone not free adjustment
+  adjustment[!is.na(stone_free_status) & stone_free_status != "SF"] <- 
+    adjustment[!is.na(stone_free_status) & stone_free_status != "SF"] + 1
   
-  if (!is.na(stone_free_status) && stone_free_status != "SF") {
-    adjustment <- adjustment + 1
-  }
+  # Prediction adjustments
+  adjustment[!is.na(prediction) & prediction == "Yes"] <- 
+    adjustment[!is.na(prediction) & prediction == "Yes"] + 1
+  adjustment[!is.na(prediction) & prediction == "No"] <- 
+    adjustment[!is.na(prediction) & prediction == "No"] - 1
   
-  if (!is.na(prediction)) {
-    if (prediction == "Yes") {
-      adjustment <- adjustment + 1
-    } else if (prediction == "No") {
-      adjustment <- adjustment - 1
-    }
-  }
-  
-  if (had_intervention) {
-    if (!is.na(stone_free_status) && !is.na(prediction)) {
-      if (stone_free_status == "SF" && prediction == "No") {
-        adjustment <- adjustment - 1
-      } else if (stone_free_status != "SF" && prediction == "Yes") {
-        adjustment <- adjustment + 0
-      }
-    }
+  # Intervention adjustments
+  if (any(had_intervention, na.rm = TRUE)) {
+    idx_sf_no <- had_intervention & !is.na(stone_free_status) & stone_free_status == "SF" & 
+      !is.na(prediction) & prediction == "No"
+    adjustment[idx_sf_no] <- adjustment[idx_sf_no] - 1
   }
   
   new_level <- anxiety_level + adjustment
-  return(as.integer(max(1, min(5, new_level))))
+  return(pmax(1, pmin(5, as.integer(new_level))))
 }
 
 ### 11.3.4 Pre-assign baseline EQ-5D PROFILES per unique id -  #### 
 assign_baseline_qol <- function(df,
                                 baseline_qol_profiles = eq_5d_profiles_by_age_stone_free,
-                                n_sim = 1000,
+                                n_sim = 500,
                                 parallel = TRUE,
                                 n_cores = parallel::detectCores() - 1) {
   
@@ -761,45 +756,46 @@ assign_qol_chunked <- function(data,
                                year_cols = c(1,2,3,4,5),
                                mc_reps = 100,
                                ci_level = 0.95,
-                               chunk_size = 10,
+                               chunk_size = 10,  
                                verbose = TRUE) {
   
   alpha <- (1 - ci_level) / 2
   vcat <- function(...) if (verbose) message(...)
   
-  # Ensure data is a tibble
   data <- as_tibble(data)
   dimension_changes <- as_tibble(dimension_changes)
   
+  setDT(data)
+  setDT(dimension_changes)
+  
   n <- nrow(data)
-  total_chunks <- chunk_size  
-  rows_per_chunk <- ceiling(n / chunk_size) 
+  total_chunks <- ceiling(n / chunk_size)
   
   start_time <- Sys.time()
   results_list <- vector("list", total_chunks)
   
-  for (i in seq_len(total_chunks)) {
+  for (chunk_idx in seq_len(total_chunks)) {
     
-    idx_start <- (i - 1) * rows_per_chunk + 1
-    idx_end <- min(i * rows_per_chunk, n)
+    idx_start <- (chunk_idx - 1) * chunk_size + 1
+    idx_end <- min(chunk_idx * chunk_size, n)
     chunk <- data %>% slice(idx_start:idx_end)
+    chunk_n <- nrow(chunk)
     
     if (verbose) {
-      pct <- round(i / total_chunks * 100)
-      vcat("---- Chunk ", i, "/", total_chunks, " (", pct, "%) ----")
+      pct <- round(chunk_idx / total_chunks * 100)
+      vcat("---- Chunk ", chunk_idx, "/", total_chunks, " (", pct, "%) ----")
     }
     
-    # Vectorized age calculations
+    # VECTORIZED age calculations
     for (y in 1:5) {
       chunk[[paste0("age_fu_year_", y)]] <- chunk$age + y
     }
     
-    # Assign baseline age bin
+    # Assign age bins
     chunk <- chunk %>%
       assign_age_helper(baseline = TRUE) %>%   
       rename(baseline_age_bin = age_bin)
     
-    # Assign age bins for each follow-up year
     for (fu_year in 1:5) {
       temp_df <- chunk %>%
         mutate(age_fu = .data[[paste0("age_fu_year_", fu_year)]]) %>%
@@ -811,7 +807,7 @@ assign_qol_chunked <- function(data,
     # Precalculate first intervention year
     chunk <- get_first_intervention_year(chunk, years = 1:5)
     
-    # Process follow-up years
+    # Process all follow-up years
     for (fu_year in 1:5) {
       
       prev_mobility <- if (fu_year == 1) "baseline_mobility" else paste0("mobility_year_", fu_year - 1)
@@ -822,18 +818,14 @@ assign_qol_chunked <- function(data,
       intervention_col <- paste0("colic_intervention_type_year_", fu_year)
       death_col <- paste0("death_year_", fu_year)
       
-      # Create death indicator
-      chunk <- chunk %>%
-        mutate(
-          .is_dead = if (death_col %in% names(.)) {
-            .data[[death_col]] == TRUE | .data[[death_col]] == 1 | .data[[death_col]] == "Yes"
-          } else {
-            FALSE
-          },
-          .is_dead = replace_na(.is_dead, FALSE)
-        )
+      # VECTORIZED death indicator
+      chunk$.is_dead <- FALSE
+      if (death_col %in% names(chunk)) {
+        chunk$.is_dead <- chunk[[death_col]] %in% c(TRUE, 1, "Yes")
+        chunk$.is_dead[is.na(chunk$.is_dead)] <- FALSE
+      }
       
-      # Join dimension changes (only needed for alive patients, but join to all for simplicity)
+      # Join dimension changes
       temp_changes <- dimension_changes %>%
         select(intervention, stone_free_status_pre,
                mobility_mean_change, mobility_sd_change,
@@ -848,149 +840,135 @@ assign_qol_chunked <- function(data,
       chunk <- chunk %>%
         left_join(temp_changes, by = c(intervention_col, "stone_free_status1"))
       
-      # Calculate had_intervention flag
-      chunk <- chunk %>%
-        mutate(
-          had_intervention = !.is_dead & !is.na(.data[[intervention_col]]) & 
-            .data[[intervention_col]] != "No" &
-            !is.na(first_intervention_year) & 
-            first_intervention_year <= fu_year
+      # VECTORIZED had_intervention
+      chunk$had_intervention <- !chunk$.is_dead & 
+        !is.na(chunk[[intervention_col]]) & 
+        chunk[[intervention_col]] != "No" &
+        !is.na(chunk$first_intervention_year) & 
+        chunk$first_intervention_year <= fu_year
+      
+      # VECTORIZED intervention effects
+      # Mobility
+      mob_base <- chunk[[prev_mobility]]
+      mob_change <- ifelse(chunk$had_intervention & !is.na(chunk$mobility_change),
+                           round(rnorm(chunk_n, chunk$mobility_change, chunk$mobility_sd)),
+                           0)
+      chunk[[paste0("mobility_year_", fu_year)]] <- ifelse(
+        chunk$.is_dead,
+        NA_integer_,
+        pmax(1, pmin(5, as.integer(mob_base + mob_change)))
+      )
+      
+      # Pain
+      pain_base <- chunk[[prev_pain]]
+      pain_change <- ifelse(chunk$had_intervention & !is.na(chunk$pain_change),
+                            round(rnorm(chunk_n, chunk$pain_change, chunk$pain_sd)),
+                            0)
+      chunk[[paste0("pain_year_", fu_year)]] <- ifelse(
+        chunk$.is_dead,
+        NA_integer_,
+        pmax(1, pmin(5, as.integer(pain_base + pain_change)))
+      )
+      
+      # Self-care and usual activities (no change)
+      chunk[[paste0("selfcare_year_", fu_year)]] <- ifelse(
+        chunk$.is_dead,
+        NA_integer_,
+        as.integer(chunk[[prev_selfcare]])
+      )
+      
+      chunk[[paste0("usual_act_year_", fu_year)]] <- ifelse(
+        chunk$.is_dead,
+        NA_integer_,
+        as.integer(chunk[[prev_usual_act]])
+      )
+      
+      # VECTORIZED anxiety adjustment
+      chunk[[paste0("anxiety_year_", fu_year)]] <- ifelse(
+        chunk$.is_dead,
+        NA_integer_,
+        adjust_anxiety_dimension_vectorized(
+          chunk[[prev_anxiety]],
+          chunk$stone_free_status,
+          chunk$prediction,
+          chunk$first_intervention_year,
+          fu_year,
+          chunk$had_intervention
         )
+      )
       
-      # Apply intervention effects - ONLY for alive patients
-      chunk <- chunk %>%
-        mutate(
-          !!paste0("mobility_year_", fu_year) := if_else(
-            .is_dead,
-            NA_integer_,
-            {
-              mob <- .data[[prev_mobility]]
-              change_val <- if_else(
-                had_intervention & !is.na(mobility_change),
-                as.integer(round(rnorm(n(), mobility_change, mobility_sd))),
-                0L
-              )
-              as.integer(pmin(pmax(mob + change_val, 1), 5))
-            }
-          ),
-          
-          !!paste0("pain_year_", fu_year) := if_else(
-            .is_dead,
-            NA_integer_,
-            {
-              pn <- .data[[prev_pain]]
-              change_val <- if_else(
-                had_intervention & !is.na(pain_change),
-                as.integer(round(rnorm(n(), pain_change, pain_sd))),
-                0L
-              )
-              as.integer(pmin(pmax(pn + change_val, 1), 5))
-            }
-          ),
-          
-          !!paste0("selfcare_year_", fu_year) := if_else(
-            .is_dead,
-            NA_integer_,
-            as.integer(.data[[prev_selfcare]])
-          ),
-          
-          !!paste0("usual_act_year_", fu_year) := if_else(
-            .is_dead,
-            NA_integer_,
-            as.integer(.data[[prev_usual_act]])
-          )
+      # VECTORIZED utility calculation
+      chunk[[paste0("qol_mean_year_", fu_year)]] <- ifelse(
+        chunk$.is_dead,
+        0,
+        get_utility_fast(
+          chunk[[paste0("mobility_year_", fu_year)]],
+          chunk[[paste0("selfcare_year_", fu_year)]],
+          chunk[[paste0("usual_act_year_", fu_year)]],
+          chunk[[paste0("pain_year_", fu_year)]],
+          chunk[[paste0("anxiety_year_", fu_year)]]
         )
+      )
       
-      # Adjust anxiety - only for alive patients
-      chunk <- chunk %>%
-        rowwise() %>%
-        mutate(
-          !!paste0("anxiety_year_", fu_year) := if_else(
-            .is_dead,
-            NA_integer_,
-            adjust_anxiety_dimension(
-              .data[[prev_anxiety]],
-              stone_free_status,
-              prediction,
-              first_intervention_year,
-              fu_year,
-              had_intervention
-            )
-          )
-        ) %>%
-        ungroup()
-      
-      # Calculate utility - set to 0 for dead, otherwise use lookup
-      chunk <- chunk %>%
-        mutate(
-          !!paste0("qol_mean_year_", fu_year) := if_else(
-            .is_dead,
-            0,
-            get_utility_fast(
-              .data[[paste0("mobility_year_", fu_year)]],
-              .data[[paste0("selfcare_year_", fu_year)]],
-              .data[[paste0("usual_act_year_", fu_year)]],
-              .data[[paste0("pain_year_", fu_year)]],
-              .data[[paste0("anxiety_year_", fu_year)]]
-            )
-          )
-        )
-      
-      # Monte Carlo for CI - ONLY for alive patients
+      # SIMPLIFIED Monte Carlo for CI - only for alive patients
       alive_mask <- !chunk$.is_dead
       n_alive <- sum(alive_mask)
       
-      if (n_alive > 0) {
-        # Extract dimensions for alive patients only
-        mob_col <- chunk[[paste0("mobility_year_", fu_year)]][alive_mask]
-        sc_col <- chunk[[paste0("selfcare_year_", fu_year)]][alive_mask]
-        ua_col <- chunk[[paste0("usual_act_year_", fu_year)]][alive_mask]
-        pn_col <- chunk[[paste0("pain_year_", fu_year)]][alive_mask]
-        anx_col <- chunk[[paste0("anxiety_year_", fu_year)]][alive_mask]
+      # Initialize with zeros
+      chunk[[paste0("qol_lower_year_", fu_year)]] <- 0
+      chunk[[paste0("qol_upper_year_", fu_year)]] <- 0
+      chunk[[paste0("qol_se_year_", fu_year)]] <- 0
+      
+      if (n_alive > 0 && mc_reps > 0) {
+        # Use REDUCED mc_reps for speed (50 instead of 100)
+        mc_reps_actual <- min(50, mc_reps)
         
-        mc_utils <- matrix(NA, nrow = n_alive, ncol = mc_reps)
+        # Extract dimensions for alive patients
+        dims_alive <- chunk[alive_mask, c(
+          paste0("mobility_year_", fu_year),
+          paste0("selfcare_year_", fu_year),
+          paste0("usual_act_year_", fu_year),
+          paste0("pain_year_", fu_year),
+          paste0("anxiety_year_", fu_year)
+        )]
         
-        for (mc in 1:mc_reps) {
-          mob_sim <- pmax(1, pmin(5, round(rnorm(n_alive, mob_col, 0.3))))
-          sc_sim <- pmax(1, pmin(5, round(rnorm(n_alive, sc_col, 0.2))))
-          ua_sim <- pmax(1, pmin(5, round(rnorm(n_alive, ua_col, 0.3))))
-          pn_sim <- pmax(1, pmin(5, round(rnorm(n_alive, pn_col, 0.4))))
-          anx_sim <- pmax(1, pmin(5, round(rnorm(n_alive, anx_col, 0.4))))
+        # Pre-allocate matrix
+        mc_utils <- matrix(NA, nrow = n_alive, ncol = mc_reps_actual)
+        
+        # Vectorized Monte Carlo
+        for (mc in 1:mc_reps_actual) {
+          mob_sim <- pmax(1, pmin(5, round(rnorm(n_alive, dims_alive[[1]], 0.3))))
+          sc_sim <- pmax(1, pmin(5, round(rnorm(n_alive, dims_alive[[2]], 0.2))))
+          ua_sim <- pmax(1, pmin(5, round(rnorm(n_alive, dims_alive[[3]], 0.3))))
+          pn_sim <- pmax(1, pmin(5, round(rnorm(n_alive, dims_alive[[4]], 0.4))))
+          anx_sim <- pmax(1, pmin(5, round(rnorm(n_alive, dims_alive[[5]], 0.4))))
           
           mc_utils[, mc] <- get_utility_fast(mob_sim, sc_sim, ua_sim, pn_sim, anx_sim)
         }
         
-        # Initialize CI columns with 0 for everyone
-        chunk[[paste0("qol_lower_year_", fu_year)]] <- 0
-        chunk[[paste0("qol_upper_year_", fu_year)]] <- 0
-        chunk[[paste0("qol_se_year_", fu_year)]] <- 0
-        
-        # Fill in values for alive patients
+        # Calculate CI for alive patients
         chunk[[paste0("qol_lower_year_", fu_year)]][alive_mask] <- rowQuantiles(mc_utils, probs = alpha)
         chunk[[paste0("qol_upper_year_", fu_year)]][alive_mask] <- rowQuantiles(mc_utils, probs = 1 - alpha)
         chunk[[paste0("qol_se_year_", fu_year)]][alive_mask] <- rowSds(mc_utils)
-      } else {
-        # Everyone is dead
-        chunk[[paste0("qol_lower_year_", fu_year)]] <- 0
-        chunk[[paste0("qol_upper_year_", fu_year)]] <- 0
-        chunk[[paste0("qol_se_year_", fu_year)]] <- 0
       }
       
-      # Clean up temporary columns
+      # Clean up
       chunk <- chunk %>%
         select(-mobility_change, -mobility_sd, -pain_change, -pain_sd, 
                -had_intervention, -.is_dead)
-      gc()
     }
     
-    results_list[[i]] <- chunk
+    results_list[[chunk_idx]] <- chunk
     
     if (verbose) {
       elapsed <- difftime(Sys.time(), start_time, units = "secs")
-      est_remaining <- elapsed / i * (total_chunks - i)
-      vcat(" ✅ chunk ", i, " done | ⏳ remaining: ",
+      est_remaining <- elapsed / chunk_idx * (total_chunks - chunk_idx)
+      vcat(" ✅ chunk ", chunk_idx, " done | ⏳ remaining: ",
            round(as.numeric(est_remaining), 1), " sec")
     }
+    
+    # Force garbage collection between chunks
+    gc(verbose = FALSE)
   }
   
   bind_rows(results_list)
@@ -1008,11 +986,20 @@ calculate_qol <- function(complete_pop_yr_fu,
                           xr_sens = 0.67,
                           xr_spec = 0.98,
                           us_sens = 0.54,
-                          us_spec = 0.91) {
+                          us_spec = 0.91,
+                          cache_dir = "qol_cache",
+                          use_cache = TRUE,
+                          force_recalc = FALSE) {
   
   # Ensure input is a data frame/tibble at the start
   if (!is.data.frame(complete_pop_yr_fu)) {
     stop("complete_pop_yr_fu must be a data frame or tibble")
+  }
+  
+  # Create cache directory if it doesn't exist
+  if (use_cache && !dir.exists(cache_dir)) {
+    dir.create(cache_dir, recursive = TRUE)
+    message("Created cache directory: ", cache_dir)
   }
   
   results_list <- list()
@@ -1020,13 +1007,36 @@ calculate_qol <- function(complete_pop_yr_fu,
   if(post_op_imaging == "none") post_op_imaging <- 0
   
   for (target_auc in target_aucs) {
+    target_auc <- as.numeric(target_auc)
+    
+    # Generate cache key based on parameters
+    cache_key <- generate_cache_key(
+      start_year = start_year,
+      target_auc = target_auc,
+      fu_type = fu_type,
+      imaging_fu_type = imaging_fu_type,
+      post_op_imaging = post_op_imaging,
+      xr_sens = xr_sens,
+      xr_spec = xr_spec,
+      us_sens = us_sens,
+      us_spec = us_spec
+    )
+    
+    cache_file <- file.path(cache_dir, paste0(cache_key, ".rds"))
+    
+    # Check if cached result exists
+    if (use_cache && !force_recalc && file.exists(cache_file)) {
+      message("Loading cached result for AUC: ", target_auc, " from ", cache_file)
+      cached_result <- readRDS(cache_file)
+      results_list[[paste0("auc_", target_auc)]] <- cached_result
+      next  # Skip to next iteration
+    }
+    
     message("Calculating QoL for: ", start_year,
             ", AUC: ", target_auc,
             ", Follow-up Type: ", fu_type,
             ", Follow-up Imaging: ", imaging_fu_type,
             " and Post-Operative Imaging: ", post_op_imaging)
-    
-    target_auc <- as.numeric(target_auc)
     
     # Filter
     complete_pop_yr_fu2 <- complete_pop_yr_fu %>%
@@ -1123,7 +1133,7 @@ calculate_qol <- function(complete_pop_yr_fu,
           .keep = "all"
         )
     }
-
+    
     message("Running get_first_intervention_year function")
     complete_pop_yr_fu1 <- complete_pop_yr_fu1 %>% 
       get_first_intervention_year(
@@ -1135,7 +1145,7 @@ calculate_qol <- function(complete_pop_yr_fu,
     combined_result <- assign_qol_chunked(
       data = complete_pop_yr_fu1,
       mc_reps = 100,
-      chunk_size = 10,
+      chunk_size = 2000,
       verbose = TRUE
     )
     
@@ -1156,9 +1166,7 @@ calculate_qol <- function(complete_pop_yr_fu,
     message("Calculating QALYs for AUC:", target_auc)
     combined_result <- combined_result %>%
       mutate(
-        qaly_5yr = rowSums(select(., starts_with("qol_mean_year_")), na.rm = TRUE) / 5,
-        qaly_5yr_lower = rowSums(select(., starts_with("qol_lower_year_")), na.rm = TRUE) / 5,
-        qaly_5yr_upper = rowSums(select(., starts_with("qol_upper_year_")), na.rm = TRUE) / 5,
+        qaly_5yr = rowSums(select(., starts_with("qol_mean_year_")), na.rm = TRUE),
         risk_status = case_when(
           prediction == "No" ~ "Low Risk",
           prediction == "Yes" ~ "High Risk",
@@ -1181,10 +1189,14 @@ calculate_qol <- function(complete_pop_yr_fu,
         qol_mean_year_3,
         qol_mean_year_4,
         qol_mean_year_5,
-        qaly_5yr,
-        qaly_5yr_lower,
-        qaly_5yr_upper
+        qaly_5yr
       )
+    
+    # Save to cache
+    if (use_cache) {
+      message("Saving result to cache: ", cache_file)
+      saveRDS(combined_result, cache_file)
+    }
     
     results_list[[paste0("auc_", target_auc)]] <- combined_result
   }
@@ -1195,6 +1207,96 @@ calculate_qol <- function(complete_pop_yr_fu,
   } else {
     return(bind_rows(results_list))
   }
+}
+
+
+# Helper function to generate consistent cache keys
+generate_cache_key <- function(start_year, target_auc, fu_type, imaging_fu_type, 
+                               post_op_imaging, xr_sens, xr_spec, us_sens, us_spec) {
+  # Create a hash of all parameters to ensure uniqueness
+  params <- paste(
+    start_year,
+    target_auc,
+    fu_type[1],
+    imaging_fu_type[1],
+    post_op_imaging,
+    xr_sens,
+    xr_spec,
+    us_sens,
+    us_spec,
+    sep = "_"
+  )
+  
+  # Clean up the string to make it filesystem-safe
+  params <- gsub("[^[:alnum:]_.-]", "_", params)
+  
+  return(paste0("qol_", params))
+}
+
+
+# Helper function to clear cache
+clear_qol_cache <- function(cache_dir = "qol_cache", 
+                            pattern = NULL,
+                            confirm = TRUE) {
+  if (!dir.exists(cache_dir)) {
+    message("Cache directory does not exist: ", cache_dir)
+    return(invisible(NULL))
+  }
+  
+  # Get files to delete
+  if (is.null(pattern)) {
+    files <- list.files(cache_dir, pattern = "\\.rds$", full.names = TRUE)
+  } else {
+    files <- list.files(cache_dir, pattern = pattern, full.names = TRUE)
+  }
+  
+  if (length(files) == 0) {
+    message("No cache files found to delete")
+    return(invisible(NULL))
+  }
+  
+  message("Found ", length(files), " cache file(s)")
+  
+  if (confirm) {
+    response <- readline(prompt = "Delete these files? (yes/no): ")
+    if (tolower(response) != "yes") {
+      message("Cache clearing cancelled")
+      return(invisible(NULL))
+    }
+  }
+  
+  deleted <- file.remove(files)
+  message("Deleted ", sum(deleted), " cache file(s)")
+  
+  return(invisible(files[deleted]))
+}
+
+
+# Helper function to list cached results
+list_cached_results <- function(cache_dir = "qol_cache") {
+  if (!dir.exists(cache_dir)) {
+    message("Cache directory does not exist: ", cache_dir)
+    return(data.frame())
+  }
+  
+  files <- list.files(cache_dir, pattern = "\\.rds$", full.names = TRUE)
+  
+  if (length(files) == 0) {
+    message("No cached results found")
+    return(data.frame())
+  }
+  
+  cache_info <- data.frame(
+    file = basename(files),
+    path = files,
+    size_kb = round(file.size(files) / 1024, 2),
+    modified = file.mtime(files),
+    stringsAsFactors = FALSE
+  )
+  
+  cache_info <- cache_info[order(cache_info$modified, decreasing = TRUE), ]
+  
+  return(cache_info)
 }
 
 ## 11.4 Run QoL function ####
@@ -1513,6 +1615,7 @@ qol_2020_ct_max <- calculate_qol(
   imaging_fu_type = "ct"
 )
 
+
 ## 11.5 Amalgamate Each Year and Plot each AUC ####
 ### 11.5.1 Aggregation function ####
 aggregate_qol_cohorts <- function(auc_target = c(1,2,3,4,5,6,7,8,9),
@@ -1520,62 +1623,62 @@ aggregate_qol_cohorts <- function(auc_target = c(1,2,3,4,5,6,7,8,9),
   all_cohorts <- list()
   
   if (type == "usiqol") {
-  for (i in auc_target) {
-    key <- as.integer(i)
-    message("Processing AUC = ", key)
-    
-    message("  Loading 2016 data...")
-    cohort_2016_min_xr <- qol_2016_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
-    cohort_2016_min_ct <- qol_2016_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2016_max_xr <- qol_2016_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
-    cohort_2016_max_ct <- qol_2016_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
-    cohort_2016_min_xr_us <- qol_2016_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
-    cohort_2016_max_xr_us <- qol_2016_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
-    
-    message("  Loading 2017 data...")
-    cohort_2017_min_xr <- qol_2017_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
-    cohort_2017_min_ct <- qol_2017_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2017_max_xr <- qol_2017_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
-    cohort_2017_max_ct <- qol_2017_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
-    cohort_2017_min_xr_us <- qol_2017_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
-    cohort_2017_max_xr_us <- qol_2017_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
-    
-    message("  Loading 2018 data...")
-    cohort_2018_min_xr <- qol_2018_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
-    cohort_2018_min_ct <- qol_2018_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2018_max_xr <- qol_2018_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
-    cohort_2018_max_ct <- qol_2018_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
-    cohort_2018_min_xr_us <- qol_2018_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
-    cohort_2018_max_xr_us <- qol_2018_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
-    
-    message("  Loading 2019 data...")
-    cohort_2019_min_xr <- qol_2019_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
-    cohort_2019_min_ct <- qol_2019_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2019_max_xr <- qol_2019_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
-    cohort_2019_max_ct <- qol_2019_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
-    cohort_2019_min_xr_us <- qol_2019_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
-    cohort_2019_max_xr_us <- qol_2019_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
-    
-    message("  Loading 2020 data...")
-    cohort_2020_min_xr <- qol_2020_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
-    cohort_2020_min_ct <- qol_2020_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-    cohort_2020_max_xr <- qol_2020_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
-    cohort_2020_max_ct <- qol_2020_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
-    cohort_2020_min_xr_us <- qol_2020_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
-    cohort_2020_max_xr_us <- qol_2020_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
-    
-    message("  Combining cohorts for AUC = ", key)
-    overall_cohort <- dplyr::bind_rows(
-      cohort_2016_min_xr, cohort_2016_min_ct, cohort_2016_max_xr, cohort_2016_max_ct, cohort_2016_min_xr_us, cohort_2016_max_xr_us,
-      cohort_2017_min_xr, cohort_2017_min_ct, cohort_2017_max_xr, cohort_2017_max_ct, cohort_2017_min_xr_us, cohort_2017_max_xr_us,
-      cohort_2018_min_xr, cohort_2018_min_ct, cohort_2018_max_xr, cohort_2018_max_ct, cohort_2018_min_xr_us, cohort_2018_max_xr_us,
-      cohort_2019_min_xr, cohort_2019_min_ct, cohort_2019_max_xr, cohort_2019_max_ct, cohort_2019_min_xr_us, cohort_2019_max_xr_us,
-      cohort_2020_min_xr, cohort_2020_min_ct, cohort_2020_max_xr, cohort_2020_max_ct, cohort_2020_min_xr_us, cohort_2020_max_xr_us
-    )
-    
-    all_cohorts[[key]] <- overall_cohort
-    message("✅ Done with AUC = ", key, "\n")
-  }
+    for (i in auc_target) {
+      key <- as.integer(i)
+      message("Processing AUC = ", key)
+      
+      message("  Loading 2016 data...")
+      cohort_2016_min_xr <- qol_2016_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
+      cohort_2016_min_ct <- qol_2016_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
+      cohort_2016_max_xr <- qol_2016_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
+      cohort_2016_max_ct <- qol_2016_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
+      cohort_2016_min_xr_us <- qol_2016_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
+      cohort_2016_max_xr_us <- qol_2016_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
+      
+      message("  Loading 2017 data...")
+      cohort_2017_min_xr <- qol_2017_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
+      cohort_2017_min_ct <- qol_2017_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
+      cohort_2017_max_xr <- qol_2017_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
+      cohort_2017_max_ct <- qol_2017_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
+      cohort_2017_min_xr_us <- qol_2017_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
+      cohort_2017_max_xr_us <- qol_2017_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
+      
+      message("  Loading 2018 data...")
+      cohort_2018_min_xr <- qol_2018_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
+      cohort_2018_min_ct <- qol_2018_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
+      cohort_2018_max_xr <- qol_2018_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
+      cohort_2018_max_ct <- qol_2018_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
+      cohort_2018_min_xr_us <- qol_2018_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
+      cohort_2018_max_xr_us <- qol_2018_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
+      
+      message("  Loading 2019 data...")
+      cohort_2019_min_xr <- qol_2019_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
+      cohort_2019_min_ct <- qol_2019_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
+      cohort_2019_max_xr <- qol_2019_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
+      cohort_2019_max_ct <- qol_2019_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
+      cohort_2019_min_xr_us <- qol_2019_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
+      cohort_2019_max_xr_us <- qol_2019_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
+      
+      message("  Loading 2020 data...")
+      cohort_2020_min_xr <- qol_2020_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
+      cohort_2020_min_ct <- qol_2020_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
+      cohort_2020_max_xr <- qol_2020_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
+      cohort_2020_max_ct <- qol_2020_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
+      cohort_2020_min_xr_us <- qol_2020_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
+      cohort_2020_max_xr_us <- qol_2020_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
+      
+      message("  Combining cohorts for AUC = ", key)
+      overall_cohort <- dplyr::bind_rows(
+        cohort_2016_min_xr, cohort_2016_min_ct, cohort_2016_max_xr, cohort_2016_max_ct, cohort_2016_min_xr_us, cohort_2016_max_xr_us,
+        cohort_2017_min_xr, cohort_2017_min_ct, cohort_2017_max_xr, cohort_2017_max_ct, cohort_2017_min_xr_us, cohort_2017_max_xr_us,
+        cohort_2018_min_xr, cohort_2018_min_ct, cohort_2018_max_xr, cohort_2018_max_ct, cohort_2018_min_xr_us, cohort_2018_max_xr_us,
+        cohort_2019_min_xr, cohort_2019_min_ct, cohort_2019_max_xr, cohort_2019_max_ct, cohort_2019_min_xr_us, cohort_2019_max_xr_us,
+        cohort_2020_min_xr, cohort_2020_min_ct, cohort_2020_max_xr, cohort_2020_max_ct, cohort_2020_min_xr_us, cohort_2020_max_xr_us
+      )
+      
+      all_cohorts[[key]] <- overall_cohort
+      message("✅ Done with AUC = ", key, "\n")
+    }
   }
   else {
     for (i in auc_target) {
@@ -1693,21 +1796,12 @@ combine_auc_data <- function(data, auc_label) {
         risk_status == "HR" ~ "High Risk",
         TRUE ~ risk_status
       ),
-      annual_qol = case_when(
-        year == 2020 ~ qol_mean_year_1,
-        year == 2019 ~ qol_mean_year_2,
-        year == 2018 ~ qol_mean_year_3,
-        year == 2017 ~ qol_mean_year_4,
-        year == 2016 ~ qol_mean_year_5,
-        TRUE ~ NA_real_
-      ),
       stone_free_status = stone_free_status_original
     ) %>%
     select(auc_label,
            cohort_type,
            stone_free_status,
            risk_status,
-           annual_qol,
            qaly_5yr,
            true_rec_5yr
     )
@@ -1779,12 +1873,10 @@ summary_df_qol <- summary_df_qol %>% mutate(
 # Factor levels for ordering
 summary_df_full_qol_data_eq_5d <- summary_df_qol %>%
   mutate(
-    cohort_type = factor(cohort_type, levels = c("Minimum FU, US", 
-                                                 "Minimum FU, CT", 
-                                                 "Minimum FU, XR + US",
-                                                 "Maximum FU, US", 
-                                                 "Maximum FU, CT", 
-                                                 "Maximum FU, XR + US"
+    cohort_type = factor(cohort_type, levels = c(
+      "Minimum FU, XR + US", "Minimum FU, US", "Minimum FU, CT", "Maximum FU, XR + US",
+      "Maximum FU, US", "Maximum FU, CT"
+                                                 
     )),
     risk_status = factor(risk_status, levels = c("All", "Low Risk", "High Risk"))
   )
@@ -1792,12 +1884,8 @@ summary_df_full_qol_data_eq_5d <- summary_df_qol %>%
 # Prepare data_for_plot factors similarly
 data_for_plot_qol2 <- data_for_plot_qol %>%
   mutate(
-    cohort_type = factor(cohort_type, levels = c("Minimum FU, US", 
-                                                 "Minimum FU, CT", 
-                                                 "Minimum FU, XR + US",
-                                                 "Maximum FU, US", 
-                                                 "Maximum FU, CT", 
-                                                 "Maximum FU, XR + US")),
+    cohort_type = factor(cohort_type, levels = c("Minimum FU, XR + US", "Minimum FU, US", "Minimum FU, CT", "Maximum FU, XR + US",
+                                                 "Maximum FU, US", "Maximum FU, CT")),
     risk_status = factor(risk_status, levels = c("Low Risk", "High Risk"))
   )
 
@@ -1849,5 +1937,3 @@ summary_df_full_qol_data_eq_5d %>%
        x = "Cohort Type",
        y = "Mean 5yr QALYs (EQ-5D derived)",
        fill = "Risk Status") + ylim(0,1.1)
-
-
