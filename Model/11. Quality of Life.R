@@ -454,7 +454,7 @@ usiqol_metrics_by_age_stone_free_status1 <- fread("Inputs/usiqol_metrics_by_age_
     age_bin = as.factor(age_bin),
     stone_free_status = as.factor(stone_free_status)
   )
-  
+
 
 usiqol_metrics_by_age_stone_free_status1 <- usiqol_metrics_by_age_stone_free_status1 %>%
   mutate(
@@ -875,8 +875,8 @@ assign_baseline_qol <- function(df,
   df1 <- df1 %>%
     mutate(
       age_band = case_when(
-       age < 15 ~ "15-19",
-       TRUE ~ age_band
+        age < 15 ~ "15-19",
+        TRUE ~ age_band
       )
     )
   
@@ -954,18 +954,80 @@ calculate_qol <- function(complete_pop_yr_fu,
                           years = c(1,2,3,4,5),
                           target_aucs = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
                           fu_type = c("min", "max"),
-                          post_op_imaging = c("none", "ct", "us", "us"),
+                          post_op_imaging = c("none", "ct", "us", "xr_us"),
                           imaging_fu_type = c("ct", "us", "xr_us"),
                           xr_sens = 0.67,
                           xr_spec = 0.98,
                           us_sens = 0.54,
-                          us_spec = 0.91) {
+                          us_spec = 0.91,
+                          use_cache = TRUE,
+                          cache_dir = "usiqol_cache") {
   
   results_list <- list()
   post_op_imaging <- post_op_imaging[1]
   if(post_op_imaging == "none") post_op_imaging <- 0
   
+  # Create cache directory if it doesn't exist
+  if (use_cache && !dir.exists(cache_dir)) {
+    dir.create(cache_dir, recursive = TRUE)
+    message("Created cache directory: ", cache_dir)
+  }
+  
+  # Cache static data that doesn't change across loop iterations
+  cached_data <- list(
+    complete_pop_yr_fu = complete_pop_yr_fu,
+    cutpoints_yr = cutpoints_yr,
+    start_year = start_year,
+    fu_type = fu_type,
+    imaging_fu_type = imaging_fu_type,
+    post_op_imaging = post_op_imaging,
+    xr_sens = xr_sens,
+    xr_spec = xr_spec,
+    us_sens = us_sens,
+    us_spec = us_spec
+  )
+  
+  # Pre-calculate less4_prob once (doesn't depend on target_auc)
+  less4_prob <- complete_pop_yr_fu %>%
+    filter(stone_free_status %in% c("less4", "more4")) %>%
+    {
+      if (nrow(.) == 0) {
+        0.5
+      } else {
+        props <- group_by(., stone_free_status) %>%
+          summarise(n = n(), .groups = "drop") %>%
+          mutate(prop = n / sum(n))
+        
+        if ("less4" %in% props$stone_free_status) {
+          props$prop[props$stone_free_status == "less4"]
+        } else {
+          0.5
+        }
+      }
+    }
+  
+  cached_data$less4_prob <- less4_prob
+  
   for (target_auc in target_aucs) {
+    # Create unique cache filename based on all parameters that affect results
+    cache_filename <- sprintf(
+      "qol_yr%s_auc%.2f_fu%s_img%s_postop%s.rds",
+      start_year,
+      target_auc,
+      fu_type[1],
+      imaging_fu_type[1],
+      post_op_imaging
+    )
+    cache_filepath <- file.path(cache_dir, cache_filename)
+    
+    # Check if cached result exists
+    if (use_cache && file.exists(cache_filepath)) {
+      message("Loading cached result for AUC: ", target_auc, " from: ", cache_filepath)
+      combined_result <- readRDS(cache_filepath)
+      results_list[[paste0("auc_", target_auc)]] <- combined_result
+      next  # Skip to next iteration
+    }
+    
     message("Calculating QoL for: ", start_year,
             ", AUC: ", target_auc,
             ", Follow-up Type: ", fu_type,
@@ -974,76 +1036,58 @@ calculate_qol <- function(complete_pop_yr_fu,
     
     target_auc <- as.numeric(target_auc)
     
-    complete_pop_yr_fu2 <- complete_pop_yr_fu %>%
+    # Use cached data
+    complete_pop_yr_fu2 <- cached_data$complete_pop_yr_fu %>%
       filter(.data$auc_target == target_auc)
     
     # Cutpoint for this AUC
-    cutpoint <- (cutpoints_yr %>% filter(auc_target == !!target_auc))$cutpoint
-    
-    # Determine non-SF proportions for distributing misclassified SF
-    less4_prob <- complete_pop_yr_fu %>%
-      filter(stone_free_status %in% c("less4", "more4")) %>%
-      {
-        if (nrow(.) == 0) {
-          0.5
-        } else {
-          props <- group_by(., stone_free_status) %>%
-            summarise(n = n(), .groups = "drop") %>%
-            mutate(prop = n / sum(n))
-          
-          if ("less4" %in% props$stone_free_status) {
-            props$prop[props$stone_free_status == "less4"]
-          } else {
-            0.5
-          }
-        }
-      }
+    cutpoint <- (cached_data$cutpoints_yr %>% 
+                   filter(auc_target == !!target_auc))$cutpoint
     
     # Assign SF status according to imaging type
     rand_sens <- runif(nrow(complete_pop_yr_fu2))
     rand_spec <- runif(nrow(complete_pop_yr_fu2))
     
     # Distribute SF status as determined by imaging
-    if (imaging_fu_type == "us") {
-      
+    if (cached_data$imaging_fu_type == "us") {
       
       # Generate random numbers once
-      rand_sens <- runif(nrow(complete_pop_yr_fu))
-      rand_spec <- runif(nrow(complete_pop_yr_fu))
+      rand_sens <- runif(nrow(cached_data$complete_pop_yr_fu))
+      rand_spec <- runif(nrow(cached_data$complete_pop_yr_fu))
       
-      complete_pop_yr_fu1 <- complete_pop_yr_fu %>%
+      complete_pop_yr_fu1 <- cached_data$complete_pop_yr_fu %>%
         mutate(
           stone_free_status_original = stone_free_status,
           stone_free_status1 = case_when(
-            stone_free_status_original %in% c("less4", "more4") & rand_sens <= xr_sens ~ stone_free_status_original,
-            stone_free_status_original %in% c("less4", "more4") & rand_sens > xr_sens ~ "SF", 
-            stone_free_status_original == "sf" & rand_spec <= xr_spec ~ "SF", 
-            stone_free_status_original == "sf" & rand_spec > xr_spec ~ ifelse(
-              runif(n()) <= less4_prob, "less4", "more4"
+            stone_free_status_original %in% c("less4", "more4") & rand_sens <= cached_data$xr_sens ~ stone_free_status_original,
+            stone_free_status_original %in% c("less4", "more4") & rand_sens > cached_data$xr_sens ~ "SF", 
+            stone_free_status_original == "SF" & rand_spec <= cached_data$xr_spec ~ "SF", 
+            stone_free_status_original == "SF" & rand_spec > cached_data$xr_spec ~ ifelse(
+              runif(n()) <= cached_data$less4_prob, "less4", "more4"
             ),
-            TRUE ~ stone_free_status_original # Handle any other cases
+            TRUE ~ stone_free_status_original
           ),
           .keep = "all"
         )
-    } else if (imaging_fu_type == "xr_us") {
-      rand_sens <- runif(nrow(complete_pop_yr_fu))
-      rand_spec <- runif(nrow(complete_pop_yr_fu))
+    } else if (cached_data$imaging_fu_type == "xr_us") {
+      rand_sens <- runif(nrow(cached_data$complete_pop_yr_fu))
+      rand_spec <- runif(nrow(cached_data$complete_pop_yr_fu))
       
-      complete_pop_yr_fu1 <- complete_pop_yr_fu %>%
+      complete_pop_yr_fu1 <- cached_data$complete_pop_yr_fu %>%
         mutate(
           stone_free_status_original = stone_free_status,
           stone_free_status1 = case_when(
-            stone_free_status_original %in% c("less4", "more4") & lucency == "No" & rand_sens <= xr_sens ~ stone_free_status_original,
-            stone_free_status_original %in% c("less4", "more4") & lucency == "No" & rand_sens > xr_sens ~ "SF", 
-            stone_free_status_original %in% c("less4", "more4") & lucency == "Yes" & rand_sens <= us_sens ~ stone_free_status_original,
-            stone_free_status_original %in% c("less4", "more4") & lucency == "Yes" & rand_sens > us_sens ~ "SF", 
-            stone_free_status_original == "sf" & lucency == "No" & rand_spec <= xr_spec ~ "SF", 
-            stone_free_status_original == "sf" & lucency == "Yes" & rand_spec <= us_spec ~ "SF", 
-            stone_free_status_original == "sf" & lucency == "No" & rand_spec > xr_spec ~ ifelse(
-              runif(n()) <= less4_prob, "less4", "more4"
+            stone_free_status_original %in% c("less4", "more4") & lucency == "No" & rand_sens <= cached_data$xr_sens ~ stone_free_status_original,
+            stone_free_status_original %in% c("less4", "more4") & lucency == "No" & rand_sens > cached_data$xr_sens ~ "SF", 
+            stone_free_status_original %in% c("less4", "more4") & lucency == "Yes" & rand_sens <= cached_data$us_sens ~ stone_free_status_original,
+            stone_free_status_original %in% c("less4", "more4") & lucency == "Yes" & rand_sens > cached_data$us_sens ~ "SF", 
+            stone_free_status_original == "SF" & lucency == "No" & rand_spec <= cached_data$xr_spec ~ "SF", 
+            stone_free_status_original == "SF" & lucency == "Yes" & rand_spec <= cached_data$us_spec ~ "SF", 
+            stone_free_status_original == "SF" & lucency == "No" & rand_spec > cached_data$xr_spec ~ ifelse(
+              runif(n()) <= cached_data$less4_prob, "less4", "more4"
             ),
-            stone_free_status_original == "sf" & lucency == "Yes" & rand_spec > us_spec ~ ifelse(
-              runif(n()) <= less4_prob, "less4", "more4"
+            stone_free_status_original == "SF" & lucency == "Yes" & rand_spec > cached_data$us_spec ~ ifelse(
+              runif(n()) <= cached_data$less4_prob, "less4", "more4"
             ),
             TRUE ~ stone_free_status_original
           ),
@@ -1051,7 +1095,7 @@ calculate_qol <- function(complete_pop_yr_fu,
         )
     } else {
       # For CT imaging, no sensitivity/specificity adjustment needed
-      complete_pop_yr_fu1 <- complete_pop_yr_fu %>%
+      complete_pop_yr_fu1 <- cached_data$complete_pop_yr_fu %>%
         mutate(
           stone_free_status_original = stone_free_status,
           stone_free_status1 = stone_free_status,
@@ -1075,34 +1119,23 @@ calculate_qol <- function(complete_pop_yr_fu,
     ) %>%
       as_tibble() %>%
       mutate(
-        auc_target = auc_target,
+        auc_target = target_auc,
         cutpoint = cutpoint,
-        post_op_imaging = post_op_imaging,
-        imaging_fu_type = imaging_fu_type,
-        year = start_year
+        post_op_imaging = cached_data$post_op_imaging,
+        imaging_fu_type = cached_data$imaging_fu_type,
+        year = cached_data$start_year
       )
     
     # --- QALY calculation ---
-    # Compute QALY as sum of mean QoL across years divided by max possible score
     message("Calculating QALYs for AUC:", target_auc)
     combined_result <- combined_result %>%
       mutate(
         qaly_5yr = 
-          (qol_mean_year_1 / 60) + 
-          (qol_mean_year_2 / 60) + 
-          (qol_mean_year_3 / 60) +
-          (qol_mean_year_4 / 60) +
-          (qol_mean_year_5 / 60),
-        qaly_5yr_lower = (qol_lower_year_1 / 60) + 
-          (qol_lower_year_2 / 60) + 
-          (qol_lower_year_3 / 60) +
-          (qol_lower_year_4 / 60) +
-          (qol_lower_year_5 / 60),
-        qaly_5yr_upper = (qol_upper_year_1 / 60) + 
-          (qol_upper_year_2 / 60) + 
-          (qol_upper_year_3 / 60) +
-          (qol_upper_year_4 / 60) +
-          (qol_upper_year_5 / 60),
+          (qol_mean_year_1 / 60) +
+          ((qol_mean_year_2 / 60) * 1.035) +
+          ((qol_mean_year_3 / 60) * 1.035 ^ 2) +
+          ((qol_mean_year_4 / 60) * 1.035 ^ 3) +
+          ((qol_mean_year_5 / 60) * 1.035 ^ 4),
         risk_status = case_when(prediction == "No" ~ "Low Risk",
                                 prediction == "Yes" ~ "High Risk",
                                 TRUE ~ NA_character_),
@@ -1125,31 +1158,41 @@ calculate_qol <- function(complete_pop_yr_fu,
         qol_mean_year_3,
         qol_mean_year_4,
         qol_mean_year_5,
-        baseline_qol_lower,
-        qol_lower_year_1,
-        qol_lower_year_2,
-        qol_lower_year_3,
-        qol_lower_year_4,
-        qol_lower_year_5,
-        baseline_qol_upper,
-        qol_upper_year_1,
-        qol_upper_year_2,
-        qol_upper_year_3,
-        qol_upper_year_4,
-        qol_upper_year_5,
-        qaly_5yr,
-        qaly_5yr_lower,
-        qaly_5yr_upper
+        qaly_5yr
       )
+    
+    # Save result to cache
+    if (use_cache) {
+      saveRDS(combined_result, cache_filepath)
+      message("Saved result to cache: ", cache_filepath)
+    }
     
     results_list[[paste0("auc_", target_auc)]] <- combined_result
   }
   
-  message("Concatenating data for Year:", start_year, " Follow-up Type: ", fu_type, " Imaging Type: ", imaging_fu_type)
-  if (length(auc_targets) == 1) {
+  message("Concatenating data for Year:", start_year, 
+          " Follow-up Type: ", fu_type, 
+          " Imaging Type: ", imaging_fu_type)
+  
+  if (length(target_aucs) == 1) {
     return(results_list[[1]])
   } else {
     return(results_list)
+  }
+}
+
+# Helper function to clear cache
+clear_qol_cache <- function(cache_dir = "qol_cache") {
+  if (dir.exists(cache_dir)) {
+    files <- list.files(cache_dir, pattern = "\\.rds$", full.names = TRUE)
+    if (length(files) > 0) {
+      file.remove(files)
+      message("Cleared ", length(files), " cached files from: ", cache_dir)
+    } else {
+      message("No cache files found in: ", cache_dir)
+    }
+  } else {
+    message("Cache directory does not exist: ", cache_dir)
   }
 }
 
@@ -1567,195 +1610,82 @@ qol_auc_0.9 <- aggregate_qol_cohorts(auc_target = 8)
 ### 11.5.10 AUC 0.95 ####
 qol_auc_0.95 <- aggregate_qol_cohorts(auc_target = 9)
 
-## 11.6 Combine datasets and calculate cumulative qol ####
+
+
+# Memory-efficient combination function - only select needed columns upfront
 combine_auc_data <- function(data, auc_label) {
   data %>%
+    select(cohort_type, risk_status, qaly_5yr, true_rec_5yr, stone_free_status_original) %>%
+    drop_na(qaly_5yr) %>%
     mutate(
-      auc_label = auc_label,
-      risk_status = case_when(
+      auc_label = factor(auc_label),
+      cohort_type = factor(cohort_type),
+      risk_status = factor(case_when(
         risk_status == "LR" ~ "Low Risk",
         risk_status == "HR" ~ "High Risk",
         TRUE ~ risk_status
-      ),
-      annual_qol = case_when(
-        year == 2020 ~ qol_mean_year_1,
-        year == 2019 ~ qol_mean_year_2,
-        year == 2018 ~ qol_mean_year_3,
-        year == 2017 ~ qol_mean_year_4,
-        year == 2016 ~ qol_mean_year_5,
-        TRUE ~ NA_real_
-      ),
-      annual_qol_lower = case_when(
-        year == 2020 ~ qol_lower_year_1,
-        year == 2019 ~ qol_lower_year_2,
-        year == 2018 ~ qol_lower_year_3,
-        year == 2017 ~ qol_lower_year_4,
-        year == 2016 ~ qol_lower_year_5,
-        TRUE ~ NA_real_
-      ),
-      annual_qol_upper = case_when(
-        year == 2020 ~ qol_upper_year_1,
-        year == 2019 ~ qol_upper_year_2,
-        year == 2018 ~ qol_upper_year_3,
-        year == 2017 ~ qol_upper_year_4,
-        year == 2016 ~ qol_upper_year_5,
-        TRUE ~ NA_real_
-      ),
-      stone_free_status = stone_free_status_original
+      ), levels = c("All", "Low Risk", "High Risk")),
+      stone_free_status = stone_free_status_original,
+      true_rec_5yr = factor(true_rec_5yr)
     ) %>%
-    select(id,
-           auc_label,
-           cohort_type,
-           stone_free_status,
-           risk_status,
-           annual_qol,
-           annual_qol_lower,
-           annual_qol_upper,
-           qaly_5yr,
-           qaly_5yr_lower,
-           qaly_5yr_upper,
-           true_rec_5yr,
-           year
-    )
+    select(-stone_free_status_original)
 }
 
-auc_list <- list(
-  qol_auc_0.55,
-  qol_auc_0.6,
-  qol_auc_0.65,
-  qol_auc_0.7,
-  qol_auc_0.75,
-  qol_auc_0.8,
-  qol_auc_0.85,
-  qol_auc_0.9,
-  qol_auc_0.95
-)
+# Combine data efficiently
+auc_labels <- c("AUC 0.55", "AUC 0.6", "AUC 0.65", "AUC 0.7", "AUC 0.75", 
+                "AUC 0.8", "AUC 0.85", "AUC 0.9", "AUC 0.95")
 
-auc_labels <- c(
-  "AUC 0.55", "AUC 0.6", "AUC 0.65",
-  "AUC 0.7", "AUC 0.75", "AUC 0.8",
-  "AUC 0.85", "AUC 0.9", "AUC 0.95"
-)
+auc_list <- list(qol_auc_0.55, qol_auc_0.6, qol_auc_0.65, qol_auc_0.7, 
+                 qol_auc_0.75, qol_auc_0.8, qol_auc_0.85, qol_auc_0.9, qol_auc_0.95)
 
-data_for_plot_qol <- map2_dfr(
-  auc_list,
-  auc_labels,
-  combine_auc_data,
-  .progress = TRUE
-)
+# Process and create summary directly - no need to keep full combined dataset
+summary_df_qol <- map2_dfr(auc_list, auc_labels, function(data, label) {
+  processed <- combine_auc_data(data, label)
+  
+  # Calculate summaries immediately
+  by_risk <- processed %>%
+    group_by(auc_label, risk_status, cohort_type) %>%
+    summarise(
+      mean_qaly_5yr = mean(qaly_5yr, na.rm = TRUE),
+      lower_qaly_5yr = quantile(qaly_5yr, 0.025, na.rm = TRUE),
+      upper_qaly_5yr = quantile(qaly_5yr, 0.975, na.rm = TRUE),
+      .groups = "drop"
+    )
+  
+  # Calculate "All" summaries
+  all_risk <- processed %>%
+    group_by(auc_label, cohort_type) %>%
+    summarise(
+      mean_qaly_5yr = mean(qaly_5yr, na.rm = TRUE),
+      lower_qaly_5yr = quantile(qaly_5yr, 0.025, na.rm = TRUE),
+      upper_qaly_5yr = quantile(qaly_5yr, 0.975, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(risk_status = factor("All", levels = c("All", "Low Risk", "High Risk")))
+  
+  # Free memory immediately
+  rm(processed)
+  
+  bind_rows(by_risk, all_risk)
+}, .progress = TRUE)
 
-data_for_plot_qol$auc_label <- as.factor(data_for_plot_qol$auc_label)
-data_for_plot_qol$cohort_type <- as.factor(data_for_plot_qol$cohort_type)
-data_for_plot_qol$risk_status <- as.factor(data_for_plot_qol$risk_status)
-data_for_plot_qol$true_rec_5yr <- as.factor(data_for_plot_qol$true_rec_5yr)
+# Clear original data objects if no longer needed
+rm(auc_list)
+gc()
 
-overall_qol_data <- data_for_plot_qol %>%
-  subset(select = c(
-    id,
-    auc_label,
-    cohort_type,
-    stone_free_status,
-    risk_status,
-    qaly_5yr,
-    qaly_5yr_lower,
-    qaly_5yr_upper,
-    true_rec_5yr,
-    year
-  ))
-
-# Summarise mean and SD by auc_label, risk_status, cohort_type
-summary_df_qol <- data_for_plot_qol %>%
-  group_by(auc_label, risk_status, cohort_type) %>%
-  summarise(
-    total_qol = mean(annual_qol, na.rm = TRUE),
-    total_qol_lower = quantile(annual_qol, 0.025, na.rm = TRUE),
-    total_qol_upper = quantile(annual_qol, 0.975, na.rm = TRUE),
-    mean_qaly_5yr = mean(qaly_5yr, na.rm = TRUE),
-    lower_qaly_5yr = quantile(qaly_5yr, 0.025, na.rm = TRUE),
-    upper_qaly_5yr = quantile(qaly_5yr, 0.975, na.rm = TRUE),
-    .groups = "drop"
-  )
-
-# Summarise mean and SD for combined risk groups ("All")
-summary_all <- data_for_plot_qol %>%
-  group_by(auc_label, cohort_type) %>%
-  summarise(
-    total_qol = mean(annual_qol, na.rm = TRUE),
-    total_qol_lower = quantile(annual_qol, 0.025, na.rm = TRUE),
-    total_qol_upper = quantile(annual_qol, 0.975, na.rm = TRUE),
-    mean_qaly_5yr = mean(qaly_5yr, na.rm = TRUE),
-    lower_qaly_5yr = quantile(qaly_5yr, 0.025, na.rm = TRUE),
-    upper_qaly_5yr = quantile(qaly_5yr, 0.975, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  mutate(risk_status = "All") 
-
-# Combine all summaries
-summary_df_qol <- bind_rows(summary_df_qol, summary_all)
-summary_df_qol <- summary_df_qol %>% mutate(
-  total_qol = total_qol
-)
-
-# Factor levels for ordering
+# Finalize summary data for plotting
 summary_df_full_qol_data <- summary_df_qol %>%
   mutate(
-    cohort_type = factor(cohort_type, levels = c("Minimum FU, US", 
-                                                 "Minimum FU, CT", 
-                                                 "Minimum FU, XR + US",
-                                                 "Maximum FU, US", 
-                                                 "Maximum FU, CT", 
-                                                 "Maximum FU, XR + US"
-    )),
-    risk_status = factor(risk_status, levels = c("All", "Low Risk", "High Risk"))
+    cohort_type = factor(cohort_type, levels = c(
+      "Minimum FU, XR + US", "Minimum FU, US", "Minimum FU, CT", 
+      "Maximum FU, XR + US", "Maximum FU, US", "Maximum FU, CT"
+    ))
   )
 
-# Prepare data_for_plot factors similarly
-data_for_plot_qol2 <- data_for_plot_qol %>%
-  mutate(
-    cohort_type = factor(cohort_type, levels = c("Minimum FU, US", 
-                                                 "Minimum FU, CT", 
-                                                 "Minimum FU, XR + US",
-                                                 "Maximum FU, US", 
-                                                 "Maximum FU, CT", 
-                                                 "Maximum FU, XR + US")),
-    risk_status = factor(risk_status, levels = c("Low Risk", "High Risk"))
-  )
-
-# All auc values
-auc_values <- unique(data_for_plot$auc_label)
-
-## 11.7 Plot QoL ####
+# Plot
 summary_df_full_qol_data %>% 
-  group_by(auc_label) %>%
-  ggplot(aes(x = auc_label, y = total_qol, fill = risk_status)) +
-  geom_col(
-    position = position_dodge(width = 0.8),
-    width = 0.7,
-    color = "black"
-  ) +
-  geom_errorbar(
-    aes(ymin = total_qol_lower, ymax = total_qol_upper),
-    position = position_dodge(width = 0.8),
-    width = 0.3
-  ) +
-  facet_wrap(~ cohort_type) +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        strip.text = element_text(size = 10)) +
-  labs(title = "Annual Mean USIQoL score for EAU Follow-Up of those with Clinically Significant Disease",
-       x = "Cohort Type",
-       y = "USIQoL score",
-       fill = "Risk Status")
-
-## 11.8 Plot QALYs ####
-summary_df_full_qol_data %>% 
-  group_by(auc_label) %>%
   ggplot(aes(x = auc_label, y = mean_qaly_5yr, fill = risk_status)) +
-  geom_col(
-    position = position_dodge(width = 0.8),
-    width = 0.7,
-    color = "black"
-  ) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.7, color = "black") +
   geom_errorbar(
     aes(ymin = lower_qaly_5yr, ymax = upper_qaly_5yr),
     position = position_dodge(width = 0.8),
@@ -1763,11 +1693,14 @@ summary_df_full_qol_data %>%
   ) +
   facet_wrap(~ cohort_type) +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        strip.text = element_text(size = 10)) +
-  labs(title = "USIQoL Adjusted Life Years for EAU Follow-Up of those with Clinically Significant Disease",
-       x = "Cohort Type",
-       y = "Mean QALYs over 5yrs follow-up",
-       fill = "Risk Status") + ylim(0,3.2)
-
-
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(size = 10)
+  ) +
+  labs(
+    title = "USIQoL Adjusted Life Years for EAU Follow-Up of those with Clinically Significant Disease",
+    x = "Cohort Type",
+    y = "Mean QALYs over 5yrs follow-up",
+    fill = "Risk Status"
+  ) + 
+  ylim(0, 3.2)
