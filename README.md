@@ -176,6 +176,7 @@ Derived from Gonzalez et al. 2012 <br>
 ### NHS Tariff Costs 25/26
 
 Derived from: https://www.england.nhs.uk/publication/2025-26-nhs-payment-scheme/ <br>
+Genomics costs derived from: https://www.ouh.nhs.uk/media/m0omaian/price-list.pdf <br>
 
 | Item                         |     Cost |      Code|
 | ---------------------------- | -------: | -------: |
@@ -190,9 +191,10 @@ Derived from: https://www.england.nhs.uk/publication/2025-26-nhs-payment-scheme/
 | Stent insertion              |     £954 |  LB14Z |
 | A&E attendance (Cat 3)       |     £396 |   VB03Z|
 | R256 genetic panel           |    ~£100 |      - |
-| 24-hour urine                |  £190.50 |       Estimated from local pricing|
-| SNP array                    | £200–700 |       -|
+| SNP array                    | £200–805 |       e.g R223|
+| WES                          |   £805-910 |      e.g R132|
 | WGS                          |   £1,000 |       -|
+| 24-hour urine                |  £190.50 |       Estimated from local pricing|
 
 ### Radiation Doses
 | Exposure             |     Dose |
