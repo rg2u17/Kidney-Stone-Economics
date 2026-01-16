@@ -7,9 +7,9 @@
 | General Information                       |       1 | https://github.com/rg2u17/Kidney-Stone-Economics#1-general-information |
 | Ascertainment of Current Standard of Care |       2 | https://github.com/rg2u17/Kidney-Stone-Economics#2-ascertainment-of-current-standard-of-care |
 | How to Download Model                     |       3 | https://github.com/rg2u17/Kidney-Stone-Economics#3-how-to-download-model |
-| How to Run Model                          |       4 | |
-| Assumptions                               |       5 | |
-| References                                |       6 | |
+| How to Run Model                          |       4 | https://github.com/rg2u17/Kidney-Stone-Economics#4-how-to-run-model|
+| Assumptions                               |       5 | https://github.com/rg2u17/Kidney-Stone-Economics#5-assumptions|
+| References                                |       6 | https://github.com/rg2u17/Kidney-Stone-Economics#6-references|
 
 <br>
 
