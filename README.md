@@ -1,6 +1,7 @@
 # Discrete Event Simulation of EAU Follow-up Algorithm
 ## Table of Contents
 <br>
+
 |Item                                       | Section |
 | ----------------------------------------- | ------: |
 | General Information                       |       1 |
@@ -8,6 +9,7 @@
 | How to Download Model                     |       3 |
 | Assumptions                               |       4 |
 | References                                |       5 |
+
 <br>
 
 
