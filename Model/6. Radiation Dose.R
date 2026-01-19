@@ -48,7 +48,8 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
     message("Assigning SF status as per Imaging type: (", imaging_fu_type, ")")
     # Distribute SF status as determined by imaging
     if (imaging_fu_type == "us") {
-      
+      imaging1 <- us_dose
+      imaging2 <- us_dose
       
       complete_pop_yr_fu1 <- complete_pop_yr_fu2 %>%
         mutate(
@@ -65,6 +66,8 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
           .keep = "all"
         )
     } else if (imaging_fu_type == "xr_us") {
+      imaging1 <- xr_dose
+      imaging2 <- us_dose
       
       complete_pop_yr_fu1 <- complete_pop_yr_fu2 %>%
         mutate(
@@ -88,6 +91,9 @@ calculate_radiation_doses <- function(complete_pop_yr_fu,
         )
     } else {
       # For CT imaging, no sensitivity/specificity adjustment needed
+      imaging1 <- ct_dose
+      imaging2 <- ct_dose
+      
       complete_pop_yr_fu1 <- complete_pop_yr_fu2 %>%
         mutate(
           stone_free_status_original = stone_free_status,
