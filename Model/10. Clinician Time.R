@@ -222,8 +222,8 @@ calculate_no_appts <- function(complete_pop_yr_fu,
           stone_free_status1 = case_when(
             stone_free_status_original %in% c("less4", "more4") & rand_sens <= us_sens ~ stone_free_status_original,
             stone_free_status_original %in% c("less4", "more4") & rand_sens > us_sens ~ "SF", 
-            stone_free_status_original == "sf" & rand_spec <= us_spec ~ "SF", 
-            stone_free_status_original == "sf" & rand_spec > us_spec ~ ifelse(
+            stone_free_status_original == "SF" & rand_spec <= us_spec ~ "SF", 
+            stone_free_status_original == "SF" & rand_spec > us_spec ~ ifelse(
               runif(n()) <= less4_prob, "less4", "more4"
             ),
             TRUE ~ stone_free_status_original # Handle any other cases
@@ -242,12 +242,12 @@ calculate_no_appts <- function(complete_pop_yr_fu,
             stone_free_status_original %in% c("less4", "more4") & lucency == "No" & rand_sens > xr_sens ~ "SF", 
             stone_free_status_original %in% c("less4", "more4") & lucency == "Yes" & rand_sens <= us_sens ~ stone_free_status_original,
             stone_free_status_original %in% c("less4", "more4") & lucency == "Yes" & rand_sens > us_sens ~ "SF", 
-            stone_free_status_original == "sf" & lucency == "No" & rand_spec <= xr_spec ~ "SF", 
-            stone_free_status_original == "sf" & lucency == "Yes" & rand_spec <= us_spec ~ "SF", 
-            stone_free_status_original == "sf" & lucency == "No" & rand_spec > xr_spec ~ ifelse(
+            stone_free_status_original == "SF" & lucency == "No" & rand_spec <= xr_spec ~ "SF", 
+            stone_free_status_original == "SF" & lucency == "Yes" & rand_spec <= us_spec ~ "SF", 
+            stone_free_status_original == "SF" & lucency == "No" & rand_spec > xr_spec ~ ifelse(
               runif(n()) <= less4_prob, "less4", "more4"
             ),
-            stone_free_status_original == "sf" & lucency == "Yes" & rand_spec > us_spec ~ ifelse(
+            stone_free_status_original == "SF" & lucency == "Yes" & rand_spec > us_spec ~ ifelse(
               runif(n()) <= less4_prob, "less4", "more4"
             ),
             TRUE ~ stone_free_status_original
