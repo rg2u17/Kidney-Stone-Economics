@@ -15,9 +15,9 @@
 
 
 ## 1. General Information
-This repository details the underpinning data and R code used to model the European Association of Urology Follow-up Algorithm (see figure 1). <br>
-The model examines differing types of imaging modality (X-ray, ultrasound and CT) and lengths of follow-up (as determined by the EAU Urolithiasis guidelines): <br>
+This repository details the underpinning data and R code used to model the European Association of Urology (EAU) Follow-up Algorithm (see figure 1). <br>
 <br>
+The model examines differing types of imaging modality (X-ray + ultrasound, ultrasound alone and CT) and lengths of follow-up, as defined here: <br>
 **Low risk** - 3-5 years follow-up <br>
 **High risk** - at least 5 years follow-up <br>
 Hence the time horizon for the model is 5 years <br>
@@ -35,7 +35,7 @@ The assumptions underlying the model are detailed [here](#5-assumptions) <br>
 Ascertainment of the current standard of care is detailed [here](#2-ascertainment-of-current-standard-of-care) <br>
 
 ## 2. Ascertainment of Current Standard of Care
-We utilised UK Biobank to ascertain the prognostic accuracy of the current standard of care as defined by the European Association of Urology Urolithiasis guideline (EAU risk stratification - Table 3.3: https://uroweb.org/guidelines/urolithiasis/chapter/guidelines) <br>
+We utilised UK Biobank to ascertain the prognostic accuracy of the current standard of care as defined by the EAU Urolithiasis guideline (EAU risk stratification - Table 3.3: https://uroweb.org/guidelines/urolithiasis/chapter/guidelines) <br>
 <br>
 The methodology to do this is detailed in the following link: <br>
 https://github.com/rg2u17/Recurrence_ML <br>
