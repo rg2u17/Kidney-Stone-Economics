@@ -160,14 +160,6 @@ These tables details the assumptions made by the model and the reference for tho
 | Observation         |        0% | Estimated            |
 | Colic               |        0% | Pickard et al. 2015  |
 
-### Diagnostic Accuracy - Detection of de novo stones
-| Modality    | Sensitivity | Specificity | Reference                       |
-| ----------- | ----------: | ----------: | ------------------------------- |
-| Ultrasound  |        0.54 |        0.91 | Ganesan et al. 2016             |
-| X-ray       |        0.58 |        0.76 | NICE 2019 / Fulgham et al. 2012 |
-| CT          |        0.95 |        0.98 | Coursey et al. 2012             |
-| Low-dose CT |        0.95 |        0.97 | Coursey et al. 2012             |
-
 ### Radiation Associated Malignancy - EAR model
 
 Derived from Gonzalez et al. 2012 <br>
