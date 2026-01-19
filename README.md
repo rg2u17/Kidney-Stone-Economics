@@ -46,7 +46,7 @@ Then selecting the following script: <br>
 <br>
 
 #### Definitions:
-We examined **stone event** rates at both 5 and 10 years and these are defined below: <br>
+We examined **stone event** rates at both 5 and 10 years and these are defined [here](#5-assumptions) <br>
 <br>
 **Stone Event** = renal/ureteric colic OR intervention <br>
 **Recurrence** = Subsequent stone event >6 months after previous <br>
