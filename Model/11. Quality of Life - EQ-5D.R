@@ -1077,34 +1077,34 @@ calculate_qol <- function(complete_pop_yr_fu,
     rand_sens <- runif(nrow(complete_pop_yr_fu2))
     rand_spec <- runif(nrow(complete_pop_yr_fu2))
     
+    complete_pop_yr_fu2 <- complete_pop_yr_fu2 %>%
+      cbind(
+        rand_sens = rand_sens,
+        rand_spec = rand_spec
+      )
+    
     message("Assigning SF status as per Imaging type: (", imaging_fu_type, ")")
     # Distribute SF status as determined by imaging
     if (imaging_fu_type == "us") {
+
       
-      
-      # Generate random numbers once
-      rand_sens <- runif(nrow(complete_pop_yr_fu))
-      rand_spec <- runif(nrow(complete_pop_yr_fu))
-      
-      complete_pop_yr_fu1 <- complete_pop_yr_fu %>%
+      complete_pop_yr_fu1 <- complete_pop_yr_fu2 %>%
         mutate(
           stone_free_status_original = stone_free_status,
           stone_free_status1 = case_when(
-            stone_free_status_original %in% c("less4", "more4") & rand_sens <= xr_sens ~ stone_free_status_original,
-            stone_free_status_original %in% c("less4", "more4") & rand_sens > xr_sens ~ "SF", 
-            stone_free_status_original == "sf" & rand_spec <= xr_spec ~ "SF", 
-            stone_free_status_original == "sf" & rand_spec > xr_spec ~ ifelse(
+            stone_free_status_original %in% c("less4", "more4") & rand_sens <= us_sens ~ stone_free_status_original,
+            stone_free_status_original %in% c("less4", "more4") & rand_sens > us_sens ~ "SF", 
+            stone_free_status_original == "SF" & rand_spec <= us_spec ~ "SF", 
+            stone_free_status_original == "SF" & rand_spec > us_spec ~ ifelse(
               runif(n()) <= less4_prob, "less4", "more4"
             ),
-            TRUE ~ stone_free_status_original # Handle any other cases
+            TRUE ~ stone_free_status_original 
           ),
           .keep = "all"
         )
     } else if (imaging_fu_type == "xr_us") {
-      rand_sens <- runif(nrow(complete_pop_yr_fu))
-      rand_spec <- runif(nrow(complete_pop_yr_fu))
-      
-      complete_pop_yr_fu1 <- complete_pop_yr_fu %>%
+
+        complete_pop_yr_fu1 <- complete_pop_yr_fu2 %>%
         mutate(
           stone_free_status_original = stone_free_status,
           stone_free_status1 = case_when(
@@ -1112,12 +1112,12 @@ calculate_qol <- function(complete_pop_yr_fu,
             stone_free_status_original %in% c("less4", "more4") & lucency == "No" & rand_sens > xr_sens ~ "SF", 
             stone_free_status_original %in% c("less4", "more4") & lucency == "Yes" & rand_sens <= us_sens ~ stone_free_status_original,
             stone_free_status_original %in% c("less4", "more4") & lucency == "Yes" & rand_sens > us_sens ~ "SF", 
-            stone_free_status_original == "sf" & lucency == "No" & rand_spec <= xr_spec ~ "SF", 
-            stone_free_status_original == "sf" & lucency == "Yes" & rand_spec <= us_spec ~ "SF", 
-            stone_free_status_original == "sf" & lucency == "No" & rand_spec > xr_spec ~ ifelse(
+            stone_free_status_original == "SF" & lucency == "no" & rand_spec <= xr_spec ~ "SF", 
+            stone_free_status_original == "SF" & lucency == "yes" & rand_spec <= us_spec ~ "SF", 
+            stone_free_status_original == "SF" & lucency == "no" & rand_spec > xr_spec ~ ifelse(
               runif(n()) <= less4_prob, "less4", "more4"
             ),
-            stone_free_status_original == "sf" & lucency == "Yes" & rand_spec > us_spec ~ ifelse(
+            stone_free_status_original == "SF" & lucency == "yes" & rand_spec > us_spec ~ ifelse(
               runif(n()) <= less4_prob, "less4", "more4"
             ),
             TRUE ~ stone_free_status_original
@@ -1126,7 +1126,7 @@ calculate_qol <- function(complete_pop_yr_fu,
         )
     } else {
       # For CT imaging, no sensitivity/specificity adjustment needed
-      complete_pop_yr_fu1 <- complete_pop_yr_fu %>%
+      complete_pop_yr_fu1 <- complete_pop_yr_fu2 %>%
         mutate(
           stone_free_status_original = stone_free_status,
           stone_free_status1 = stone_free_status,
@@ -1135,7 +1135,7 @@ calculate_qol <- function(complete_pop_yr_fu,
     }
     
     message("Running get_first_intervention_year function")
-    complete_pop_yr_fu1 <- complete_pop_yr_fu1 %>% 
+    complete_pop_yr_fu3 <- complete_pop_yr_fu1 %>% 
       get_first_intervention_year(
         years = 1:5,
         prefix = "colic_intervention_type_year_"
@@ -1143,7 +1143,7 @@ calculate_qol <- function(complete_pop_yr_fu,
     
     message("Running assign_qol_chunked...")
     combined_result <- assign_qol_chunked(
-      data = complete_pop_yr_fu1,
+      data = complete_pop_yr_fu3,
       mc_reps = 100,
       chunk_size = 2000,
       verbose = TRUE
@@ -1837,13 +1837,11 @@ data_for_plot_qol$cohort_type <- as.factor(data_for_plot_qol$cohort_type)
 data_for_plot_qol$risk_status <- as.factor(data_for_plot_qol$risk_status)
 data_for_plot_qol$true_rec_5yr <- as.factor(data_for_plot_qol$true_rec_5yr)
 
+## 11.7 Summarise ####
 # Summarise mean and SD by auc_label, risk_status, cohort_type
 summary_df_qol <- data_for_plot_qol %>%
   group_by(auc_label, risk_status, cohort_type) %>%
   summarise(
-    total_qol = mean(annual_qol, na.rm = TRUE),
-    total_qol_lower = quantile(annual_qol, 0.025, na.rm = TRUE),
-    total_qol_upper = quantile(annual_qol, 0.975, na.rm = TRUE),
     mean_qaly_5yr = mean(qaly_5yr, na.rm = TRUE),
     lower_qaly_5yr = quantile(qaly_5yr, 0.025, na.rm = TRUE),
     upper_qaly_5yr = quantile(qaly_5yr, 0.975, na.rm = TRUE),
@@ -1854,9 +1852,6 @@ summary_df_qol <- data_for_plot_qol %>%
 summary_all <- data_for_plot_qol %>%
   group_by(auc_label, cohort_type) %>%
   summarise(
-    total_qol = mean(annual_qol, na.rm = TRUE),
-    total_qol_lower = quantile(annual_qol, 0.025, na.rm = TRUE),
-    total_qol_upper = quantile(annual_qol, 0.975, na.rm = TRUE),
     mean_qaly_5yr = mean(qaly_5yr, na.rm = TRUE),
     lower_qaly_5yr = quantile(qaly_5yr, 0.025, na.rm = TRUE),
     upper_qaly_5yr = quantile(qaly_5yr, 0.975, na.rm = TRUE),
@@ -1866,9 +1861,6 @@ summary_all <- data_for_plot_qol %>%
 
 # Combine all summaries
 summary_df_qol <- bind_rows(summary_df_qol, summary_all)
-summary_df_qol <- summary_df_qol %>% mutate(
-  total_qol = total_qol
-)
 
 # Factor levels for ordering
 summary_df_full_qol_data_eq_5d <- summary_df_qol %>%
@@ -1890,30 +1882,7 @@ data_for_plot_qol2 <- data_for_plot_qol %>%
   )
 
 # All auc values
-auc_values <- unique(data_for_plot$auc_label)
-
-## 11.7 Plot QoL ####
-summary_df_full_qol_data_eq_5d %>% 
-  group_by(auc_label) %>%
-  ggplot(aes(x = auc_label, y = total_qol, fill = risk_status)) +
-  geom_col(
-    position = position_dodge(width = 0.8),
-    width = 0.7,
-    color = "black"
-  ) +
-  geom_errorbar(
-    aes(ymin = total_qol_lower, ymax = total_qol_upper),
-    position = position_dodge(width = 0.8),
-    width = 0.3
-  ) +
-  facet_wrap(~ cohort_type) +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        strip.text = element_text(size = 10)) +
-  labs(title = "Annual Mean EQ-5D Utility Values for EAU Follow-Up of those with Clinically Significant Disease",
-       x = "Cohort Type",
-       y = "EQ-5D Utility Values",
-       fill = "Risk Status")
+auc_values <- unique(data_for_plot_qol2$auc_label)
 
 ## 11.8 Plot QALYs ####
 summary_df_full_qol_data_eq_5d %>% 
@@ -1936,4 +1905,4 @@ summary_df_full_qol_data_eq_5d %>%
   labs(title = "Mean Quality Adjusted Life Years for EAU Follow-Up of those with Clinically Significant Disease",
        x = "Cohort Type",
        y = "Mean 5yr QALYs (EQ-5D derived)",
-       fill = "Risk Status") + ylim(0,1.1)
+       fill = "Risk Status") 
