@@ -1049,44 +1049,38 @@ calculate_qol <- function(complete_pop_yr_fu,
     rand_spec <- runif(nrow(complete_pop_yr_fu2))
     
     # Distribute SF status as determined by imaging
-    if (cached_data$imaging_fu_type == "us") {
+    if (imaging_fu_type == "us") {
       
-      # Generate random numbers once
-      rand_sens <- runif(nrow(cached_data$complete_pop_yr_fu))
-      rand_spec <- runif(nrow(cached_data$complete_pop_yr_fu))
-      
-      complete_pop_yr_fu1 <- cached_data$complete_pop_yr_fu %>%
+      complete_pop_yr_fu1 <- complete_pop_yr_fu2 %>%
         mutate(
           stone_free_status_original = stone_free_status,
           stone_free_status1 = case_when(
-            stone_free_status_original %in% c("less4", "more4") & rand_sens <= cached_data$xr_sens ~ stone_free_status_original,
-            stone_free_status_original %in% c("less4", "more4") & rand_sens > cached_data$xr_sens ~ "SF", 
-            stone_free_status_original == "SF" & rand_spec <= cached_data$xr_spec ~ "SF", 
-            stone_free_status_original == "SF" & rand_spec > cached_data$xr_spec ~ ifelse(
+            stone_free_status_original %in% c("less4", "more4") & rand_sens <= us_sens ~ stone_free_status_original,
+            stone_free_status_original %in% c("less4", "more4") & rand_sens > us_sens ~ "SF", 
+            stone_free_status_original == "SF" & rand_spec <= us_spec ~ "SF", 
+            stone_free_status_original == "SF" & rand_spec > us_spec ~ ifelse(
               runif(n()) <= cached_data$less4_prob, "less4", "more4"
             ),
             TRUE ~ stone_free_status_original
           ),
           .keep = "all"
         )
-    } else if (cached_data$imaging_fu_type == "xr_us") {
-      rand_sens <- runif(nrow(cached_data$complete_pop_yr_fu))
-      rand_spec <- runif(nrow(cached_data$complete_pop_yr_fu))
-      
-      complete_pop_yr_fu1 <- cached_data$complete_pop_yr_fu %>%
+    } else if (imaging_fu_type == "xr_us") {
+
+      complete_pop_yr_fu1 <- complete_pop_yr_fu2 %>%
         mutate(
           stone_free_status_original = stone_free_status,
           stone_free_status1 = case_when(
-            stone_free_status_original %in% c("less4", "more4") & lucency == "No" & rand_sens <= cached_data$xr_sens ~ stone_free_status_original,
-            stone_free_status_original %in% c("less4", "more4") & lucency == "No" & rand_sens > cached_data$xr_sens ~ "SF", 
-            stone_free_status_original %in% c("less4", "more4") & lucency == "Yes" & rand_sens <= cached_data$us_sens ~ stone_free_status_original,
-            stone_free_status_original %in% c("less4", "more4") & lucency == "Yes" & rand_sens > cached_data$us_sens ~ "SF", 
-            stone_free_status_original == "SF" & lucency == "No" & rand_spec <= cached_data$xr_spec ~ "SF", 
-            stone_free_status_original == "SF" & lucency == "Yes" & rand_spec <= cached_data$us_spec ~ "SF", 
-            stone_free_status_original == "SF" & lucency == "No" & rand_spec > cached_data$xr_spec ~ ifelse(
+            stone_free_status_original %in% c("less4", "more4") & lucency == "No" & rand_sens <= xr_sens ~ stone_free_status_original,
+            stone_free_status_original %in% c("less4", "more4") & lucency == "No" & rand_sens > xr_sens ~ "SF", 
+            stone_free_status_original %in% c("less4", "more4") & lucency == "Yes" & rand_sens <= us_sens ~ stone_free_status_original,
+            stone_free_status_original %in% c("less4", "more4") & lucency == "Yes" & rand_sens > us_sens ~ "SF", 
+            stone_free_status_original == "SF" & lucency == "no" & rand_spec <= xr_spec ~ "SF", 
+            stone_free_status_original == "SF" & lucency == "yes" & rand_spec <= us_spec ~ "SF", 
+            stone_free_status_original == "SF" & lucency == "no" & rand_spec > xr_spec ~ ifelse(
               runif(n()) <= cached_data$less4_prob, "less4", "more4"
             ),
-            stone_free_status_original == "SF" & lucency == "Yes" & rand_spec > cached_data$us_spec ~ ifelse(
+            stone_free_status_original == "SF" & lucency == "yes" & rand_spec > us_spec ~ ifelse(
               runif(n()) <= cached_data$less4_prob, "less4", "more4"
             ),
             TRUE ~ stone_free_status_original
@@ -1095,7 +1089,7 @@ calculate_qol <- function(complete_pop_yr_fu,
         )
     } else {
       # For CT imaging, no sensitivity/specificity adjustment needed
-      complete_pop_yr_fu1 <- cached_data$complete_pop_yr_fu %>%
+      complete_pop_yr_fu1 <- complete_pop_yr_fu2 %>%
         mutate(
           stone_free_status_original = stone_free_status,
           stone_free_status1 = stone_free_status,
@@ -1104,7 +1098,7 @@ calculate_qol <- function(complete_pop_yr_fu,
     }
     
     # Precalculate first intervention year
-    complete_pop_yr_fu1 <- complete_pop_yr_fu1 %>% 
+    complete_pop_yr_fu3 <- complete_pop_yr_fu1 %>% 
       get_first_intervention_year(
         years = 1:5,
         prefix = "colic_intervention_type_year_"
@@ -1112,7 +1106,7 @@ calculate_qol <- function(complete_pop_yr_fu,
     
     # Assign QoL scores for all years
     combined_result <- assign_qol_chunked(
-      data = complete_pop_yr_fu1,
+      data = complete_pop_yr_fu3,
       mc_reps = 100,
       chunk_size = 10,
       verbose = TRUE
@@ -1703,4 +1697,4 @@ summary_df_full_qol_data %>%
     y = "Mean QALYs over 5yrs follow-up",
     fill = "Risk Status"
   ) + 
-  ylim(0, 3.2)
+  ylim(0, 3.4)
