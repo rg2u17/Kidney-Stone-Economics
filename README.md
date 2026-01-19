@@ -30,7 +30,7 @@ The model examines both the current standard of care (see below), and multiple t
 <br>
 At present, the model only examines **one subsequent stone event** (i.e a single recurrence) <br>
 <br>
-The assumptions underlying the model are detailed in ```factor levels.docx```, which is also appended to the end of this ReadMe. <br>
+The assumptions underlying the model are detailed below <br>
 
 Ascertainment of the current standard of care is detailed below: <br>
 
@@ -38,7 +38,7 @@ Ascertainment of the current standard of care is detailed below: <br>
 We utilised UK Biobank to ascertain the prognostic accuracy of the current standard of care (EAU risk stratification - Table 3.3: https://uroweb.org/guidelines/urolithiasis/chapter/guidelines) <br>
 <br>
 The methodology to do this is detailed in the following link: <br>
-https://github.com/rg2u17/Recurrence_genomics <br>
+https://github.com/rg2u17/Recurrence_ML <br>
 <br>
 Then selecting the following script: <br>
 <br>
