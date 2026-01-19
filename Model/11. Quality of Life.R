@@ -1071,10 +1071,10 @@ calculate_qol <- function(complete_pop_yr_fu,
         mutate(
           stone_free_status_original = stone_free_status,
           stone_free_status1 = case_when(
-            stone_free_status_original %in% c("less4", "more4") & lucency == "No" & rand_sens <= xr_sens ~ stone_free_status_original,
-            stone_free_status_original %in% c("less4", "more4") & lucency == "No" & rand_sens > xr_sens ~ "SF", 
-            stone_free_status_original %in% c("less4", "more4") & lucency == "Yes" & rand_sens <= us_sens ~ stone_free_status_original,
-            stone_free_status_original %in% c("less4", "more4") & lucency == "Yes" & rand_sens > us_sens ~ "SF", 
+            stone_free_status_original %in% c("less4", "more4") & lucency == "no" & rand_sens <= xr_sens ~ stone_free_status_original,
+            stone_free_status_original %in% c("less4", "more4") & lucency == "no" & rand_sens > xr_sens ~ "SF", 
+            stone_free_status_original %in% c("less4", "more4") & lucency == "yes" & rand_sens <= us_sens ~ stone_free_status_original,
+            stone_free_status_original %in% c("less4", "more4") & lucency == "yes" & rand_sens > us_sens ~ "SF", 
             stone_free_status_original == "SF" & lucency == "no" & rand_spec <= xr_spec ~ "SF", 
             stone_free_status_original == "SF" & lucency == "yes" & rand_spec <= us_spec ~ "SF", 
             stone_free_status_original == "SF" & lucency == "no" & rand_spec > xr_spec ~ ifelse(
