@@ -35,7 +35,7 @@ The assumptions underlying the model are detailed below <br>
 Ascertainment of the current standard of care is detailed below: <br>
 
 ## 2. Ascertainment of Current Standard of Care
-We utilised UK Biobank to ascertain the prognostic accuracy of the current standard of care (EAU risk stratification - Table 3.3: https://uroweb.org/guidelines/urolithiasis/chapter/guidelines) <br>
+We utilised UK Biobank to ascertain the prognostic accuracy of the current standard of care as defined by the European Association of Urology Urolithiasis guideline (EAU risk stratification - Table 3.3: https://uroweb.org/guidelines/urolithiasis/chapter/guidelines) <br>
 <br>
 The methodology to do this is detailed in the following link: <br>
 https://github.com/rg2u17/Recurrence_ML <br>
