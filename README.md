@@ -30,7 +30,7 @@ The model examines both the current standard of care (see below), and multiple t
 <br>
 At present, the model only examines **one subsequent stone event** (i.e a single recurrence) <br>
 <br>
-The assumptions underlying the model are detailed below <br>
+The assumptions underlying the model are detailed [here](#5-assumptions) <br>
 
 Ascertainment of the current standard of care is detailed below: <br>
 
