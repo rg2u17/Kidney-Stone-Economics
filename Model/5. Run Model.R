@@ -153,6 +153,50 @@ complete_2020_pop <- simulate_complete_population_distribution(total_patients = 
 
 ### 5.3 Simulate Follow-up ####
 #### 5.3.1 2016 ####
+cache_colic_intervention_rates <- function(
+    complete_pop,
+    rates = c(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+    year,
+    cache_dir = "cache",
+    overwrite = FALSE
+) {
+  
+  if (!dir.exists(cache_dir)) {
+    dir.create(cache_dir, recursive = TRUE)
+  }
+  
+  cache_file <- file.path(
+    cache_dir,
+    sprintf(
+      "complete_pop_%s_fu_intervention_rates_%s.rds",
+      year,
+      paste(rates, collapse = "-")
+    )
+  )
+  
+  if (!file.exists(cache_file) || overwrite) {
+    
+    message("Running colic_intervention_rates_function for year ", year)
+    
+    complete_pop <- colic_intervention_rates_function(
+      complete_pop,
+      rates,
+      year = year
+    )
+    
+    saveRDS(complete_pop, cache_file)
+    
+  } else {
+    
+    message("Loading cached intervention rates for year ", year)
+    complete_pop <- readRDS(cache_file)
+    
+  }
+  
+  return(complete_pop)
+}
+
+
 complete_pop_2016_fu <- complete_fu_simulation_over_time(original_data = complete_2016_pop,
                                                          score_data_auc = scores_2016,
                                                          target_auc = c(0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9, 0.95),
@@ -160,9 +204,12 @@ complete_pop_2016_fu <- complete_fu_simulation_over_time(original_data = complet
                                                          death_rates_ons,
                                                          base_year = 6)
 
-complete_pop_2016_fu <- colic_intervention_rates_function(complete_pop_2016_fu,
-                                                          c(0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9, 0.95),
-                                                          year = 2016) 
+complete_pop_2016_fu <- cache_colic_intervention_rates(
+  complete_pop = complete_pop_2016_fu,
+  year = 2016
+)
+
+
 
 
 #### 5.3.2 2017 ####
@@ -173,9 +220,10 @@ complete_pop_2017_fu <- complete_fu_simulation_over_time(original_data = complet
                                                          death_rates_ons,
                                                          base_year = 7)
 
-complete_pop_2017_fu <- colic_intervention_rates_function(complete_pop_2017_fu,
-                                                          c(0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9, 0.95),
-                                                          year = 2017) 
+complete_pop_2017_fu <- cache_colic_intervention_rates(
+  complete_pop = complete_pop_2017_fu,
+  year = 2017
+)
 
 #### 5.3.3 2018 ####
 complete_pop_2018_fu <- complete_fu_simulation_over_time(original_data = complete_2018_pop,
@@ -185,10 +233,10 @@ complete_pop_2018_fu <- complete_fu_simulation_over_time(original_data = complet
                                                          death_rates_ons,
                                                          base_year = 8)
 
-complete_pop_2018_fu <- colic_intervention_rates_function(complete_pop_2018_fu,
-                                                          c(0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9, 0.95),
-                                                          year = 2018) 
-
+complete_pop_2018_fu <- cache_colic_intervention_rates(
+  complete_pop = complete_pop_2018_fu,
+  year = 2018
+)
 #### 5.3.4 2019 ####
 complete_pop_2019_fu <- complete_fu_simulation_over_time(original_data = complete_2019_pop,
                                                          score_data_auc = scores_2019,
@@ -197,9 +245,10 @@ complete_pop_2019_fu <- complete_fu_simulation_over_time(original_data = complet
                                                          death_rates_ons,
                                                          base_year = 9)
 
-complete_pop_2019_fu <- colic_intervention_rates_function(complete_pop_2019_fu,
-                                                          c(0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9, 0.95),
-                                                          year = 2019) 
+complete_pop_2019_fu <- cache_colic_intervention_rates(
+  complete_pop = complete_pop_2019_fu,
+  year = 2019
+)
 
 #### 5.3.5 2020 ####
 complete_pop_2020_fu <- complete_fu_simulation_over_time(original_data = complete_2020_pop,
@@ -209,9 +258,10 @@ complete_pop_2020_fu <- complete_fu_simulation_over_time(original_data = complet
                                                          death_rates_ons,
                                                          base_year = 10)
 
-complete_pop_2020_fu <- colic_intervention_rates_function(complete_pop_2020_fu,
-                                                          c(0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9, 0.95),
-                                                          year = 2020) 
+complete_pop_2020_fu <- cache_colic_intervention_rates(
+  complete_pop = complete_pop_2020_fu,
+  year = 2020
+)
 
 ## 5.4 Plot outputs ####
 ### 5.4.1 Build function to get recurrence/survivors percentages ####
@@ -553,7 +603,7 @@ ggplot(final_summary_2020, aes(x = year, y = percentage, color = status, shape =
   )
 
 
-#### 5.4.3.4 For 2020 - Check SF status + Recurrecen rates ####
+#### 5.4.3.4 For 2020 - Check SF status + Recurrence rates ####
 # Process data with combined stone_free_status and risk_group
 grouped_data <- complete_pop_2020_fu %>% 
   group_by(auc_target, stone_free_status)
