@@ -32,7 +32,7 @@ At present, the model only examines **one subsequent stone event** (i.e a single
 <br>
 The assumptions underlying the model are detailed [here](#5-assumptions) <br>
 
-Ascertainment of the current standard of care is detailed below: <br>
+Ascertainment of the current standard of care is detailed [here](#2-ascertainment-of-current-standard-of-care) <br>
 
 ## 2. Ascertainment of Current Standard of Care
 We utilised UK Biobank to ascertain the prognostic accuracy of the current standard of care as defined by the European Association of Urology Urolithiasis guideline (EAU risk stratification - Table 3.3: https://uroweb.org/guidelines/urolithiasis/chapter/guidelines) <br>
