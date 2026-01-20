@@ -132,6 +132,11 @@ These tables details the assumptions made by the model and the reference for tho
 |              | 2018 | 18,964 |           |
 |              | 2019 | 19,957 |           |
 |              | 2020 | 13,000 |           |
+| Colic        | 2016 | 39,941 | HES       |
+|              | 2017 | 40,702 |           |
+|              | 2018 | 40,524 |           |
+|              | 2019 | 41,936 |           |
+|              | 2020 | 41,556 |           |
 
 
 ### Stone Free Rates
