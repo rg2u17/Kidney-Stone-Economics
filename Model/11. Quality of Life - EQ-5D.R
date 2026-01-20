@@ -15,6 +15,7 @@ library(eq5d)
 library(matrixStats)
 library(future)
 library(furrr)
+library(progressr)
 
 # The commented code has been included for transparency as to how 
 # the EQ-5D data has been summarised - summarised datasets have been 
@@ -580,16 +581,23 @@ get_first_intervention_year <- function(df,
                                         prefix = "colic_intervention_type_year_") {
   cols <- paste0(prefix, years)
   
-  df %>%
-    rowwise() %>%
-    mutate(
-      first_intervention_year = {
-        values <- c_across(all_of(cols))
-        idx <- which(!is.na(values) & values != "No")
-        if (length(idx) == 0) NA_integer_ else idx[1]
-      }
-    ) %>%
-    ungroup()
+  with_progress({
+    p <- progressor(steps = 1)
+    
+    # Extract intervention columns as matrix for vectorized operations
+    intervention_matrix <- as.matrix(df[, cols])
+    
+    # Vectorized: find first non-NA, non-"No" intervention
+    first_year <- apply(intervention_matrix, 1, function(row) {
+      idx <- which(!is.na(row) & row != "No")
+      if (length(idx) == 0) NA_integer_ else idx[1]
+    })
+    
+    df$first_intervention_year <- first_year
+    p()  # Mark complete
+    
+    return(df)
+  })
 }
 
 ### 11.3.3 Adjust anxiety dimension based on clinical factors ####
@@ -746,13 +754,22 @@ assign_baseline_qol <- function(df,
     left_join(df_assignments, by = "id") 
   
   message("✅ Baseline QoL assignment complete")
+
+  # Once finalised - get first intervention year for whole dataset - saves computation later on
+  message("Running get_first_intervention_year function for whole dataset")
+  df_final <- df_final %>% 
+    get_first_intervention_year(
+      years = 1:5,
+      prefix = "colic_intervention_type_year_"
+    )
+  
   return(df_final)
 }
 
 ### 11.3.5 Assign QOL function with profile-based adjustments -  ####
 assign_qol_chunked <- function(data,
                                baseline_qol_profiles = eq_5d_profiles_by_age_stone_free,
-                               dimension_changes = eq_5d_dimension_changes,
+                               utility_changes = eq_5d_change_with_rx,  
                                year_cols = c(1,2,3,4,5),
                                mc_reps = 100,
                                ci_level = 0.95,
@@ -763,10 +780,10 @@ assign_qol_chunked <- function(data,
   vcat <- function(...) if (verbose) message(...)
   
   data <- as_tibble(data)
-  dimension_changes <- as_tibble(dimension_changes)
+  utility_changes <- as_tibble(utility_changes)  
   
   setDT(data)
-  setDT(dimension_changes)
+  setDT(utility_changes)  
   
   n <- nrow(data)
   total_chunks <- ceiling(n / chunk_size)
@@ -804,9 +821,6 @@ assign_qol_chunked <- function(data,
       chunk[[paste0("age_bin_fu_year_", fu_year)]] <- temp_df$age_bin
     }
     
-    # Precalculate first intervention year
-    chunk <- get_first_intervention_year(chunk, years = 1:5)
-    
     # Process all follow-up years
     for (fu_year in 1:5) {
       
@@ -825,17 +839,14 @@ assign_qol_chunked <- function(data,
         chunk$.is_dead[is.na(chunk$.is_dead)] <- FALSE
       }
       
-      # Join dimension changes
-      temp_changes <- dimension_changes %>%
+      # Join utility changes
+      temp_changes <- utility_changes %>%
         select(intervention, stone_free_status_pre,
-               mobility_mean_change, mobility_sd_change,
-               pain_mean_change, pain_sd_change) %>%
+               qol_change, qol_sd) %>%
         rename(!!intervention_col := intervention,
                stone_free_status1 = stone_free_status_pre,
-               mobility_change = mobility_mean_change,
-               mobility_sd = mobility_sd_change,
-               pain_change = pain_mean_change,
-               pain_sd = pain_sd_change)
+               utility_change = qol_change,
+               utility_sd = qol_sd)
       
       chunk <- chunk %>%
         left_join(temp_changes, by = c(intervention_col, "stone_free_status1"))
@@ -847,27 +858,63 @@ assign_qol_chunked <- function(data,
         !is.na(chunk$first_intervention_year) & 
         chunk$first_intervention_year <= fu_year
       
-      # VECTORIZED intervention effects
+      # Calculate baseline utility for patients receiving intervention
+      chunk$baseline_utility <- ifelse(
+        chunk$had_intervention,
+        get_utility_fast(
+          chunk[[prev_mobility]],
+          chunk[[prev_selfcare]],
+          chunk[[prev_usual_act]],
+          chunk[[prev_pain]],
+          chunk[[prev_anxiety]]
+        ),
+        NA_real_
+      )
+      
+      # Sample utility change from distribution
+      chunk$sampled_utility_change <- ifelse(
+        chunk$had_intervention & !is.na(chunk$utility_change),
+        rnorm(chunk_n, chunk$utility_change, chunk$utility_sd),
+        0
+      )
+      
+      # Calculate target utility
+      chunk$target_utility <- chunk$baseline_utility + chunk$sampled_utility_change
+      
+      # Split the utility change proportionally between mobility and pain
+      # Assume 60% mobility, 40% pain based on typical EQ-5D sensitivity
+      chunk$mobility_prop_change <- chunk$sampled_utility_change * 0.6
+      chunk$pain_prop_change <- chunk$sampled_utility_change * 0.4
+      
+      # Convert proportional changes to approximate dimension changes
+      # assumed that ~0.1 utility ≈ 1 dimension level for mobility/pain - so adjusting dimensions based on that assumption
+      chunk$mobility_dim_change <- ifelse(
+        chunk$had_intervention,
+        round(chunk$mobility_prop_change / 0.1),
+        0
+      )
+      
+      chunk$pain_dim_change <- ifelse(
+        chunk$had_intervention,
+        round(chunk$pain_prop_change / 0.1),
+        0
+      )
+      
+      # Apply dimension changes
       # Mobility
       mob_base <- chunk[[prev_mobility]]
-      mob_change <- ifelse(chunk$had_intervention & !is.na(chunk$mobility_change),
-                           round(rnorm(chunk_n, chunk$mobility_change, chunk$mobility_sd)),
-                           0)
       chunk[[paste0("mobility_year_", fu_year)]] <- ifelse(
         chunk$.is_dead,
         NA_integer_,
-        pmax(1, pmin(5, as.integer(mob_base + mob_change)))
+        pmax(1, pmin(5, as.integer(mob_base + chunk$mobility_dim_change)))
       )
       
       # Pain
       pain_base <- chunk[[prev_pain]]
-      pain_change <- ifelse(chunk$had_intervention & !is.na(chunk$pain_change),
-                            round(rnorm(chunk_n, chunk$pain_change, chunk$pain_sd)),
-                            0)
       chunk[[paste0("pain_year_", fu_year)]] <- ifelse(
         chunk$.is_dead,
         NA_integer_,
-        pmax(1, pmin(5, as.integer(pain_base + pain_change)))
+        pmax(1, pmin(5, as.integer(pain_base + chunk$pain_dim_change)))
       )
       
       # Self-care and usual activities (no change)
@@ -932,6 +979,13 @@ assign_qol_chunked <- function(data,
           paste0("anxiety_year_", fu_year)
         )]
         
+        # Convert to numeric and handle NAs
+        dims_alive <- lapply(dims_alive, function(x) {
+          x <- as.numeric(x)
+          x[is.na(x)] <- 3  
+          return(x)
+        })
+        
         # Pre-allocate matrix
         mc_utils <- matrix(NA, nrow = n_alive, ncol = mc_reps_actual)
         
@@ -952,10 +1006,12 @@ assign_qol_chunked <- function(data,
         chunk[[paste0("qol_se_year_", fu_year)]][alive_mask] <- rowSds(mc_utils)
       }
       
-      # Clean up
+      # Clean up temporary columns
       chunk <- chunk %>%
-        select(-mobility_change, -mobility_sd, -pain_change, -pain_sd, 
-               -had_intervention, -.is_dead)
+        select(-utility_change, -utility_sd, -had_intervention, -.is_dead,
+               -baseline_utility, -sampled_utility_change, -target_utility,
+               -mobility_prop_change, -pain_prop_change, 
+               -mobility_dim_change, -pain_dim_change)
     }
     
     results_list[[chunk_idx]] <- chunk
@@ -973,7 +1029,6 @@ assign_qol_chunked <- function(data,
   
   bind_rows(results_list)
 }
-
 ### 11.3.6 Function to calculate scores over years #### 
 calculate_qol <- function(complete_pop_yr_fu,
                           cutpoints_yr,
@@ -1001,6 +1056,8 @@ calculate_qol <- function(complete_pop_yr_fu,
     dir.create(cache_dir, recursive = TRUE)
     message("Created cache directory: ", cache_dir)
   }
+  
+  
   
   results_list <- list()
   post_op_imaging <- post_op_imaging[1]
@@ -1037,11 +1094,12 @@ calculate_qol <- function(complete_pop_yr_fu,
             ", Follow-up Type: ", fu_type,
             ", Follow-up Imaging: ", imaging_fu_type,
             " and Post-Operative Imaging: ", post_op_imaging)
+
     
     # Filter
     complete_pop_yr_fu2 <- complete_pop_yr_fu %>%
       filter(auc_target == !!target_auc)
-    
+  
     # Check if filtering worked
     if (nrow(complete_pop_yr_fu2) == 0) {
       warning("No data found for AUC target: ", target_auc)
@@ -1098,7 +1156,7 @@ calculate_qol <- function(complete_pop_yr_fu,
             stone_free_status_original == "SF" & rand_spec > us_spec ~ ifelse(
               runif(n()) <= less4_prob, "less4", "more4"
             ),
-            TRUE ~ stone_free_status_original 
+            TRUE ~ NA_character_ 
           ),
           .keep = "all"
         )
@@ -1120,7 +1178,7 @@ calculate_qol <- function(complete_pop_yr_fu,
             stone_free_status_original == "SF" & lucency == "yes" & rand_spec > us_spec ~ ifelse(
               runif(n()) <= less4_prob, "less4", "more4"
             ),
-            TRUE ~ stone_free_status_original
+            TRUE ~ NA_character_
           ),
           .keep = "all"
         )
@@ -1134,16 +1192,10 @@ calculate_qol <- function(complete_pop_yr_fu,
         )
     }
     
-    message("Running get_first_intervention_year function")
-    complete_pop_yr_fu3 <- complete_pop_yr_fu1 %>% 
-      get_first_intervention_year(
-        years = 1:5,
-        prefix = "colic_intervention_type_year_"
-      )
     
     message("Running assign_qol_chunked...")
     combined_result <- assign_qol_chunked(
-      data = complete_pop_yr_fu3,
+      data = complete_pop_yr_fu1,
       mc_reps = 100,
       chunk_size = 2000,
       verbose = TRUE
@@ -1190,7 +1242,7 @@ calculate_qol <- function(complete_pop_yr_fu,
         qol_mean_year_4,
         qol_mean_year_5,
         qaly_5yr
-      )
+      ) %>% drop_na(qol_mean_year_5)
     
     # Save to cache
     if (use_cache) {
