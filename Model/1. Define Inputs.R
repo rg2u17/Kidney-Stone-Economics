@@ -350,6 +350,7 @@ hes_data_elective_emergency <- hes_data_elective_emergency %>% left_join(
   )
 
 
+
 # Define total numbers entering models
 total_n_2016 <- 552890
 total_n_2017 <- 556195
@@ -375,23 +376,23 @@ clinically_signif_sf_n_2018 <- 57985
 clinically_signif_sf_n_2019 <- 59255
 clinically_signif_sf_n_2020 <- 50783
 
-### 1.7 Costs derived from NHS National tariff 2022-23 Annex A unless otherwise specified ####
+### 1.7 Costs derived from NHS Payment System 25/26 unless otherwise specified ####
 # Clinic costs
-initial_consultation_cost <- 145  # First appointment
-clinic_review_cost <- 71  # Follow-up appointment
-imaging_cost <- 27  # Direct access plain film X-ray (as per 22-23 non mandatory guide prices)
-us_cost <- 43 # Ultrasound Scan with duration of less than 20 minutes, without Contrast (RD40Z)
-ct_cost <-  69 # Computerised Tomography Scan of One Area, without Contrast, 19 years and over (RD20A)
-urine_24_hr_cost <- 190.5
+initial_consultation_cost <- 165  # First Urology appointment (101; WF01B)
+clinic_review_cost <- 81  # Follow-up Urology appointment (101; WF01A)
+imaging_cost <- 31  # Direct access plain film X-ray 
+us_cost <- 62 # Ultrasound Scan with duration of less than 20 minutes, without Contrast (RD42Z)
+ct_cost <-  79+24 # Computerised Tomography Scan of One Area, without Contrast, 19 years and over (RD20A)
+urine_24_hr_cost <- 190.5 # Estimated from local pricing
 
 # Intervention Costs
-eswl_cost <- 445 * 2  # assume 2 ESWL treatments (LB36Z)
-urs_cost <- 2386  # median cost for URS (LB65D)
-pcnl_cost <- 4548  # cost for CC 0-2 (LB75B)
-stent_cost <- 822 # intermediate endoscopic bladder procedures (LB14Z)
+eswl_cost <- 516 * 2  # assume 2 ESWL treatments (LB36Z)
+urs_cost <- 2458  # lowest cost for URS (LB65E)
+pcnl_cost <- 5274  # cost for CC 0-2 (LB75B)
+stent_cost <- 954 # intermediate endoscopic bladder procedures (LB14Z)
 
 # Acute presentation costs
-ed_presentation_cost <- 288 #  Category 3 Investigation with Category 1-3 Treatment
+ed_presentation_cost <- 396 #  Category 3 Investigation with Category 1-3 Treatment (VB03Z)
 
 # Costs associated with 'low risk' disease (as per EAU) - XR FU
 year_1_lr_sf_fu_cost_xr <- 2 * (clinic_review_cost + imaging_cost)
@@ -1810,3 +1811,20 @@ fu_appts <- as_tibble(cbind(
   ),
   imaging_type = "ct"
 )) %>% select(point_and_type_of_fu, imaging_type, appts)
+
+### 1.10 Estimate costs for cohort ####
+hes_data_elective_emergency %>%
+  drop_na(colic_n) %>%
+  mutate(
+    cost = (pcnl * pcnl_cost) + (eswl * eswl_cost) + (urs * urs_cost) + (colic_n * ed_presentation_cost),
+    treatment_cost = (pcnl * pcnl_cost) + (eswl * eswl_cost) + (urs * urs_cost),
+    colic_cost = (colic_n * ed_presentation_cost)
+  ) %>%
+  summarise(
+    mean_cost = mean(cost),
+    cost_sd = sd(cost),
+    treatment_cost_mean = mean(treatment_cost),
+    treatment_cost_sd = sd(treatment_cost),
+    colic_cost_mean = mean(colic_cost),
+    colic_cost_sd = sd(colic_cost)
+  ) %>% gt()
