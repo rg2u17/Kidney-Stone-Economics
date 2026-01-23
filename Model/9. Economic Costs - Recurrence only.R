@@ -690,7 +690,7 @@ calculate_economic_costs_rec_only <- function(complete_pop_yr_fu,
 
 ### 6.2.5 Run function for each year ####
 #### 6.2.5.1 2016 ####
-costs_rec_only_2016_us_min <- calculate_economic_costs_rec_only(
+costs_2016_rec_only_us_min <- calculate_economic_costs_rec_only(
   complete_pop_yr_fu = complete_pop_2016_fu,
   cutpoints_yr = cutpoints_2016,
   year = 2016,
