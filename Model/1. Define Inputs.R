@@ -382,7 +382,7 @@ initial_consultation_cost <- 165  # First Urology appointment (101; WF01B)
 clinic_review_cost <- 81  # Follow-up Urology appointment (101; WF01A)
 imaging_cost <- 31  # Direct access plain film X-ray 
 us_cost <- 62 # Ultrasound Scan with duration of less than 20 minutes, without Contrast (RD42Z)
-ct_cost <-  79+24 # Computerised Tomography Scan of One Area, without Contrast, 19 years and over (RD20A)
+ct_cost <- 79 # Computerised Tomography Scan of One Area, without Contrast, 19 years and over (RD20A)
 urine_24_hr_cost <- 190.5 # Estimated from local pricing
 
 # Intervention Costs
