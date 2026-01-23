@@ -1218,6 +1218,13 @@ calculate_qol <- function(complete_pop_yr_fu,
     message("Calculating QALYs for AUC:", target_auc)
     combined_result <- combined_result %>%
       mutate(
+        qol_mean_year_0 = baseline_qol_mean,
+        # Discount QoL values
+        qol_mean_year_1 = qol_mean_year_1 * 1.035,
+        qol_mean_year_2 = qol_mean_year_2 * (1.035 ^ 2),
+        qol_mean_year_3 = qol_mean_year_3 * (1.035 ^ 3),
+        qol_mean_year_4 = qol_mean_year_4 * (1.035 ^ 4),
+        qol_mean_year_5 = qol_mean_year_5 * (1.035 ^ 5),
         qaly_5yr = rowSums(select(., starts_with("qol_mean_year_")), na.rm = TRUE),
         risk_status = case_when(
           prediction == "No" ~ "Low Risk",
