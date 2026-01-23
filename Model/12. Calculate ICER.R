@@ -12,6 +12,7 @@ library(purrr)
 library(future)
 library(furrr)
 library(boot)
+library(patchwork)
 
 ## 12.2 Sort Cost data ####
 ### 12.2.1 Function to strip out auc, id and qalys ####
@@ -242,10 +243,10 @@ strip_out_qol <- function(data) {
           
           # Calculate 5-year QALY (excluding baseline year 0)
           qaly_5yr = case_when(
-            qol_mean_year_1 > 2 ~ (qol_mean_year_1 / 60) + (qol_mean_year_2 / 60) + 
-              (qol_mean_year_3 / 60) + (qol_mean_year_4 / 60) + 
-              (qol_mean_year_5 / 60),
-            TRUE ~ qol_mean_year_1 + qol_mean_year_2 + qol_mean_year_3 + 
+            qol_mean_year_1 > 2 ~ ((60 - qol_mean_year_1) / 60) + ((60 - qol_mean_year_2) / 60) +
+              ((60 - qol_mean_year_3) / 60) + ((60 - qol_mean_year_4) / 60) +
+              ((60 - qol_mean_year_5) / 60),
+            TRUE ~ qol_mean_year_1 + qol_mean_year_2 + qol_mean_year_3 +
               qol_mean_year_4 + qol_mean_year_5
           )
         )
@@ -342,7 +343,7 @@ aggregate_qol_and_cost_cohorts <- function(auc_target = c(1,2,3,4,5,6,7,8,9)) {
                                     costs_2016_xr_us_min_stripped[[key]],
                                     by = "id") %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
     cohort_2016_max_us <- left_join(qol_2016_us_max_stripped[[key]],
-                                    costs_2016_xr_max_stripped[[key]],
+                                    costs_2016_us_max_stripped[[key]],
                                     by = "id") %>% mutate(cohort_type = "Maximum FU, US", auc = i)
     cohort_2016_max_ct <- left_join(qol_2016_ct_max_stripped[[key]],
                                     costs_2016_ct_max_stripped[[key]],
