@@ -1066,7 +1066,7 @@ calculate_qol <- function(complete_pop_yr_fu,
           .keep = "all"
         )
     } else if (imaging_fu_type == "xr_us") {
-      
+
       complete_pop_yr_fu1 <- complete_pop_yr_fu2 %>%
         mutate(
           stone_free_status_original = stone_free_status,
