@@ -666,7 +666,8 @@ assign_qol_chunked <- function(data,
     # Get baseline QoL distribution parameters (for regenerating samples when age bin changes)
     chunk <- chunk %>%
       left_join(
-        baseline_qol %>% select(age_bin, stone_free_status, total_mean, total_sd),
+        baseline_qol %>% 
+          select(age_bin, stone_free_status, total_mean, total_sd) ,
         by = c("baseline_age_bin" = "age_bin", "stone_free_status")
       )
     
@@ -756,7 +757,7 @@ assign_qol_chunked <- function(data,
         mutate(
           !!paste0("qol_samples_year_", fu_year) := pmap(
             list(
-              total_mean, total_sd, stone_free_status, prediction, 
+              total_mean, total_sd, stone_free_status1, prediction, 
               first_intervention_year, .data[[intervention_col]],
               .data[[prev_age_bin]], .data[[current_age_bin]],
               .data[[prev_qol_samples]], .data[[prev_qol_mean]],
@@ -1066,7 +1067,7 @@ calculate_qol <- function(complete_pop_yr_fu,
           .keep = "all"
         )
     } else if (imaging_fu_type == "xr_us") {
-
+      
       complete_pop_yr_fu1 <- complete_pop_yr_fu2 %>%
         mutate(
           stone_free_status_original = stone_free_status,
@@ -1126,10 +1127,10 @@ calculate_qol <- function(complete_pop_yr_fu,
       mutate(
         qaly_5yr = 
           ((60 - qol_mean_year_1) / 60) +
-          (((60 - qol_mean_year_2) / 60) * 1.035) +
-          (((60 - qol_mean_year_3) / 60) * 1.035 ^ 2) +
-          (((60 - qol_mean_year_4) / 60) * 1.035 ^ 3) +
-          (((60 - qol_mean_year_5) / 60) * 1.035 ^ 4),
+          (((60 - qol_mean_year_2) / 60) / 1.035) +
+          (((60 - qol_mean_year_3) / 60) / 1.035 ^ 2) +
+          (((60 - qol_mean_year_4) / 60) / 1.035 ^ 3) +
+          (((60 - qol_mean_year_5) / 60) / 1.035 ^ 4),
         risk_status = case_when(prediction == "No" ~ "Low Risk",
                                 prediction == "Yes" ~ "High Risk",
                                 TRUE ~ NA_character_),
