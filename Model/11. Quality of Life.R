@@ -604,14 +604,14 @@ get_first_intervention_year <- function(df,
   df
 }
 
-### 11.3.4 Assign QOL function ####
+### 11.3.4 Assign QOL function with NEW adjustment logic - USIQoL ####
 assign_qol_chunked <- function(data,
                                baseline_qol = usiqol_metrics_by_age_stone_free_status,
                                event_qol_change = usiqol_change_with_rx,
                                year_cols = c(1,2,3,4,5),
                                mc_reps = 100,
                                ci_level = 0.95,
-                               chunk_size = 10,  
+                               chunk_size = 10,
                                verbose = TRUE) {
   
   max_qol <- 60
@@ -631,6 +631,7 @@ assign_qol_chunked <- function(data,
     idx_start <- (i - 1) * rows_per_chunk + 1
     idx_end <- min(i * rows_per_chunk, n)
     chunk <- data[idx_start:idx_end, ]
+    chunk_n <- nrow(chunk)
     
     if (verbose) {
       pct <- round(i / total_chunks * 100)
@@ -663,53 +664,40 @@ assign_qol_chunked <- function(data,
         select(-age_fu)
     }
     
-    # Get baseline QoL distribution parameters (for regenerating samples when age bin changes)
+    # Get baseline QoL distribution parameters
     chunk <- chunk %>%
       left_join(
         baseline_qol %>% 
-          select(age_bin, stone_free_status, total_mean, total_sd) ,
+          select(age_bin, stone_free_status, total_mean, total_sd),
         by = c("baseline_age_bin" = "age_bin", "stone_free_status")
       )
     
-    # Helper function to apply QoL adjustments to individual MC samples
-    apply_qol_adjustments <- function(samples, stone_free_status, prediction, 
-                                      first_intervention_year, current_year) {
-      adjusted <- samples
-      
-      # Base adjustments
-      if (!is.na(stone_free_status) && stone_free_status != "SF") {
-        adjusted <- adjusted + 1
-      }
-      
-      if (!is.na(prediction)) {
-        if (prediction == "Yes") {
-          adjusted <- adjusted + 1
-        } else if (prediction == "No") {
-          adjusted <- adjusted - 1
-        }
-      }
-      
-      # Intervention-specific adjustments for follow-up years
-      if (!is.na(first_intervention_year) && !is.na(current_year) && current_year > 0) {
-        if (first_intervention_year < current_year + 1) {
-          if (!is.na(stone_free_status) && !is.na(prediction)) {
-            if (stone_free_status == "SF" && prediction == "No") {
-              adjusted <- adjusted + 3
-            } else if (stone_free_status != "SF" && prediction == "No") {
-              adjusted <- adjusted + 1
-            } else if (stone_free_status == "SF" && prediction == "Yes") {
-              adjusted <- adjusted + 2
-            } else if (stone_free_status != "SF" && prediction == "Yes") {
-              adjusted <- adjusted + 1
-            }
-          }
-        }
-      }
-      
-      return(adjusted)
-    }
+    # ==== APPLY ONE-TIME BASELINE ADJUSTMENTS ====
+    # Calculate adjustment amount
     
-    # Create baseline QoL samples from existing mean/lower/upper for propagation
+    baseline_adjustment <- rep(0, chunk_n)
+    
+    # Imaging adjustment (one-time at baseline)
+    # Only CT + SF: -1 (confident stone-free diagnosis)
+    # All other combinations have no adjustment (baseline already based on XR/US)
+    baseline_adjustment[!is.na(chunk$imaging_fu_type) & 
+                          chunk$imaging_fu_type == "ct" &
+                          !is.na(chunk$stone_free_status1) & 
+                          chunk$stone_free_status1 == "SF"] <- -1
+    
+    # Risk adjustments (one-time at baseline)
+    # High risk: +1
+    baseline_adjustment[!is.na(chunk$prediction) & chunk$prediction == "Yes"] <- 
+      baseline_adjustment[!is.na(chunk$prediction) & chunk$prediction == "Yes"] + 1
+    
+    # Low risk: -1
+    baseline_adjustment[!is.na(chunk$prediction) & chunk$prediction == "No"] <- 
+      baseline_adjustment[!is.na(chunk$prediction) & chunk$prediction == "No"] - 1
+    
+    # Apply baseline adjustments (cap at 15-60 range)
+    chunk$baseline_qol_mean <- pmin(max_qol, pmax(15, chunk$baseline_qol_mean + baseline_adjustment))
+    
+    # Create baseline QoL samples for propagation
     chunk <- chunk %>%
       mutate(
         baseline_qol_samples = pmap(
@@ -717,20 +705,19 @@ assign_qol_chunked <- function(data,
           function(mean_val, lower_val, upper_val) {
             if (is.na(mean_val)) return(rep(NA_real_, mc_reps))
             
-            # Estimate SD from CI range (assuming normal distribution)
-            # CI range ≈ 2 * 1.96 * SD for 95% CI
+            # Estimate SD from CI range
             estimated_sd <- (upper_val - lower_val) / (2 * qnorm(1 - alpha))
             
             # Generate samples
             samples <- rnorm(mc_reps, mean_val, estimated_sd)
             
             # Apply bounds
-            pmin(max_qol, pmax(0, samples))
+            pmin(max_qol, pmax(15, samples))
           }
         )
       )
     
-    # Follow-up years with adjustments
+    # Follow-up years
     for (fu_year in 1:5) {
       
       death_col <- paste0("death_year_", fu_year)
@@ -741,7 +728,7 @@ assign_qol_chunked <- function(data,
       current_age_bin <- paste0("age_bin_fu_year_", fu_year)
       intervention_col <- paste0("colic_intervention_type_year_", fu_year)
       
-      # Join intervention change data for this year
+      # Join intervention change data - use TRUE stone-free status
       chunk <- chunk %>%
         left_join(
           event_qol_change %>% 
@@ -749,7 +736,7 @@ assign_qol_chunked <- function(data,
             rename(!!paste0("intervention_qol_change_", fu_year) := qol_change,
                    !!paste0("intervention_qol_sd_", fu_year) := qol_sd),
           by = c(setNames("intervention", intervention_col),
-                 setNames("stone_free_status_pre", "stone_free_status1"))
+                 setNames("stone_free_status_pre", "stone_free_status"))
         )
       
       # Generate QoL samples for this year
@@ -763,54 +750,81 @@ assign_qol_chunked <- function(data,
               .data[[prev_qol_samples]], .data[[prev_qol_mean]],
               .data[[paste0("intervention_qol_change_", fu_year)]],
               .data[[paste0("intervention_qol_sd_", fu_year)]],
-              .data[[death_col]]  
+              .data[[death_col]],
+              .data[["imaging_fu_type"]],
+              .data[["baseline_qol_mean"]]
             ),
-            function(mean_val, sd_val, sf_status, pred, first_interv, interv_type,
+            function(mean_val, sd_val, sf_status1, pred, first_interv, interv_type,
                      prev_bin, curr_bin, prev_samples, prev_mean,
-                     interv_change, interv_sd, death_status) {
+                     interv_change, interv_sd, death_status, img_type, baseline_with_adj) {
               
               if (!is.na(death_status) && death_status == "Yes") {
                 return(rep(0, mc_reps))  
               }
               
-              # Case 1: Intervention in this year - apply intervention-based QoL change
+              # CASE 1: Age bin changed - reset to baseline with imaging/risk adjustments
+              if (!is.na(prev_bin) && !is.na(curr_bin) && prev_bin != curr_bin && fu_year > 1) {
+                
+                if (is.na(mean_val) || is.na(sd_val)) {
+                  return(prev_samples)
+                }
+                
+                # Generate raw samples from new age bin distribution
+                raw_samples <- rnorm(mc_reps, mean_val, sd_val)
+                
+                # Reapply baseline adjustments
+                baseline_adj <- 0
+                
+                # Imaging adjustment: Only CT + SF: -1
+                if (!is.na(img_type) && img_type == "ct" && !is.na(sf_status1) && sf_status1 == "SF") {
+                  baseline_adj <- baseline_adj - 1
+                }
+                
+                # Risk adjustments
+                if (!is.na(pred)) {
+                  if (pred == "Yes") {
+                    baseline_adj <- baseline_adj + 1
+                  } else if (pred == "No") {
+                    baseline_adj <- baseline_adj - 1
+                  }
+                }
+                
+                adjusted_samples <- raw_samples + baseline_adj
+                return(pmin(max_qol, pmax(15, adjusted_samples)))
+              }
+              
+              # CASE 2: Intervention in this year
               if (!is.na(interv_type) && interv_type != "No" && 
                   !is.na(first_interv) && first_interv == fu_year) {
                 
-                # If we have intervention change data, apply it
+                # Apply intervention change
                 if (!is.na(interv_change) && !is.na(interv_sd)) {
-                  # Generate change samples from intervention distribution
                   change_samples <- rnorm(mc_reps, interv_change, interv_sd)
-                  
-                  # Apply change to previous QoL samples
                   new_samples <- prev_samples + change_samples
                   
-                  # Apply bounds
-                  return(pmin(max_qol, pmax(0, new_samples)))
+                  # Add intervention shock
+                  shock <- 0
+                  if (!is.na(sf_status1) && !is.na(pred)) {
+                    if (sf_status1 == "SF" && pred == "No") {
+                      shock <- 4  # SF + Low risk
+                    } else if (sf_status1 == "SF" && pred == "Yes") {
+                      shock <- 2  # SF + High risk
+                    } else if (sf_status1 != "SF" && pred == "No") {
+                      shock <- 2  # Not SF + Low risk
+                    } else if (sf_status1 != "SF" && pred == "Yes") {
+                      shock <- 1  # Not SF + High risk
+                    }
+                  }
+                  
+                  adjusted_samples <- new_samples + shock
+                  return(pmin(max_qol, pmax(15, adjusted_samples)))
                 } else {
-                  # No intervention data available - keep previous QoL
                   return(prev_samples)
                 }
               }
               
-              # Case 2: Age bin hasn't changed - keep previous QoL
-              if (!is.na(prev_bin) && !is.na(curr_bin) && prev_bin == curr_bin) {
-                return(prev_samples)
-              }
-              
-              # Case 3: Age bin changed - regenerate with adjustments
-              if (is.na(mean_val) || is.na(sd_val)) return(prev_samples)
-              
-              # Generate raw samples from new age bin distribution
-              raw_samples <- rnorm(mc_reps, mean_val, sd_val)
-              
-              # Apply prediction-based adjustments
-              adjusted_samples <- apply_qol_adjustments(
-                raw_samples, sf_status, pred, first_interv, current_year = fu_year
-              )
-              
-              # Apply bounds
-              pmin(max_qol, pmax(0, adjusted_samples))
+              # CASE 3: No intervention, same age - carry forward
+              return(prev_samples)
             }
           ),
           !!paste0("qol_mean_year_", fu_year) := map_dbl(
@@ -835,7 +849,7 @@ assign_qol_chunked <- function(data,
                -!!paste0("intervention_qol_sd_", fu_year))
     }
     
-    # Remove all sample columns to save memory (keep only summary stats)
+    # Remove all sample columns to save memory
     sample_cols <- c("baseline_qol_samples", paste0("qol_samples_year_", 1:5))
     chunk <- chunk %>% select(-any_of(sample_cols))
     
@@ -1103,7 +1117,8 @@ calculate_qol <- function(complete_pop_yr_fu,
       get_first_intervention_year(
         years = 1:5,
         prefix = "colic_intervention_type_year_"
-      )
+      ) %>%
+      mutate(imaging_fu_type = cached_data$imaging_fu_type)
     
     # Assign QoL scores for all years
     combined_result <- assign_qol_chunked(
