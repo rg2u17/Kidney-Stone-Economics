@@ -224,6 +224,8 @@ library(progressr)
 #  anxiety_sd_change = sd(anxiety_change, na.rm = TRUE)
 #), by = .(intervention, stone_free_status_pre)]
 
+
+
 #write.csv(eq_5d_dimension_changes,
 #          "eq_5d_dimension_changes.csv")
 
@@ -286,30 +288,38 @@ mean_change_sd_1 <- eq_5d_change_with_rx %>%
 mean_change_sd <- mean_change_sd_1$qol_sd 
 
 # Complete dataset for dimension changes
+default_values <- eq_5d_dimension_changes %>%
+  as_tibble() %>%
+  summarise(
+    mobility_mean_change_default = mean(mobility_mean_change, na.rm = TRUE),
+    mobility_sd_change_default = mean(mobility_sd_change, na.rm = TRUE),
+    selfcare_mean_change_default = mean(selfcare_mean_change, na.rm = TRUE),
+    selfcare_sd_change_default = mean(selfcare_sd_change, na.rm = TRUE),
+    usual_act_mean_change_default = mean(usual_act_mean_change, na.rm = TRUE),
+    usual_act_sd_change_default = mean(usual_act_sd_change, na.rm = TRUE),
+    pain_mean_change_default = mean(pain_mean_change, na.rm = TRUE),
+    pain_sd_change_default = mean(pain_sd_change, na.rm = TRUE),
+    anxiety_mean_change_default = mean(anxiety_mean_change, na.rm = TRUE),
+    anxiety_sd_change_default = mean(anxiety_sd_change, na.rm = TRUE)
+  )
+
 eq_5d_dimension_changes <- as_tibble(eq_5d_dimension_changes) %>%
   drop_na(intervention) %>%
-  mutate(
-    intervention = factor(intervention, levels = c(
-      "Colic",
-      "ESWL",
-      "URS",
-      "PCNL"
-    ))
-  ) %>%
+  mutate(intervention = factor(intervention, levels = c("Colic", "ESWL", "URS", "PCNL"))) %>%
   complete(
     intervention,
     stone_free_status_pre = c("more4", "less4", "SF"),
     fill = list(
-      mobility_mean_change = 0,
-      mobility_sd_change = 0.5,
-      selfcare_mean_change = 0,
-      selfcare_sd_change = 0.3,
-      usual_act_mean_change = 0,
-      usual_act_sd_change = 0.5,
-      pain_mean_change = -0.5,
-      pain_sd_change = 0.7,
-      anxiety_mean_change = -0.3,
-      anxiety_sd_change = 0.6
+      mobility_mean_change = default_values$mobility_mean_change_default,
+      mobility_sd_change = default_values$mobility_sd_change_default,
+      selfcare_mean_change = default_values$selfcare_mean_change_default,
+      selfcare_sd_change = default_values$selfcare_sd_change_default,
+      usual_act_mean_change = default_values$usual_act_mean_change_default,
+      usual_act_sd_change = default_values$usual_act_sd_change_default,
+      pain_mean_change = default_values$pain_mean_change_default,
+      pain_sd_change = default_values$pain_sd_change_default,
+      anxiety_mean_change = default_values$anxiety_mean_change_default,
+      anxiety_sd_change = default_values$anxiety_sd_change_default
     )
   )
 
@@ -533,7 +543,7 @@ get_utility_fast <- function(mobility, selfcare, usual_act, pain, anxiety) {
   EQ5D_LOOKUP[profile_str]
 }
 
-### 11.3.1 Assign Age helper function -  ####
+### 11.3.1 Assign Age helper function ####
 assign_age_helper <- function(data,
                               baseline = TRUE,
                               fu_years = NULL) {
@@ -600,37 +610,7 @@ get_first_intervention_year <- function(df,
   })
 }
 
-### 11.3.3 Adjust anxiety dimension based on clinical factors ####
-### 11.3.3 Adjust anxiety dimension - VECTORIZED VERSION ####
-adjust_anxiety_dimension_vectorized <- function(anxiety_level, stone_free_status, prediction, 
-                                                first_intervention_year, current_year,
-                                                had_intervention) {
-  
-  # Initialize with base anxiety
-  adjustment <- rep(0, length(anxiety_level))
-  
-  # Stone not free adjustment
-  adjustment[!is.na(stone_free_status) & stone_free_status != "SF"] <- 
-    adjustment[!is.na(stone_free_status) & stone_free_status != "SF"] + 1
-  
-  # Prediction adjustments
-  adjustment[!is.na(prediction) & prediction == "Yes"] <- 
-    adjustment[!is.na(prediction) & prediction == "Yes"] + 1
-  adjustment[!is.na(prediction) & prediction == "No"] <- 
-    adjustment[!is.na(prediction) & prediction == "No"] - 1
-  
-  # Intervention adjustments
-  if (any(had_intervention, na.rm = TRUE)) {
-    idx_sf_no <- had_intervention & !is.na(stone_free_status) & stone_free_status == "SF" & 
-      !is.na(prediction) & prediction == "No"
-    adjustment[idx_sf_no] <- adjustment[idx_sf_no] - 1
-  }
-  
-  new_level <- anxiety_level + adjustment
-  return(pmax(1, pmin(5, as.integer(new_level))))
-}
-
-### 11.3.4 Pre-assign baseline EQ-5D PROFILES per unique id -  #### 
+### 11.3.3 Pre-assign baseline EQ-5D PROFILES per unique id ####
 assign_baseline_qol <- function(df,
                                 baseline_qol_profiles = eq_5d_profiles_by_age_stone_free,
                                 n_sim = 500,
@@ -754,7 +734,7 @@ assign_baseline_qol <- function(df,
     left_join(df_assignments, by = "id") 
   
   message("✅ Baseline QoL assignment complete")
-
+  
   # Once finalised - get first intervention year for whole dataset - saves computation later on
   message("Running get_first_intervention_year function for whole dataset")
   df_final <- df_final %>% 
@@ -766,10 +746,10 @@ assign_baseline_qol <- function(df,
   return(df_final)
 }
 
-### 11.3.5 Assign QOL function with profile-based adjustments -  ####
+### 11.3.4 Assign QOL function with NEW adjustment logic ####
 assign_qol_chunked <- function(data,
                                baseline_qol_profiles = eq_5d_profiles_by_age_stone_free,
-                               utility_changes = eq_5d_change_with_rx,  
+                               dimension_changes = eq_5d_dimension_changes,
                                year_cols = c(1,2,3,4,5),
                                mc_reps = 100,
                                ci_level = 0.95,
@@ -780,10 +760,10 @@ assign_qol_chunked <- function(data,
   vcat <- function(...) if (verbose) message(...)
   
   data <- as_tibble(data)
-  utility_changes <- as_tibble(utility_changes)  
+  dimension_changes <- as_tibble(dimension_changes)
   
   setDT(data)
-  setDT(utility_changes)  
+  setDT(dimension_changes)
   
   n <- nrow(data)
   total_chunks <- ceiling(n / chunk_size)
@@ -821,6 +801,47 @@ assign_qol_chunked <- function(data,
       chunk[[paste0("age_bin_fu_year_", fu_year)]] <- temp_df$age_bin
     }
     
+    # ==== APPLY ONE-TIME BASELINE ADJUSTMENTS TO BASELINE ANXIETY ====
+    # These are applied once to baseline_anxiety and then carried through
+    
+    baseline_anxiety_adjustment <- rep(0, chunk_n)
+    
+    # Imaging adjustment (one-time at baseline)
+    # Only CT + SF: -1 (confident stone-free diagnosis)
+    # All other combinations have no adjustment (baseline already based on XR/US)
+    baseline_anxiety_adjustment[!is.na(chunk$imaging_fu_type) & 
+                                  chunk$imaging_fu_type == "ct" &
+                                  !is.na(chunk$stone_free_status1) & 
+                                  chunk$stone_free_status1 == "SF"] <- -1
+    
+    # Risk adjustments (one-time at baseline)
+    # High risk: +1
+    baseline_anxiety_adjustment[!is.na(chunk$prediction) & chunk$prediction == "Yes"] <- 
+      baseline_anxiety_adjustment[!is.na(chunk$prediction) & chunk$prediction == "Yes"] + 1
+    
+    # Low risk: -1
+    baseline_anxiety_adjustment[!is.na(chunk$prediction) & chunk$prediction == "No"] <- 
+      baseline_anxiety_adjustment[!is.na(chunk$prediction) & chunk$prediction == "No"] - 1
+    
+    # Apply baseline adjustments to baseline anxiety
+    adjusted_baseline_anxiety <- chunk$baseline_anxiety + baseline_anxiety_adjustment
+    
+    # Handle baseline anxiety overflow (>5) → 80% usual activities, 20% self-care
+    baseline_anxiety_overflow <- pmax(0, adjusted_baseline_anxiety - 5)
+    chunk$baseline_anxiety <- pmin(5, pmax(1, as.integer(round(adjusted_baseline_anxiety))))
+    
+    # Redistribute baseline overflow
+    baseline_usual_act_overflow <- baseline_anxiety_overflow * 0.8
+    baseline_selfcare_overflow <- baseline_anxiety_overflow * 0.2
+    
+    chunk$baseline_usual_act <- pmin(5, pmax(1, as.integer(round(
+      chunk$baseline_usual_act + baseline_usual_act_overflow
+    ))))
+    
+    chunk$baseline_selfcare <- pmin(5, pmax(1, as.integer(round(
+      chunk$baseline_selfcare + baseline_selfcare_overflow
+    ))))
+    
     # Process all follow-up years
     for (fu_year in 1:5) {
       
@@ -839,112 +860,245 @@ assign_qol_chunked <- function(data,
         chunk$.is_dead[is.na(chunk$.is_dead)] <- FALSE
       }
       
-      # Join utility changes
-      temp_changes <- utility_changes %>%
-        select(intervention, stone_free_status_pre,
-               qol_change, qol_sd) %>%
-        rename(!!intervention_col := intervention,
-               stone_free_status1 = stone_free_status_pre,
-               utility_change = qol_change,
-               utility_sd = qol_sd)
+      # Check if age band changed
+      prev_age_bin_col <- if (fu_year == 1) "baseline_age_bin" else paste0("age_bin_fu_year_", fu_year - 1)
+      curr_age_bin_col <- paste0("age_bin_fu_year_", fu_year)
+      chunk$age_band_changed <- chunk[[prev_age_bin_col]] != chunk[[curr_age_bin_col]]
       
-      chunk <- chunk %>%
-        left_join(temp_changes, by = c(intervention_col, "stone_free_status1"))
-      
-      # VECTORIZED had_intervention
-      chunk$had_intervention <- !chunk$.is_dead & 
+      # Check if intervention occurs THIS YEAR
+      chunk$had_intervention_this_year <- !chunk$.is_dead & 
         !is.na(chunk[[intervention_col]]) & 
         chunk[[intervention_col]] != "No" &
         !is.na(chunk$first_intervention_year) & 
-        chunk$first_intervention_year <= fu_year
+        chunk$first_intervention_year == fu_year
       
-      # Calculate baseline utility for patients receiving intervention
-      chunk$baseline_utility <- ifelse(
-        chunk$had_intervention,
-        get_utility_fast(
-          chunk[[prev_mobility]],
-          chunk[[prev_selfcare]],
-          chunk[[prev_usual_act]],
-          chunk[[prev_pain]],
-          chunk[[prev_anxiety]]
-        ),
-        NA_real_
-      )
+      # ==== DETERMINE WHICH CASE APPLIES ====
       
-      # Sample utility change from distribution
-      chunk$sampled_utility_change <- ifelse(
-        chunk$had_intervention & !is.na(chunk$utility_change),
-        rnorm(chunk_n, chunk$utility_change, chunk$utility_sd),
-        0
-      )
+      # Case 1: Age band changed → Reset to baseline + adjustments (lose intervention effects)
+      if_age_changed <- chunk$age_band_changed & fu_year > 1
       
-      # Calculate target utility
-      chunk$target_utility <- chunk$baseline_utility + chunk$sampled_utility_change
+      # Case 2: Intervention this year → Apply intervention changes + shock
+      if_intervention <- chunk$had_intervention_this_year
       
-      # Split the utility change proportionally between mobility and pain
-      # Assume 60% mobility, 40% pain based on typical EQ-5D sensitivity
-      chunk$mobility_prop_change <- chunk$sampled_utility_change * 0.6
-      chunk$pain_prop_change <- chunk$sampled_utility_change * 0.4
+      # Case 3: Normal carry forward (no age change, no intervention)
+      if_carry_forward <- !if_age_changed & !if_intervention & !chunk$.is_dead
       
-      # Convert proportional changes to approximate dimension changes
-      # assumed that ~0.1 utility ≈ 1 dimension level for mobility/pain - so adjusting dimensions based on that assumption
-      chunk$mobility_dim_change <- ifelse(
-        chunk$had_intervention,
-        round(chunk$mobility_prop_change / 0.1),
-        0
-      )
+      # ==== CASE 1: AGE BAND CHANGED - RESET TO BASELINE ====
+      # Reset all dimensions to baseline for new age + re-apply baseline adjustments
       
-      chunk$pain_dim_change <- ifelse(
-        chunk$had_intervention,
-        round(chunk$pain_prop_change / 0.1),
-        0
-      )
-      
-      # Apply dimension changes
-      # Mobility
-      mob_base <- chunk[[prev_mobility]]
       chunk[[paste0("mobility_year_", fu_year)]] <- ifelse(
-        chunk$.is_dead,
-        NA_integer_,
-        pmax(1, pmin(5, as.integer(mob_base + chunk$mobility_dim_change)))
+        chunk$.is_dead, NA_integer_,
+        ifelse(if_age_changed, as.integer(chunk$baseline_mobility), NA_integer_)
       )
       
-      # Pain
-      pain_base <- chunk[[prev_pain]]
-      chunk[[paste0("pain_year_", fu_year)]] <- ifelse(
-        chunk$.is_dead,
-        NA_integer_,
-        pmax(1, pmin(5, as.integer(pain_base + chunk$pain_dim_change)))
-      )
-      
-      # Self-care and usual activities (no change)
       chunk[[paste0("selfcare_year_", fu_year)]] <- ifelse(
-        chunk$.is_dead,
-        NA_integer_,
-        as.integer(chunk[[prev_selfcare]])
+        chunk$.is_dead, NA_integer_,
+        ifelse(if_age_changed, as.integer(chunk$baseline_selfcare), NA_integer_)
       )
       
       chunk[[paste0("usual_act_year_", fu_year)]] <- ifelse(
-        chunk$.is_dead,
-        NA_integer_,
-        as.integer(chunk[[prev_usual_act]])
+        chunk$.is_dead, NA_integer_,
+        ifelse(if_age_changed, as.integer(chunk$baseline_usual_act), NA_integer_)
       )
       
-      # VECTORIZED anxiety adjustment
+      chunk[[paste0("pain_year_", fu_year)]] <- ifelse(
+        chunk$.is_dead, NA_integer_,
+        ifelse(if_age_changed, as.integer(chunk$baseline_pain), NA_integer_)
+      )
+      
       chunk[[paste0("anxiety_year_", fu_year)]] <- ifelse(
-        chunk$.is_dead,
-        NA_integer_,
-        adjust_anxiety_dimension_vectorized(
-          chunk[[prev_anxiety]],
-          chunk$stone_free_status,
-          chunk$prediction,
-          chunk$first_intervention_year,
-          fu_year,
-          chunk$had_intervention
-        )
+        chunk$.is_dead, NA_integer_,
+        ifelse(if_age_changed, as.integer(chunk$baseline_anxiety), NA_integer_)
       )
       
-      # VECTORIZED utility calculation
+      # ==== CASE 2: INTERVENTION THIS YEAR ====
+      
+      if (any(if_intervention, na.rm = TRUE)) {
+        
+        # Join intervention-specific dimension changes (based on TRUE stone-free status)
+        temp_dim_changes <- dimension_changes %>%
+          select(intervention, stone_free_status_pre,
+                 mobility_mean_change, mobility_sd_change,
+                 selfcare_mean_change, selfcare_sd_change,
+                 usual_act_mean_change, usual_act_sd_change,
+                 pain_mean_change, pain_sd_change,
+                 anxiety_mean_change, anxiety_sd_change) %>%
+          rename(!!intervention_col := intervention)
+        
+        chunk <- chunk %>%
+          left_join(temp_dim_changes, by = c(intervention_col, 
+                                             "stone_free_status" = "stone_free_status_pre"))
+        
+        # Sample intervention-specific dimension changes
+        mobility_change <- ifelse(
+          if_intervention & !is.na(chunk$mobility_mean_change),
+          rnorm(chunk_n, chunk$mobility_mean_change, chunk$mobility_sd_change),
+          0
+        )
+        
+        selfcare_change <- ifelse(
+          if_intervention & !is.na(chunk$selfcare_mean_change),
+          rnorm(chunk_n, chunk$selfcare_mean_change, chunk$selfcare_sd_change),
+          0
+        )
+        
+        usual_act_change <- ifelse(
+          if_intervention & !is.na(chunk$usual_act_mean_change),
+          rnorm(chunk_n, chunk$usual_act_mean_change, chunk$usual_act_sd_change),
+          0
+        )
+        
+        pain_change <- ifelse(
+          if_intervention & !is.na(chunk$pain_mean_change),
+          rnorm(chunk_n, chunk$pain_mean_change, chunk$pain_sd_change),
+          0
+        )
+        
+        anxiety_intervention_change <- ifelse(
+          if_intervention & !is.na(chunk$anxiety_mean_change),
+          rnorm(chunk_n, chunk$anxiety_mean_change, chunk$anxiety_sd_change),
+          0
+        )
+        
+        # Apply intervention changes to dimensions
+        chunk[[paste0("mobility_year_", fu_year)]] <- ifelse(
+          if_intervention,
+          pmax(1, pmin(5, as.integer(round(chunk[[prev_mobility]] + mobility_change)))),
+          chunk[[paste0("mobility_year_", fu_year)]]
+        )
+        
+        chunk[[paste0("selfcare_year_", fu_year)]] <- ifelse(
+          if_intervention,
+          pmax(1, pmin(5, as.integer(round(chunk[[prev_selfcare]] + selfcare_change)))),
+          chunk[[paste0("selfcare_year_", fu_year)]]
+        )
+        
+        chunk[[paste0("usual_act_year_", fu_year)]] <- ifelse(
+          if_intervention,
+          pmax(1, pmin(5, as.integer(round(chunk[[prev_usual_act]] + usual_act_change)))),
+          chunk[[paste0("usual_act_year_", fu_year)]]
+        )
+        
+        chunk[[paste0("pain_year_", fu_year)]] <- ifelse(
+          if_intervention,
+          pmax(1, pmin(5, as.integer(round(chunk[[prev_pain]] + pain_change)))),
+          chunk[[paste0("pain_year_", fu_year)]]
+        )
+        
+        # ANXIETY: Apply intervention change + intervention shock adjustment
+        intervention_shock <- rep(0, chunk_n)
+        
+        # SF + Low risk: +4
+        intervention_shock[if_intervention & 
+                             !is.na(chunk$stone_free_status1) & chunk$stone_free_status1 == "SF" &
+                             !is.na(chunk$prediction) & chunk$prediction == "No"] <- 4
+        
+        # SF + High risk: +2
+        intervention_shock[if_intervention & 
+                             !is.na(chunk$stone_free_status1) & chunk$stone_free_status1 == "SF" &
+                             !is.na(chunk$prediction) & chunk$prediction == "Yes"] <- 2
+        
+        # Not SF + Low risk: +2
+        intervention_shock[if_intervention & 
+                             !is.na(chunk$stone_free_status1) & chunk$stone_free_status1 != "SF" &
+                             !is.na(chunk$prediction) & chunk$prediction == "No"] <- 2
+        
+        # Not SF + High risk: +1
+        intervention_shock[if_intervention & 
+                             !is.na(chunk$stone_free_status1) & chunk$stone_free_status1 != "SF" &
+                             !is.na(chunk$prediction) & chunk$prediction == "Yes"] <- 1
+        
+        # Calculate new anxiety with intervention change + shock
+        new_anxiety_intervention <- chunk[[prev_anxiety]] + anxiety_intervention_change + intervention_shock
+        
+        # Capture intervention overflow (>5) → 50% pain, 50% mobility
+        intervention_anxiety_overflow <- pmax(0, new_anxiety_intervention - 5)
+        
+        chunk[[paste0("anxiety_year_", fu_year)]] <- ifelse(
+          if_intervention,
+          pmax(1, pmin(5, as.integer(round(new_anxiety_intervention)))),
+          chunk[[paste0("anxiety_year_", fu_year)]]
+        )
+        
+        # Redistribute intervention overflow
+        if (any(intervention_anxiety_overflow > 0, na.rm = TRUE)) {
+          pain_overflow <- intervention_anxiety_overflow * 0.5
+          mobility_overflow <- intervention_anxiety_overflow * 0.5
+          
+          # Add overflow to pain
+          pain_with_overflow <- chunk[[paste0("pain_year_", fu_year)]]
+          pain_with_overflow[if_intervention] <- pmax(1, pmin(5, as.integer(round(
+            pain_with_overflow[if_intervention] + pain_overflow[if_intervention]
+          ))))
+          chunk[[paste0("pain_year_", fu_year)]] <- pain_with_overflow
+          
+          # Add overflow to mobility
+          mobility_with_overflow <- chunk[[paste0("mobility_year_", fu_year)]]
+          mobility_with_overflow[if_intervention] <- pmax(1, pmin(5, as.integer(round(
+            mobility_with_overflow[if_intervention] + mobility_overflow[if_intervention]
+          ))))
+          chunk[[paste0("mobility_year_", fu_year)]] <- mobility_with_overflow
+        }
+        
+        # Clean up temporary columns
+        chunk <- chunk %>%
+          select(-mobility_mean_change, -mobility_sd_change,
+                 -selfcare_mean_change, -selfcare_sd_change,
+                 -usual_act_mean_change, -usual_act_sd_change,
+                 -pain_mean_change, -pain_sd_change,
+                 -anxiety_mean_change, -anxiety_sd_change)
+      }
+      
+      # ==== CASE 3: CARRY FORWARD (no age change, no intervention) ====
+      
+      chunk[[paste0("mobility_year_", fu_year)]] <- ifelse(
+        if_carry_forward & is.na(chunk[[paste0("mobility_year_", fu_year)]]),
+        as.integer(chunk[[prev_mobility]]),
+        chunk[[paste0("mobility_year_", fu_year)]]
+      )
+      
+      chunk[[paste0("selfcare_year_", fu_year)]] <- ifelse(
+        if_carry_forward & is.na(chunk[[paste0("selfcare_year_", fu_year)]]),
+        as.integer(chunk[[prev_selfcare]]),
+        chunk[[paste0("selfcare_year_", fu_year)]]
+      )
+      
+      chunk[[paste0("usual_act_year_", fu_year)]] <- ifelse(
+        if_carry_forward & is.na(chunk[[paste0("usual_act_year_", fu_year)]]),
+        as.integer(chunk[[prev_usual_act]]),
+        chunk[[paste0("usual_act_year_", fu_year)]]
+      )
+      
+      chunk[[paste0("pain_year_", fu_year)]] <- ifelse(
+        if_carry_forward & is.na(chunk[[paste0("pain_year_", fu_year)]]),
+        as.integer(chunk[[prev_pain]]),
+        chunk[[paste0("pain_year_", fu_year)]]
+      )
+      
+      chunk[[paste0("anxiety_year_", fu_year)]] <- ifelse(
+        if_carry_forward & is.na(chunk[[paste0("anxiety_year_", fu_year)]]),
+        as.integer(chunk[[prev_anxiety]]),
+        chunk[[paste0("anxiety_year_", fu_year)]]
+      )
+      
+      # Handle dead patients
+      chunk[[paste0("mobility_year_", fu_year)]] <- ifelse(
+        chunk$.is_dead, NA_integer_, chunk[[paste0("mobility_year_", fu_year)]]
+      )
+      chunk[[paste0("selfcare_year_", fu_year)]] <- ifelse(
+        chunk$.is_dead, NA_integer_, chunk[[paste0("selfcare_year_", fu_year)]]
+      )
+      chunk[[paste0("usual_act_year_", fu_year)]] <- ifelse(
+        chunk$.is_dead, NA_integer_, chunk[[paste0("usual_act_year_", fu_year)]]
+      )
+      chunk[[paste0("pain_year_", fu_year)]] <- ifelse(
+        chunk$.is_dead, NA_integer_, chunk[[paste0("pain_year_", fu_year)]]
+      )
+      chunk[[paste0("anxiety_year_", fu_year)]] <- ifelse(
+        chunk$.is_dead, NA_integer_, chunk[[paste0("anxiety_year_", fu_year)]]
+      )
+      
+      # ==== CONVERT FINAL DIMENSIONS TO UTILITY ====
       chunk[[paste0("qol_mean_year_", fu_year)]] <- ifelse(
         chunk$.is_dead,
         0,
@@ -957,20 +1111,17 @@ assign_qol_chunked <- function(data,
         )
       )
       
-      # SIMPLIFIED Monte Carlo for CI - only for alive patients
+      # ==== MONTE CARLO FOR CONFIDENCE INTERVALS ====
       alive_mask <- !chunk$.is_dead
       n_alive <- sum(alive_mask)
       
-      # Initialize with zeros
       chunk[[paste0("qol_lower_year_", fu_year)]] <- 0
       chunk[[paste0("qol_upper_year_", fu_year)]] <- 0
       chunk[[paste0("qol_se_year_", fu_year)]] <- 0
       
       if (n_alive > 0 && mc_reps > 0) {
-        # Use REDUCED mc_reps for speed (50 instead of 100)
         mc_reps_actual <- min(50, mc_reps)
         
-        # Extract dimensions for alive patients
         dims_alive <- chunk[alive_mask, c(
           paste0("mobility_year_", fu_year),
           paste0("selfcare_year_", fu_year),
@@ -979,17 +1130,14 @@ assign_qol_chunked <- function(data,
           paste0("anxiety_year_", fu_year)
         )]
         
-        # Convert to numeric and handle NAs
         dims_alive <- lapply(dims_alive, function(x) {
           x <- as.numeric(x)
           x[is.na(x)] <- 3  
           return(x)
         })
         
-        # Pre-allocate matrix
         mc_utils <- matrix(NA, nrow = n_alive, ncol = mc_reps_actual)
         
-        # Vectorized Monte Carlo
         for (mc in 1:mc_reps_actual) {
           mob_sim <- pmax(1, pmin(5, round(rnorm(n_alive, dims_alive[[1]], 0.3))))
           sc_sim <- pmax(1, pmin(5, round(rnorm(n_alive, dims_alive[[2]], 0.2))))
@@ -1000,7 +1148,6 @@ assign_qol_chunked <- function(data,
           mc_utils[, mc] <- get_utility_fast(mob_sim, sc_sim, ua_sim, pn_sim, anx_sim)
         }
         
-        # Calculate CI for alive patients
         chunk[[paste0("qol_lower_year_", fu_year)]][alive_mask] <- rowQuantiles(mc_utils, probs = alpha)
         chunk[[paste0("qol_upper_year_", fu_year)]][alive_mask] <- rowQuantiles(mc_utils, probs = 1 - alpha)
         chunk[[paste0("qol_se_year_", fu_year)]][alive_mask] <- rowSds(mc_utils)
@@ -1008,10 +1155,7 @@ assign_qol_chunked <- function(data,
       
       # Clean up temporary columns
       chunk <- chunk %>%
-        select(-utility_change, -utility_sd, -had_intervention, -.is_dead,
-               -baseline_utility, -sampled_utility_change, -target_utility,
-               -mobility_prop_change, -pain_prop_change, 
-               -mobility_dim_change, -pain_dim_change)
+        select(-had_intervention_this_year, -.is_dead, -age_band_changed)
     }
     
     results_list[[chunk_idx]] <- chunk
@@ -1023,13 +1167,13 @@ assign_qol_chunked <- function(data,
            round(as.numeric(est_remaining), 1), " sec")
     }
     
-    # Force garbage collection between chunks
     gc(verbose = FALSE)
   }
   
   bind_rows(results_list)
 }
-### 11.3.6 Function to calculate scores over years #### 
+
+### 11.3.5 Function to calculate scores over years #### 
 calculate_qol <- function(complete_pop_yr_fu,
                           cutpoints_yr,
                           start_year,
@@ -1056,8 +1200,6 @@ calculate_qol <- function(complete_pop_yr_fu,
     dir.create(cache_dir, recursive = TRUE)
     message("Created cache directory: ", cache_dir)
   }
-  
-  
   
   results_list <- list()
   post_op_imaging <- post_op_imaging[1]
@@ -1094,12 +1236,12 @@ calculate_qol <- function(complete_pop_yr_fu,
             ", Follow-up Type: ", fu_type,
             ", Follow-up Imaging: ", imaging_fu_type,
             " and Post-Operative Imaging: ", post_op_imaging)
-
+    
     
     # Filter
     complete_pop_yr_fu2 <- complete_pop_yr_fu %>%
       filter(auc_target == !!target_auc)
-  
+    
     # Check if filtering worked
     if (nrow(complete_pop_yr_fu2) == 0) {
       warning("No data found for AUC target: ", target_auc)
@@ -1144,7 +1286,6 @@ calculate_qol <- function(complete_pop_yr_fu,
     message("Assigning SF status as per Imaging type: (", imaging_fu_type, ")")
     # Distribute SF status as determined by imaging
     if (imaging_fu_type == "us") {
-
       
       complete_pop_yr_fu1 <- complete_pop_yr_fu2 %>%
         mutate(
@@ -1158,11 +1299,12 @@ calculate_qol <- function(complete_pop_yr_fu,
             ),
             TRUE ~ NA_character_ 
           ),
+          imaging_fu_type = !!imaging_fu_type,  # ADD IMAGING TYPE HERE
           .keep = "all"
         )
     } else if (imaging_fu_type == "xr_us") {
-
-        complete_pop_yr_fu1 <- complete_pop_yr_fu2 %>%
+      
+      complete_pop_yr_fu1 <- complete_pop_yr_fu2 %>%
         mutate(
           stone_free_status_original = stone_free_status,
           stone_free_status1 = case_when(
@@ -1180,6 +1322,7 @@ calculate_qol <- function(complete_pop_yr_fu,
             ),
             TRUE ~ NA_character_
           ),
+          imaging_fu_type = !!imaging_fu_type,  # ADD IMAGING TYPE HERE
           .keep = "all"
         )
     } else {
@@ -1188,6 +1331,7 @@ calculate_qol <- function(complete_pop_yr_fu,
         mutate(
           stone_free_status_original = stone_free_status,
           stone_free_status1 = stone_free_status,
+          imaging_fu_type = !!imaging_fu_type,  # ADD IMAGING TYPE HERE
           .keep = "all"
         )
     }
@@ -1218,13 +1362,12 @@ calculate_qol <- function(complete_pop_yr_fu,
     message("Calculating QALYs for AUC:", target_auc)
     combined_result <- combined_result %>%
       mutate(
-        qol_mean_year_0 = baseline_qol_mean,
         # Discount QoL values
-        qol_mean_year_1 = qol_mean_year_1 * 1.035,
-        qol_mean_year_2 = qol_mean_year_2 * (1.035 ^ 2),
-        qol_mean_year_3 = qol_mean_year_3 * (1.035 ^ 3),
-        qol_mean_year_4 = qol_mean_year_4 * (1.035 ^ 4),
-        qol_mean_year_5 = qol_mean_year_5 * (1.035 ^ 5),
+        qol_mean_year_1 = qol_mean_year_1,
+        qol_mean_year_2 = qol_mean_year_2 / 1.035,
+        qol_mean_year_3 = qol_mean_year_3 / (1.035 ^ 2),
+        qol_mean_year_4 = qol_mean_year_4 / (1.035 ^ 3),
+        qol_mean_year_5 = qol_mean_year_5 / (1.035 ^ 4),
         qaly_5yr = rowSums(select(., starts_with("qol_mean_year_")), na.rm = TRUE),
         risk_status = case_when(
           prediction == "No" ~ "Low Risk",
@@ -1357,7 +1500,7 @@ list_cached_results <- function(cache_dir = "qol_cache") {
   
   return(cache_info)
 }
-
+    
 ## 11.4 Run QoL function ####
 ### 11.4.1 2016 ####
 complete_pop_2016_fu_baseline_qol <- assign_baseline_qol(df = complete_pop_2016_fu)
@@ -1687,52 +1830,52 @@ aggregate_qol_cohorts <- function(auc_target = c(1,2,3,4,5,6,7,8,9),
       message("Processing AUC = ", key)
       
       message("  Loading 2016 data...")
-      cohort_2016_min_xr <- qol_2016_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
+      cohort_2016_min_us <- qol_2016_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
       cohort_2016_min_ct <- qol_2016_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-      cohort_2016_max_xr <- qol_2016_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
+      cohort_2016_max_us <- qol_2016_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
       cohort_2016_max_ct <- qol_2016_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
       cohort_2016_min_xr_us <- qol_2016_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
       cohort_2016_max_xr_us <- qol_2016_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
       
       message("  Loading 2017 data...")
-      cohort_2017_min_xr <- qol_2017_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
+      cohort_2017_min_us <- qol_2017_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
       cohort_2017_min_ct <- qol_2017_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-      cohort_2017_max_xr <- qol_2017_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
+      cohort_2017_max_us <- qol_2017_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
       cohort_2017_max_ct <- qol_2017_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
       cohort_2017_min_xr_us <- qol_2017_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
       cohort_2017_max_xr_us <- qol_2017_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
       
       message("  Loading 2018 data...")
-      cohort_2018_min_xr <- qol_2018_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
+      cohort_2018_min_us <- qol_2018_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
       cohort_2018_min_ct <- qol_2018_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-      cohort_2018_max_xr <- qol_2018_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
+      cohort_2018_max_us <- qol_2018_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
       cohort_2018_max_ct <- qol_2018_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
       cohort_2018_min_xr_us <- qol_2018_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
       cohort_2018_max_xr_us <- qol_2018_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
       
       message("  Loading 2019 data...")
-      cohort_2019_min_xr <- qol_2019_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
+      cohort_2019_min_us <- qol_2019_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
       cohort_2019_min_ct <- qol_2019_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-      cohort_2019_max_xr <- qol_2019_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
+      cohort_2019_max_us <- qol_2019_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
       cohort_2019_max_ct <- qol_2019_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
       cohort_2019_min_xr_us <- qol_2019_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
       cohort_2019_max_xr_us <- qol_2019_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
       
       message("  Loading 2020 data...")
-      cohort_2020_min_xr <- qol_2020_xr_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
+      cohort_2020_min_us <- qol_2020_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, US", auc = i)
       cohort_2020_min_ct <- qol_2020_ct_min[[key]] %>% mutate(cohort_type = "Minimum FU, CT", auc = i)
-      cohort_2020_max_xr <- qol_2020_xr_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
+      cohort_2020_max_us <- qol_2020_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, US", auc = i)
       cohort_2020_max_ct <- qol_2020_ct_max[[key]] %>% mutate(cohort_type = "Maximum FU, CT", auc = i)
       cohort_2020_min_xr_us <- qol_2020_xr_us_min[[key]] %>% mutate(cohort_type = "Minimum FU, XR + US", auc = i)
       cohort_2020_max_xr_us <- qol_2020_xr_us_max[[key]] %>% mutate(cohort_type = "Maximum FU, XR + US", auc = i)
       
       message("  Combining cohorts for AUC = ", key)
       overall_cohort <- dplyr::bind_rows(
-        cohort_2016_min_xr, cohort_2016_min_ct, cohort_2016_max_xr, cohort_2016_max_ct, cohort_2016_min_xr_us, cohort_2016_max_xr_us,
-        cohort_2017_min_xr, cohort_2017_min_ct, cohort_2017_max_xr, cohort_2017_max_ct, cohort_2017_min_xr_us, cohort_2017_max_xr_us,
-        cohort_2018_min_xr, cohort_2018_min_ct, cohort_2018_max_xr, cohort_2018_max_ct, cohort_2018_min_xr_us, cohort_2018_max_xr_us,
-        cohort_2019_min_xr, cohort_2019_min_ct, cohort_2019_max_xr, cohort_2019_max_ct, cohort_2019_min_xr_us, cohort_2019_max_xr_us,
-        cohort_2020_min_xr, cohort_2020_min_ct, cohort_2020_max_xr, cohort_2020_max_ct, cohort_2020_min_xr_us, cohort_2020_max_xr_us
+        cohort_2016_min_us, cohort_2016_min_ct, cohort_2016_max_us, cohort_2016_max_ct, cohort_2016_min_xr_us, cohort_2016_max_xr_us,
+        cohort_2017_min_us, cohort_2017_min_ct, cohort_2017_max_us, cohort_2017_max_ct, cohort_2017_min_xr_us, cohort_2017_max_xr_us,
+        cohort_2018_min_us, cohort_2018_min_ct, cohort_2018_max_us, cohort_2018_max_ct, cohort_2018_min_xr_us, cohort_2018_max_xr_us,
+        cohort_2019_min_us, cohort_2019_min_ct, cohort_2019_max_us, cohort_2019_max_ct, cohort_2019_min_xr_us, cohort_2019_max_xr_us,
+        cohort_2020_min_us, cohort_2020_min_ct, cohort_2020_max_us, cohort_2020_max_ct, cohort_2020_min_xr_us, cohort_2020_max_xr_us
       )
       
       all_cohorts[[key]] <- overall_cohort
@@ -1965,3 +2108,90 @@ summary_df_full_qol_data_eq_5d %>%
        x = "Cohort Type",
        y = "Mean 5yr QALYs (EQ-5D derived)",
        fill = "Risk Status") 
+
+## 11.9 Plot QALYs vs baseline
+baseline_qaly_all1 <- summary_df_full_qol_data_eq_5d %>%
+  filter(auc_label == "AUC 0.55") %>%
+  filter(cohort_type == "Minimum FU, XR + US") %>%
+  select(
+    risk_status,
+    mean_qaly_5yr,
+    lower_qaly_5yr,
+    upper_qaly_5yr
+  )
+
+baseline_qaly_all <- (baseline_qaly_all1 %>%
+                        filter(risk_status == "All"))$mean_qaly_5yr 
+baseline_qaly_hr <- (baseline_qaly_all1 %>%
+                       filter(risk_status == "High Risk"))$mean_qaly_5yr 
+baseline_qaly_lr <- (baseline_qaly_all1 %>%
+                       filter(risk_status == "Low Risk"))$mean_qaly_5yr 
+
+baseline_qaly_all_upper <- (baseline_qaly_all1 %>%
+                              filter(risk_status == "All"))$upper_qaly_5yr 
+baseline_qaly_hr_upper <- (baseline_qaly_all1 %>%
+                             filter(risk_status == "High Risk"))$upper_qaly_5yr 
+baseline_qaly_lr_upper <- (baseline_qaly_all1 %>%
+                             filter(risk_status == "Low Risk"))$upper_qaly_5yr 
+
+baseline_qaly_all_lower <- (baseline_qaly_all1 %>%
+                              filter(risk_status == "All"))$lower_qaly_5yr 
+baseline_qaly_hr_lower <- (baseline_qaly_all1 %>%
+                             filter(risk_status == "High Risk"))$lower_qaly_5yr 
+baseline_qaly_lr_lower <- (baseline_qaly_all1 %>%
+                             filter(risk_status == "Low Risk"))$lower_qaly_5yr 
+
+
+summary_df_full_qol_eq_5d_plot <- summary_df_full_qol_data_eq_5d %>% 
+  mutate(
+    cohort_type = factor(cohort_type,
+                         levels = c(
+                           "Minimum FU, XR + US",
+                           "Minimum FU, US",
+                           "Minimum FU, CT",
+                           "Maximum FU, XR + US",
+                           "Maximum FU, US",
+                           "Maximum FU, CT"
+                         )),
+    mean_qaly_5yr_comp = case_when(
+      risk_status == "All"       ~ mean_qaly_5yr - baseline_qaly_all,
+      risk_status == "High Risk" ~ mean_qaly_5yr - baseline_qaly_hr,
+      risk_status == "Low Risk"  ~ mean_qaly_5yr - baseline_qaly_lr,
+      TRUE ~ NA_real_
+    ),
+    lower_qaly_5yr_comp = case_when(
+      risk_status == "All"       ~ lower_qaly_5yr - baseline_qaly_all,
+      risk_status == "High Risk" ~ lower_qaly_5yr - baseline_qaly_hr,
+      risk_status == "Low Risk"  ~ lower_qaly_5yr - baseline_qaly_lr,
+      TRUE ~ NA_real_
+    ),
+    upper_qaly_5yr_comp = case_when(
+      risk_status == "All"       ~ upper_qaly_5yr - baseline_qaly_all,
+      risk_status == "High Risk" ~ upper_qaly_5yr - baseline_qaly_hr,
+      risk_status == "Low Risk"  ~ upper_qaly_5yr - baseline_qaly_lr,
+      TRUE ~ NA_real_
+    ),
+    .keep = "all"
+  ) %>%
+  group_by(auc_label) %>%
+  ggplot(aes(x = auc_label, y = mean_qaly_5yr_comp, fill = risk_status)) +
+  geom_col(
+    position = position_dodge(width = 0.8),
+    width = 0.7,
+    color = "black"
+  ) +
+  geom_errorbar(
+    aes(ymin = lower_qaly_5yr_comp, ymax = upper_qaly_5yr_comp),
+    position = position_dodge(width = 0.8),
+    width = 0.3
+  ) +
+  facet_wrap(~ cohort_type) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size = 10)) +
+  labs(title = "Quality of Life",
+       x = "Cohort Type",
+       y = "5yr QALYs Difference",
+       fill = "Risk Status") + ylim(-0.02, 0.02)
+
+summary_df_full_qol_eq_5d_plot
