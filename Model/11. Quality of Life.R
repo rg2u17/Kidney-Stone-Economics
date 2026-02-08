@@ -604,7 +604,7 @@ get_first_intervention_year <- function(df,
   df
 }
 
-### 11.3.4 Assign QOL function with NEW adjustment logic - USIQoL ####
+### 11.3.4 Assign QOL function with adjustment logic - USIQoL ####
 assign_qol_chunked <- function(data,
                                baseline_qol = usiqol_metrics_by_age_stone_free_status,
                                event_qol_change = usiqol_change_with_rx,
@@ -1621,7 +1621,6 @@ qol_auc_0.9 <- aggregate_qol_cohorts(auc_target = 8)
 qol_auc_0.95 <- aggregate_qol_cohorts(auc_target = 9)
 
 
-
 # Memory-efficient combination function - only select needed columns upfront
 combine_auc_data <- function(data, auc_label) {
   data %>%
@@ -1648,69 +1647,163 @@ auc_labels <- c("AUC 0.55", "AUC 0.6", "AUC 0.65", "AUC 0.7", "AUC 0.75",
 auc_list <- list(qol_auc_0.55, qol_auc_0.6, qol_auc_0.65, qol_auc_0.7, 
                  qol_auc_0.75, qol_auc_0.8, qol_auc_0.85, qol_auc_0.9, qol_auc_0.95)
 
-# Process and create summary directly - no need to keep full combined dataset
-summary_df_qol <- map2_dfr(auc_list, auc_labels, function(data, label) {
-  processed <- combine_auc_data(data, label)
-  
-  # Calculate summaries immediately
-  by_risk <- processed %>%
-    group_by(auc_label, risk_status, cohort_type) %>%
-    summarise(
-      mean_qaly_5yr = mean(qaly_5yr, na.rm = TRUE),
-      lower_qaly_5yr = quantile(qaly_5yr, 0.025, na.rm = TRUE),
-      upper_qaly_5yr = quantile(qaly_5yr, 0.975, na.rm = TRUE),
-      .groups = "drop"
-    )
-  
-  # Calculate "All" summaries
-  all_risk <- processed %>%
-    group_by(auc_label, cohort_type) %>%
-    summarise(
-      mean_qaly_5yr = mean(qaly_5yr, na.rm = TRUE),
-      lower_qaly_5yr = quantile(qaly_5yr, 0.025, na.rm = TRUE),
-      upper_qaly_5yr = quantile(qaly_5yr, 0.975, na.rm = TRUE),
-      .groups = "drop"
-    ) %>%
-    mutate(risk_status = factor("All", levels = c("All", "Low Risk", "High Risk")))
-  
-  # Free memory immediately
-  rm(processed)
-  
-  bind_rows(by_risk, all_risk)
+# Combine data efficiently
+auc_labels <- c("AUC 0.55", "AUC 0.6", "AUC 0.65", "AUC 0.7", "AUC 0.75", 
+                "AUC 0.8", "AUC 0.85", "AUC 0.9", "AUC 0.95")
+
+auc_list <- list(qol_auc_0.55, qol_auc_0.6, qol_auc_0.65, qol_auc_0.7, 
+                 qol_auc_0.75, qol_auc_0.8, qol_auc_0.85, qol_auc_0.9, qol_auc_0.95)
+
+# Combine all AUC data into one dataset
+data_for_plot_qol <- map2_dfr(auc_list, auc_labels, function(data, label) {
+  combine_auc_data(data, label)
 }, .progress = TRUE)
 
-# Clear original data objects if no longer needed
+# Clear original data
 rm(auc_list)
 gc()
 
-# Finalize summary data for plotting
+## 11.7 Summarise with Bootstrap CIs ####
+library(furrr)
+library(progressr)
+
+# Set up parallel processing
+plan(multisession, workers = availableCores() - 1)
+
+# Bootstrap function
+boot_one_group <- function(qaly_vec, n_boot = 500) {
+  n <- length(qaly_vec)
+  boot_means <- replicate(n_boot, {
+    mean(sample(qaly_vec, n, replace = TRUE), na.rm = TRUE)
+  })
+  
+  tibble(
+    mean_qaly_5yr = mean(qaly_vec, na.rm = TRUE),
+    lower_qaly_5yr = quantile(boot_means, 0.025),
+    upper_qaly_5yr = quantile(boot_means, 0.975)
+  )
+}
+
+# Summarise by auc_label, risk_status, cohort_type with bootstrap
+summary_df_qol <- data_for_plot_qol %>%
+  group_by(auc_label, risk_status, cohort_type) %>%
+  summarise(qaly_vec = list(qaly_5yr), .groups = "drop") %>%
+  mutate(
+    boot_ci = future_map(qaly_vec, boot_one_group, n_boot = 500,
+                         .progress = TRUE,
+                         .options = furrr_options(seed = TRUE))
+  ) %>%
+  select(-qaly_vec) %>%
+  unnest(boot_ci)
+
+# Summarise for combined risk groups ("All") with bootstrap
+summary_all <- data_for_plot_qol %>%
+  group_by(auc_label, cohort_type) %>%
+  summarise(qaly_vec = list(qaly_5yr), .groups = "drop") %>%
+  mutate(
+    boot_ci = future_map(qaly_vec, boot_one_group, n_boot = 500,
+                         .progress = TRUE,
+                         .options = furrr_options(seed = TRUE)),
+    risk_status = "All"
+  ) %>%
+  select(-qaly_vec) %>%
+  unnest(boot_ci)
+
+# Combine all summaries
+summary_df_qol <- bind_rows(summary_df_qol, summary_all)
+
+# Reset to sequential processing
+plan(sequential)
+
+# Factor levels for ordering
 summary_df_full_qol_data <- summary_df_qol %>%
   mutate(
     cohort_type = factor(cohort_type, levels = c(
       "Minimum FU, XR + US", "Minimum FU, US", "Minimum FU, CT", 
       "Maximum FU, XR + US", "Maximum FU, US", "Maximum FU, CT"
-    ))
+    )),
+    risk_status = factor(risk_status, levels = c("All", "Low Risk", "High Risk"))
   )
 
-# Plot
+## 11.8 Plot QALYs ####
 summary_df_full_qol_data %>% 
   ggplot(aes(x = auc_label, y = mean_qaly_5yr, fill = risk_status)) +
   geom_col(position = position_dodge(width = 0.8), width = 0.7, color = "black") +
-  geom_errorbar(
-    aes(ymin = lower_qaly_5yr, ymax = upper_qaly_5yr),
-    position = position_dodge(width = 0.8),
-    width = 0.3
-  ) +
+  geom_errorbar(aes(ymin = lower_qaly_5yr, ymax = upper_qaly_5yr),
+                position = position_dodge(width = 0.8), width = 0.3) +
   facet_wrap(~ cohort_type) +
   theme_bw() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    strip.text = element_text(size = 10)
-  ) +
-  labs(
-    title = "USIQoL Adjusted Life Years for EAU Follow-Up of those with Clinically Significant Disease",
-    x = "Cohort Type",
-    y = "Mean QALYs over 5yrs follow-up",
-    fill = "Risk Status"
-  ) + 
-  ylim(0, 3.4)
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size = 10)) +
+  labs(title = "Mean Quality Adjusted Life Years for EAU Follow-Up of those with Clinically Significant Disease",
+       x = "AUC",
+       y = "Mean 5yr QALYs (EQ-5D derived)",
+       fill = "Risk Status") 
+
+## 11.9 Plot QALYs vs baseline with CIs ####
+# Extract baseline values
+baseline_qaly_all1 <- summary_df_full_qol_data %>%
+  filter(auc_label == "AUC 0.55") %>%
+  filter(cohort_type == "Minimum FU, XR + US") %>%
+  select(risk_status, mean_qaly_5yr, lower_qaly_5yr, upper_qaly_5yr)
+
+baseline_qaly_all <- (baseline_qaly_all1 %>% filter(risk_status == "All"))$mean_qaly_5yr 
+baseline_qaly_hr <- (baseline_qaly_all1 %>% filter(risk_status == "High Risk"))$mean_qaly_5yr 
+baseline_qaly_lr <- (baseline_qaly_all1 %>% filter(risk_status == "Low Risk"))$mean_qaly_5yr 
+
+baseline_qaly_all_upper <- (baseline_qaly_all1 %>% filter(risk_status == "All"))$upper_qaly_5yr 
+baseline_qaly_hr_upper <- (baseline_qaly_all1 %>% filter(risk_status == "High Risk"))$upper_qaly_5yr 
+baseline_qaly_lr_upper <- (baseline_qaly_all1 %>% filter(risk_status == "Low Risk"))$upper_qaly_5yr 
+
+baseline_qaly_all_lower <- (baseline_qaly_all1 %>% filter(risk_status == "All"))$lower_qaly_5yr 
+baseline_qaly_hr_lower <- (baseline_qaly_all1 %>% filter(risk_status == "High Risk"))$lower_qaly_5yr 
+baseline_qaly_lr_lower <- (baseline_qaly_all1 %>% filter(risk_status == "Low Risk"))$lower_qaly_5yr 
+
+# Plot with CI calculation
+summary_df_full_qol_plot <- summary_df_full_qol_data %>% 
+  mutate(
+    cohort_type = factor(cohort_type, levels = c(
+      "Minimum FU, XR + US", "Minimum FU, US", "Minimum FU, CT",
+      "Maximum FU, XR + US", "Maximum FU, US", "Maximum FU, CT"
+    )),
+    auc_numeric = as.numeric(gsub("AUC ", "", auc_label)),
+    
+    # Mean difference
+    mean_qaly_5yr_comp = case_when(
+      risk_status == "All"       ~ mean_qaly_5yr - baseline_qaly_all,
+      risk_status == "High Risk" ~ mean_qaly_5yr - baseline_qaly_hr,
+      risk_status == "Low Risk"  ~ mean_qaly_5yr - baseline_qaly_lr,
+      TRUE ~ NA_real_
+    ),
+    
+    # Conservative CI calculation
+    lower_qaly_5yr_comp = case_when(
+      risk_status == "All"       ~ lower_qaly_5yr - baseline_qaly_all_upper,
+      risk_status == "High Risk" ~ lower_qaly_5yr - baseline_qaly_hr_upper,
+      risk_status == "Low Risk"  ~ lower_qaly_5yr - baseline_qaly_lr_upper,
+      TRUE ~ NA_real_
+    ),
+    upper_qaly_5yr_comp = case_when(
+      risk_status == "All"       ~ upper_qaly_5yr - baseline_qaly_all_lower,
+      risk_status == "High Risk" ~ upper_qaly_5yr - baseline_qaly_hr_lower,
+      risk_status == "Low Risk"  ~ upper_qaly_5yr - baseline_qaly_lr_lower,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  ggplot(aes(x = auc_numeric, y = mean_qaly_5yr_comp, 
+             color = risk_status, fill = risk_status, group = risk_status)) +
+  geom_ribbon(aes(ymin = lower_qaly_5yr_comp, ymax = upper_qaly_5yr_comp), 
+              alpha = 0.3, linewidth = 0.2) +
+  geom_line(linewidth = 0.5) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
+  facet_wrap(~ cohort_type) +
+  theme_bw() +
+  theme(strip.text = element_text(size = 10)) +
+  labs(title = "Quality of Life Difference from Baseline (Minimum FU, XR + US)",
+       x = "AUC",
+       y = "5yr QALYs Difference",
+       color = "Risk Status",
+       fill = "Risk Status") +
+  scale_x_continuous(breaks = seq(0.55, 0.95, by = 0.05))
+
+summary_df_full_qol_plot
