@@ -35,44 +35,48 @@ library(ggsignif)
 library(ggpubr)
 library(broom)
 library(patchwork)
+library(purrr)
+library(furrr)
+library(future)
+library(boot)
 ```
 \newpage
 
 # 1. Define Inputs
 ```{r}
-source("Model/1. Define Inputs.R")
+source("~/Kidney-Stone-Economics/Model/1. Define Inputs.R")
 ```
 \newpage
 
 # 2. Total Cost Calculation for Stone Free Patients
 ```{r}
-source("Model/2. Total Cost Calculation for Stone Free Patients.R")
+source("~/Kidney-Stone-Economics/Model/2. Total Cost Calculation for Stone Free Patients.R")
 ```
 \newpage
 
 # 3. Visualise Model 
 ```{r}
-source("Model/3. Visualise Model.R")
+source("~/Kidney-Stone-Economics/Model/3. Visualise Model.R")
 ```
 \newpage
 
 # 4. Distribution of Scores - Pick one!
 ## 4.1 Beta Distribution - e.g modelling a machine learning model output
 ```{r}
-source("Model/4. Model - Beta Distribution for Scores.R")
+source("~/Kidney-Stone-Economics/Model/4. Model - Beta Distribution for Scores.R")
 ```
 \newpage
 
 ## 4.2 Normal Distribution - e.g modelling a blood test output
 <br> **uncomment to run** <br>
 ```{r}
-#source("Model/4. Model - Normal Distribution for Scores.R")
+#source("~/Kidney-Stone-Economics/Model/4. Model - Normal Distribution for Scores.R")
 ```
 \newpage
 
 # 5. Run Model
 ```{r}
-source("Model/5. Run Model.R")
+source("~/Kidney-Stone-Economics/Model/5. Run Model.R")
 ```
 \newpage
 
@@ -91,12 +95,13 @@ overall_simulation_plot <- plot_grid(top_row, simulation_over_time_plot,
                         label_x = 0, label_y = 0,
                         hjust = -0.5, vjust = -0.5)
 
+
 overall_simulation_plot
 ```
 
 # 6. Radiation Dose
 ```{r}
-source("Model/6. Radiation Dose.R")
+source("~/Kidney-Stone-Economics/Model/6. Radiation Dose.R")
 ```
 \newpage
 
@@ -164,7 +169,7 @@ data_for_plot %>% ggplot(aes(x = auc_label, y=cumulative_rad_dose, fill = risk_s
 
 # 7. Radiation Induced Malignancy
 ```{r}
-source("Model/7. Radiation Induced Malignancy.R")
+source("~/Kidney-Stone-Economics/Model/7. Radiation Induced Malignancy.R")
 ```
 \newpage
 
@@ -240,6 +245,107 @@ malignancy_grand_total %>%
     grand_total_expected_malignancies = "Expected Lifetime Malignancies",
     grand_total_expected_malignancies_lower = "Lower CI",
     grand_total_expected_malignancies_upper = "Upper CI",
+    total_patients = "Total Patients"
+  )
+```
+\newpage
+
+## Tabulate Percentage risks 
+```{r}
+malignancy_grand_total %>%
+  mutate(
+    pct_expected = (grand_total_expected_malignancies / total_patients) * 100,
+    pct_lower = (grand_total_expected_malignancies_lower / total_patients) * 100,
+    pct_upper = (grand_total_expected_malignancies_upper / total_patients) * 100
+  ) %>%
+  group_by(cohort_type,
+          risk_status,
+           auc_target) %>%
+  gt() %>%
+  fmt_number(
+    columns = grand_total_expected_malignancies,
+    decimals = 0
+  ) %>%
+  fmt_number(
+    columns = grand_total_expected_malignancies_lower,
+    decimals = 0
+  ) %>%
+  fmt_number(
+    columns = grand_total_expected_malignancies_upper,
+    decimals = 0
+  ) %>%
+  fmt_number(
+    columns = c(pct_expected, pct_lower, pct_upper),
+    decimals = 4
+  ) %>%
+  fmt_number(
+    columns = total_patients,
+    decimals = 0,
+    use_seps = TRUE
+  ) %>%
+  cols_label(
+    auc_target = "AUC Target",
+    cohort_type = "Cohort Type",
+    risk_status = "Risk Status",
+    grand_total_expected_malignancies = "Expected Lifetime Malignancies",
+    grand_total_expected_malignancies_lower = "Lower CI",
+    grand_total_expected_malignancies_upper = "Upper CI",
+    pct_expected = "Expected (%)",
+    pct_lower = "Lower CI (%)",
+    pct_upper = "Upper CI (%)",
+    total_patients = "Total Patients"
+  )
+```
+\newpage
+
+## Tabulate Total Malignancies per Cohort Type
+```{r}
+malignancy_grand_total %>%
+  group_by(cohort_type, auc_target) %>%
+  summarise(
+    total_patients = sum(total_patients, na.rm = TRUE),
+    grand_total_expected_malignancies = sum(grand_total_expected_malignancies, na.rm = TRUE),
+    grand_total_expected_malignancies_lower = sum(grand_total_expected_malignancies_lower, na.rm = TRUE),
+    grand_total_expected_malignancies_upper = sum(grand_total_expected_malignancies_upper, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    pct_expected = (grand_total_expected_malignancies / total_patients) * 100,
+    pct_lower = (grand_total_expected_malignancies_lower / total_patients) * 100,
+    pct_upper = (grand_total_expected_malignancies_upper / total_patients) * 100
+  ) %>%
+  group_by(auc_target) %>%
+  gt() %>%
+  fmt_number(
+    columns = grand_total_expected_malignancies,
+    decimals = 0
+  ) %>%
+  fmt_number(
+    columns = grand_total_expected_malignancies_lower,
+    decimals = 0
+  ) %>%
+  fmt_number(
+    columns = grand_total_expected_malignancies_upper,
+    decimals = 0
+  ) %>%
+  fmt_number(
+    columns = c(pct_expected, pct_lower, pct_upper),
+    decimals = 2
+  ) %>%
+  fmt_number(
+    columns = total_patients,
+    decimals = 0,
+    use_seps = TRUE
+  ) %>%
+  cols_label(
+    auc_target = "AUC Target",
+    cohort_type = "Cohort Type",
+    grand_total_expected_malignancies = "Expected Lifetime Malignancies",
+    grand_total_expected_malignancies_lower = "Lower CI",
+    grand_total_expected_malignancies_upper = "Upper CI",
+    pct_expected = "Expected (%)",
+    pct_lower = "Lower CI (%)",
+    pct_upper = "Upper CI (%)",
     total_patients = "Total Patients"
   )
 ```
@@ -624,11 +730,11 @@ baseline_malignancies_perc_plot <- malignancy_plot_data %>%
     cohort_type = factor(
       cohort_type,
       levels = c(
-        "Minimum FU, US",
         "Minimum FU, XR + US",
+        "Minimum FU, US",
         "Minimum FU, CT",
-        "Maximum FU, US",
         "Maximum FU, XR + US",
+        "Maximum FU, US",
         "Maximum FU, CT"
       )
     ),
@@ -657,19 +763,12 @@ baseline_malignancies_perc_plot <- malignancy_plot_data %>%
     y = percentage,
     fill = risk_status
   )) +
-  geom_col(color = "black") +
+  geom_col(position = position_dodge(width = 0.8), width = 0.7, color = "black") +
+  facet_wrap(~ cohort_type) +
   geom_errorbar(aes(ymin = percentage_lower,
                     ymax = percentage_upper),
+                 position = position_dodge(width = 0.8),
                 width = 0.2) +
-  facet_grid(
-    risk_status ~ cohort_type,
-    labeller = labeller(
-      cohort_type = function(x)
-        x,
-      risk_status = function(x)
-        x
-    )
-  ) +
   labs(title = "Lifetime Malignancies",
        x = "AUC Target",
        y = "Additional Malignancies vs Baseline (%)",
@@ -689,7 +788,7 @@ baseline_malignancies_perc_plot
 
 # 8. Economic Costs - All Patients
 ```{r}
-source("Model/8. Economic Costs - All Patients.R")
+source("~/Kidney-Stone-Economics/Model/8. Economic Costs - All Patients.R")
 ```
 \newpage
 
@@ -762,7 +861,7 @@ summary_df_full_cost_plot <- summary_df_full_cost_data %>%
     strip.text = element_text(size = 10)
   ) +
   labs(
-    title = "Annual Cost",
+    title = "Minimum Annual Cost",
     x = "Cohort Type",
     y = "Cost Difference (£ Millions)",
     fill = "Risk Status"
@@ -804,7 +903,7 @@ summary_df_full_cost_data %>% group_by(cohort_type) %>% ggplot(aes(x = cohort_ty
   labs(
     title = "Annual Cost for Maximum EAU Follow-Up of those with Clinically Significant Disease",
     x = "Cohort Type",
-    y = "Annual Cost of Follow-up (£ Millions)",
+    y = "Minimum Annual Cost of Follow-up (£ Millions)",
     fill = "Risk Status"
   )
 ```
@@ -828,7 +927,7 @@ summary_df_full_cost_data_all_patients <- summary_df_full_cost_data
 
 # 9. Economic Costs - Recurrence only
 ```{r}
-source("Model/9. Economic Costs - Recurrence only.R")
+source("~/Kidney-Stone-Economics/Model/9. Economic Costs - Recurrence only.R")
 ```
 \newpage
 
@@ -966,7 +1065,7 @@ summary_df_rec_only %>% subset(risk_status == "All") %>% group_by(auc_label,
 
 # 10. Clinician Time - Number of Appointments
 ```{r}
-source("Model/10. Clinician Time.R")
+source("~/Kidney-Stone-Economics/Model/10. Clinician Time.R")
 ```
 \newpage
 
@@ -981,7 +1080,7 @@ summary_df_appts %>% group_by(auc_label) %>% ggplot(aes(x = auc_label, y = total
     strip.text = element_text(size = 10)
   ) +
   labs(
-    title = "Annual Number of Appointments for EAU Follow-Up of those with Clinically Significant Disease",
+    title = "Minimum Annual Number of Appointments for EAU Follow-Up of those with Clinically Significant Disease",
     x = "Cohort Type",
     y = "Total Follow-up Appointments, n (000's)",
     fill = "Risk Status"
@@ -1015,11 +1114,11 @@ summary_df_appts_plot <- summary_df_appts %>%
   mutate(
     cohort_type = factor(cohort_type,
                          levels = c(
+                            "Minimum FU, XR + US",
                            "Minimum FU, US",
-                           "Minimum FU, XR + US",
                            "Minimum FU, CT",
-                           "Maximum FU, US",
                            "Maximum FU, XR + US",
+                           "Maximum FU, US",
                            "Maximum FU, CT"
                          )),
     total_appts = case_when(
@@ -1061,7 +1160,7 @@ summary_df_appts %>%
 
 # 11. Quality of Life
 ```{r}
-source("Model/11. Quality of Life.R")
+source("~/Kidney-Stone-Economics/Model/11. Quality of Life.R")
 ```
 \newpage
 
@@ -1087,12 +1186,13 @@ summary_df_full_qol_data %>%
   labs(title = "USIQoL Adjusted Life Years for EAU Follow-Up of those with Clinically Significant Disease",
        x = "Cohort Type",
        y = "Mean QALYs over 5yrs follow-up",
-       fill = "Risk Status") + ylim(0,3.2)
+       fill = "Risk Status") + ylim(0,4)
 ```
 \newpage
 
 ## Plot QALYs vs baseline
 ```{r}
+# Extract baseline values
 baseline_qaly_all1 <- summary_df_full_qol_data %>%
   filter(auc_label == "AUC 0.55") %>%
   filter(cohort_type == "Minimum FU, XR + US") %>%
@@ -1124,58 +1224,51 @@ baseline_qaly_hr_lower <- (baseline_qaly_all1 %>%
 baseline_qaly_lr_lower <- (baseline_qaly_all1 %>%
   filter(risk_status == "Low Risk"))$lower_qaly_5yr 
 
-
 summary_df_full_qol_plot <- summary_df_full_qol_data %>% 
   mutate(
-    cohort_type = factor(cohort_type,
-                         levels = c(
-                           "Minimum FU, US",
-                           "Minimum FU, XR + US",
-                           "Minimum FU, CT",
-                           "Maximum FU, US",
-                           "Maximum FU, XR + US",
-                           "Maximum FU, CT"
-                         )),
+    cohort_type = factor(cohort_type, levels = c(
+      "Minimum FU, XR + US", "Minimum FU, US", "Minimum FU, CT",
+      "Maximum FU, XR + US", "Maximum FU, US", "Maximum FU, CT"
+    )),
+    auc_numeric = as.numeric(gsub("AUC ", "", auc_label)),
+    
+    # Mean difference
     mean_qaly_5yr_comp = case_when(
-      risk_status == "All" ~ (mean_qaly_5yr - baseline_qaly_all),
-      risk_status == "High Risk" ~ (mean_qaly_5yr - baseline_qaly_hr),
-      risk_status == "Low Risk" ~ (mean_qaly_5yr - baseline_qaly_lr),
-      TRUE ~ NA_integer_
+      risk_status == "All"       ~ mean_qaly_5yr - baseline_qaly_all,
+      risk_status == "High Risk" ~ mean_qaly_5yr - baseline_qaly_hr,
+      risk_status == "Low Risk"  ~ mean_qaly_5yr - baseline_qaly_lr,
+      TRUE ~ NA_real_
     ),
+    
+    # CORRECTED: Conservative CI calculation
     lower_qaly_5yr_comp = case_when(
-      risk_status == "All" ~ (upper_qaly_5yr - baseline_qaly_all_upper),
-      risk_status == "High Risk" ~ (upper_qaly_5yr - baseline_qaly_hr_upper),
-      risk_status == "Low Risk" ~ (upper_qaly_5yr - baseline_qaly_lr_upper),
-      TRUE ~ NA_integer_
+      risk_status == "All"       ~ lower_qaly_5yr - baseline_qaly_all_upper,
+      risk_status == "High Risk" ~ lower_qaly_5yr - baseline_qaly_hr_upper,
+      risk_status == "Low Risk"  ~ lower_qaly_5yr - baseline_qaly_lr_upper,
+      TRUE ~ NA_real_
     ),
     upper_qaly_5yr_comp = case_when(
-      risk_status == "All" ~ (lower_qaly_5yr - baseline_qaly_all_lower),
-      risk_status == "High Risk" ~ (lower_qaly_5yr - baseline_qaly_hr_lower),
-      risk_status == "Low Risk" ~ (lower_qaly_5yr - baseline_qaly_lr_lower),
-      TRUE ~ NA_integer_
-    ),
-    .keep = "all"
+      risk_status == "All"       ~ upper_qaly_5yr - baseline_qaly_all_lower,
+      risk_status == "High Risk" ~ upper_qaly_5yr - baseline_qaly_hr_lower,
+      risk_status == "Low Risk"  ~ upper_qaly_5yr - baseline_qaly_lr_lower,
+      TRUE ~ NA_real_
+    )
   ) %>%
-  group_by(auc_label) %>%
-  ggplot(aes(x = auc_label, y = mean_qaly_5yr_comp, fill = risk_status)) +
-  geom_col(
-    position = position_dodge(width = 0.8),
-    width = 0.7,
-    color = "black"
-  ) +
-  geom_errorbar(
-    aes(ymin = lower_qaly_5yr_comp, ymax = upper_qaly_5yr_comp),
-    position = position_dodge(width = 0.8),
-    width = 0.3
-  ) +
+  ggplot(aes(x = auc_numeric, y = mean_qaly_5yr_comp, 
+             color = risk_status, fill = risk_status, group = risk_status)) +
+  geom_ribbon(aes(ymin = lower_qaly_5yr_comp, ymax = upper_qaly_5yr_comp), 
+              alpha = 0.3, linewidth = 0.2) +
+  geom_line(linewidth = 0.5) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   facet_wrap(~ cohort_type) +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        strip.text = element_text(size = 10)) +
-  labs(title = "Quality of Life",
-       x = "Cohort Type",
-       y = "5yr QALYs Difference",
-       fill = "Risk Status") + ylim(-0.09,0.07)
+  theme(strip.text = element_text(size = 10)) +
+  labs(title = "Quality of Life Difference from Baseline (Minimum FU, XR + US)",
+       x = "AUC",
+       y = "5yr QALYs Difference (USIQoL)",
+       color = "Risk Status",
+       fill = "Risk Status") +
+  scale_x_continuous(breaks = seq(0.55, 0.95, by = 0.05))
 
 summary_df_full_qol_plot
 ```
@@ -1184,7 +1277,7 @@ summary_df_full_qol_plot
 
 # 12. Calculate ICER 
 ```{r}
-source("Model/12. Calculate ICER.R")
+source("~/Kidney-Stone-Economics/Model/12. Calculate ICER.R")
 ```
 \newpage
 
@@ -1209,7 +1302,7 @@ icer_results %>%
 
 # 13. CO2 Emissions
 ```{r}
-source("Model/13. Calculate CO2 emissions.R")
+#source("~/Kidney-Stone-Economics/Model/13. Calculate CO2 emissions.R")
 ```
 \newpage
 
@@ -1217,6 +1310,9 @@ source("Model/13. Calculate CO2 emissions.R")
 ## Paper 1
 ### Collate data
 ```{r}
+# Define colours
+risk_colours <- c("All" = "#4682B4", "High Risk" = "#CD5C5C", "Low Risk" = "#66B266")
+
 # Costs
 summary_df_full_cost_plot_paper1 <- summary_df_full_cost_data %>%
   filter(auc_label == "AUC 0.55") %>%
@@ -1230,23 +1326,34 @@ summary_df_full_cost_plot_paper1 <- summary_df_full_cost_data %>%
                            "Maximum FU, US",
                            "Maximum FU, CT"
                          )),
+    # Split into follow-up length and imaging modality
+    fu_length = ifelse(grepl("Minimum", cohort_type), "Minimum FU", "Maximum FU"),
+    imaging = case_when(
+      grepl("XR \\+ US", cohort_type) ~ "XR + US",
+      grepl("US", cohort_type) & !grepl("XR", cohort_type) ~ "US",
+      grepl("CT", cohort_type) ~ "CT"
+    ),
+    fu_length = factor(fu_length, levels = c("Minimum FU", "Maximum FU")),
+    imaging = factor(imaging, levels = c("XR + US", "US", "CT")),
     total_cost = case_when(
-    risk_status == "All" ~ (total_cost - baseline_cost_all),
-    risk_status == "High Risk" ~ (total_cost - baseline_cost_hr),
-    risk_status == "Low Risk" ~ (total_cost - baseline_cost_lr),
-  )) %>%
-  group_by(cohort_type) %>%
-  ggplot(aes(x = cohort_type, y = total_cost, fill = risk_status)) +
-  geom_col(position = position_dodge(width = 0.8), width = 0.7, color = "black") +
-  facet_wrap(~ risk_status) +
+      risk_status == "All" ~ (total_cost - baseline_cost_all),
+      risk_status == "High Risk" ~ (total_cost - baseline_cost_hr),
+      risk_status == "Low Risk" ~ (total_cost - baseline_cost_lr),
+    )) %>%
+  ggplot(aes(x = risk_status, y = total_cost, fill = risk_status)) +
+  geom_col(width = 0.7, color = "black") +
+  facet_grid(fu_length ~ imaging) +
+  scale_fill_manual(values = risk_colours) +
   theme_bw() +
   theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    strip.text = element_text(size = 10)
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    strip.text = element_text(size = 11, face = "bold"),
+    strip.background = element_rect(fill = "grey90")
   ) +
   labs(
-    title = "Annual Cost",
-    x = "Cohort Type",
+    title = "Minimum Annual Cost",
+    x = "Imaging Modality",
     y = "Cost Difference (£ Millions)",
     fill = "Risk Status"
   )
@@ -1265,23 +1372,35 @@ summary_df_appts_plot_paper1 <- summary_df_appts %>%
                            "Maximum FU, US",
                            "Maximum FU, CT"
                          )),
+    # Split into follow-up length and imaging modality
+    fu_length = ifelse(grepl("Minimum", cohort_type), "Minimum FU", "Maximum FU"),
+    imaging = case_when(
+      grepl("XR \\+ US", cohort_type) ~ "XR + US",
+      grepl("US", cohort_type) & !grepl("XR", cohort_type) ~ "US",
+      grepl("CT", cohort_type) ~ "CT"
+    ),
+    fu_length = factor(fu_length, levels = c("Minimum FU", "Maximum FU")),
+    imaging = factor(imaging, levels = c("XR + US", "US", "CT")),
     total_appts = case_when(
       risk_status == "All" ~ (total_appts - baseline_appt_all),
       risk_status == "High Risk" ~ (total_appts - baseline_appt_hr),
       risk_status == "Low Risk" ~ (total_appts - baseline_appt_lr),
     )
   ) %>%
-  ggplot(aes(x = cohort_type, y = total_appts, fill = risk_status)) +
-  geom_col(position = position_dodge(width = 0.8), width = 0.7, color = "black") +
-  facet_wrap(~ risk_status) +  
+  ggplot(aes(x = risk_status, y = total_appts, fill = risk_status)) +
+  geom_col(width = 0.7, color = "black") +
+  facet_grid(fu_length ~ imaging) +  
+  scale_fill_manual(values = risk_colours) +
   theme_bw() +
   theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    strip.text = element_text(size = 10)
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    strip.text = element_text(size = 11, face = "bold"),
+    strip.background = element_rect(fill = "grey90")
   ) +
   labs(
-    title = "Annual Appointments",
-    x = "Cohort Type",
+    title = "Minimum Annual Appointments",
+    x = "Imaging Modality",
     y = "Appointments Difference (n, 000s)",
     fill = "Risk Status"
   ) 
@@ -1297,8 +1416,7 @@ baseline_malignancies_perc_plot_paper1 <- malignancy_plot_data %>%
   mutate(
     cohort_type = factor(
       cohort_type,
-      levels = c(
-        "Minimum FU, XR + US",
+      levels = c("Minimum FU, XR + US",
                            "Minimum FU, US",
                            "Minimum FU, CT",
                            "Maximum FU, XR + US",
@@ -1306,6 +1424,15 @@ baseline_malignancies_perc_plot_paper1 <- malignancy_plot_data %>%
                            "Maximum FU, CT"
       )
     ),
+    # Split into follow-up length and imaging modality
+    fu_length = ifelse(grepl("Minimum", cohort_type), "Minimum FU", "Maximum FU"),
+    imaging = case_when(
+      grepl("XR \\+ US", cohort_type) ~ "XR + US",
+      grepl("US", cohort_type) & !grepl("XR", cohort_type) ~ "US",
+      grepl("CT", cohort_type) ~ "CT"
+    ),
+    fu_length = factor(fu_length, levels = c("Minimum FU", "Maximum FU")),
+    imaging = factor(imaging, levels = c("XR + US", "US", "CT")),
     risk_status = factor(risk_status,
                          levels = c(
                            "All",
@@ -1328,22 +1455,13 @@ baseline_malignancies_perc_plot_paper1 <- malignancy_plot_data %>%
       risk_status == "All" ~ percentage_upper - baseline_malignancies_perc_all_upper
     )
   ) %>%
-  ggplot(aes(
-    x = cohort_type,
-    y = percentage,
-    fill = risk_status
-  )) +
-  geom_col(color = "black") +
-  geom_errorbar(aes(
-    ymin = percentage_lower,
-    ymax = percentage_upper
-  ), width = 0.2) +
-  facet_wrap(
-    ~ risk_status
-  ) +
+  ggplot(aes(x = risk_status, y = percentage, fill = risk_status)) +
+  geom_col(color = "black", width = 0.7) +
+  geom_errorbar(aes(ymin = percentage_lower, ymax = percentage_upper), width = 0.2) +
+  facet_grid(fu_length ~ imaging) +
   labs(
     title = "Lifetime Malignancies",
-    x = "Cohort Type",
+    x = "Imaging Modality",
     y = "Additional Malignancies Difference (%)",
     fill = "Risk Status"
   ) +
@@ -1351,12 +1469,17 @@ baseline_malignancies_perc_plot_paper1 <- malignancy_plot_data %>%
     labels = function(x) paste0(x, "%"),
     expand = expansion(mult = c(0, 0.25))
   ) +
+  scale_fill_manual(values = risk_colours) +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        strip.text = element_text(size = 10))
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    strip.text = element_text(size = 11, face = "bold"),
+    strip.background = element_rect(fill = "grey90")
+  )
 
 
-# QoL
+# QoL - CORRECTED CI CALCULATION
 summary_df_full_qol_plot_paper1 <- summary_df_full_qol_data %>% 
   filter(auc_label == "AUC 0.55") %>%
   mutate(
@@ -1369,51 +1492,58 @@ summary_df_full_qol_plot_paper1 <- summary_df_full_qol_data %>%
                            "Maximum FU, US",
                            "Maximum FU, CT"
                          )),
+    # Split into follow-up length and imaging modality
+    fu_length = ifelse(grepl("Minimum", cohort_type), "Minimum FU", "Maximum FU"),
+    imaging = case_when(
+      grepl("XR \\+ US", cohort_type) ~ "XR + US",
+      grepl("US", cohort_type) & !grepl("XR", cohort_type) ~ "US",
+      grepl("CT", cohort_type) ~ "CT"
+    ),
+    fu_length = factor(fu_length, levels = c("Minimum FU", "Maximum FU")),
+    imaging = factor(imaging, levels = c("XR + US", "US", "CT")),
     mean_qaly_5yr_comp = case_when(
       risk_status == "All" ~ (mean_qaly_5yr - baseline_qaly_all),
       risk_status == "High Risk" ~ (mean_qaly_5yr - baseline_qaly_hr),
       risk_status == "Low Risk" ~ (mean_qaly_5yr - baseline_qaly_lr),
-      TRUE ~ NA_integer_
+      TRUE ~ NA_real_
     ),
+    # CORRECTED: Conservative CI calculation
     lower_qaly_5yr_comp = case_when(
-      risk_status == "All" ~ (upper_qaly_5yr - baseline_qaly_all_upper),
-      risk_status == "High Risk" ~ (upper_qaly_5yr - baseline_qaly_hr_upper),
-      risk_status == "Low Risk" ~ (upper_qaly_5yr - baseline_qaly_lr_upper),
-      TRUE ~ NA_integer_
+      risk_status == "All" ~ (lower_qaly_5yr - baseline_qaly_all_upper),
+      risk_status == "High Risk" ~ (lower_qaly_5yr - baseline_qaly_hr_upper),
+      risk_status == "Low Risk" ~ (lower_qaly_5yr - baseline_qaly_lr_upper),
+      TRUE ~ NA_real_
     ),
     upper_qaly_5yr_comp = case_when(
-      risk_status == "All" ~ (lower_qaly_5yr - baseline_qaly_all_lower),
-      risk_status == "High Risk" ~ (lower_qaly_5yr - baseline_qaly_hr_lower),
-      risk_status == "Low Risk" ~ (lower_qaly_5yr - baseline_qaly_lr_lower),
-      TRUE ~ NA_integer_
-    ),
-    .keep = "all"
+      risk_status == "All" ~ (upper_qaly_5yr - baseline_qaly_all_lower),
+      risk_status == "High Risk" ~ (upper_qaly_5yr - baseline_qaly_hr_lower),
+      risk_status == "Low Risk" ~ (upper_qaly_5yr - baseline_qaly_lr_lower),
+      TRUE ~ NA_real_
+    )
   ) %>%
-  ggplot(aes(x = cohort_type, y = mean_qaly_5yr_comp, fill = risk_status)) +
-  geom_col(
-    position = position_dodge(width = 0.8),
-    width = 0.7,
-    color = "black"
-  ) +
-  geom_errorbar(
-    aes(ymin = lower_qaly_5yr_comp, ymax = upper_qaly_5yr_comp),
-    position = position_dodge(width = 0.8),
-    width = 0.3
-  ) +
-  facet_wrap(~ risk_status) +
+  ggplot(aes(x = risk_status, y = mean_qaly_5yr_comp, fill = risk_status)) +
+  geom_col(width = 0.7, color = "black") +
+  geom_errorbar(aes(ymin = lower_qaly_5yr_comp, ymax = upper_qaly_5yr_comp), width = 0.2) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
+  facet_grid(fu_length ~ imaging) +
+  scale_fill_manual(values = risk_colours) +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        strip.text = element_text(size = 10)) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    strip.text = element_text(size = 11, face = "bold"),
+    strip.background = element_rect(fill = "grey90")
+  ) +
   labs(title = "Quality of Life",
-       x = "Cohort Type",
+       x = "Imaging Modality",
        y = "5yr QALYs Difference",
-       fill = "Risk Status") + ylim(-0.05,0.02) 
+       fill = "Risk Status")
 ```
 \newpage
 
 ### Plot
 ```{r}
-paper_1_plot <- (
+paper_1_plot_usiqol <- (
   summary_df_full_cost_plot_paper1 +
     summary_df_appts_plot_paper1 +
     baseline_malignancies_perc_plot_paper1 +
@@ -1424,22 +1554,43 @@ paper_1_plot <- (
                   title = "Variations in Length/Imaging Modality of Follow-up Compared to Current Minimum Standard of Care") + plot_layout(axis_titles = "collect",
                                                                                                                                            guides = "collect")
 
-paper_1_plot
+paper_1_plot_usiqol
+```
+\newpage
+
+### Cost-effectiveness Analyses - USIQoL
+```{r}
+auc_0.55_icer_plots_usiqol <- auc_0.55_icer_plots & theme_bw()
+
+icer_0.55 %>% gt()
 ```
 \newpage
 
 ## Paper 2
 ```{r}
+summary_df_full_cost_plot <- summary_df_full_cost_plot + 
+  scale_fill_manual(values = risk_colours)
+
+summary_df_appts_plot <- summary_df_appts_plot + 
+  scale_fill_manual(values = risk_colours)
+
+baseline_malignancies_perc_plot <- baseline_malignancies_perc_plot + 
+  scale_fill_manual(values = risk_colours)
+
+summary_df_full_qol_plot <- summary_df_full_qol_plot + 
+  scale_fill_manual(values = risk_colours)
+
 paper_2_plot <- (
   summary_df_full_cost_plot +
     summary_df_appts_plot +
     baseline_malignancies_perc_plot +
     summary_df_full_qol_plot
 ) +
-  plot_layout(nrow = 2, ncol = 2) +
-  plot_annotation(tag_levels = "A",
-                  title = "Variations in Length/Imaging Modality of Follow-up Compared to Current Minimum Standard of Care") + plot_layout(axis_titles = "collect",
-                                                                                                                                           guides = "collect")
+  plot_layout(nrow = 2, ncol = 2, guides = "collect") +
+  plot_annotation(
+    tag_levels = "A",
+    title = "Variations in Length/Imaging Modality of Follow-up Compared to Current Minimum Standard of Care"
+  )
 
 paper_2_plot
 ```
@@ -1447,33 +1598,7 @@ paper_2_plot
 
 # 15. QoL - EQ-5D
 ```{r}
-source("Model/11. Quality of Life - EQ-5D.R")
-```
-\newpage
-
-## Plot EQ-5D scores
-```{r}
-summary_df_full_qol_data_eq_5d %>% 
-  group_by(auc_label) %>%
-  ggplot(aes(x = auc_label, y = total_qol, fill = risk_status)) +
-  geom_col(
-    position = position_dodge(width = 0.8),
-    width = 0.7,
-    color = "black"
-  ) +
-  geom_errorbar(
-    aes(ymin = total_qol_lower, ymax = total_qol_upper),
-    position = position_dodge(width = 0.8),
-    width = 0.3
-  ) +
-  facet_wrap(~ cohort_type) +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        strip.text = element_text(size = 10)) +
-  labs(title = "Annual Mean EQ-5D-5L score for EAU Follow-Up of those with Clinically Significant Disease",
-       x = "Cohort Type",
-       y = "EQ-5D-5L score",
-       fill = "Risk Status")
+source("~/Kidney-Stone-Economics/Model/11. Quality of Life - EQ-5D old v2.R", echo = TRUE)
 ```
 \newpage
 
@@ -1508,13 +1633,13 @@ summary_df_full_qol_data_eq_5d %>%
   labs(title = "Mean Quality Adjusted Life Years for EAU Follow-Up of those with Clinically Significant Disease",
        x = "Cohort Type",
        y = "Mean 5yr QALYs (EQ-5D-5L)",
-       fill = "Risk Status") + ylim(0,1)
+       fill = "Risk Status") 
 ```
 \newpage
 
 ## Plot QALYs vs baseline
 ```{r}
-baseline_qaly_all1 <- summary_df_full_qol_data %>%
+baseline_qaly_all1 <- summary_df_full_qol_data_eq_5d %>%
   filter(auc_label == "AUC 0.55") %>%
   filter(cohort_type == "Minimum FU, XR + US") %>%
   select(
@@ -1525,28 +1650,28 @@ baseline_qaly_all1 <- summary_df_full_qol_data %>%
   )
 
 baseline_qaly_all <- (baseline_qaly_all1 %>%
-  filter(risk_status == "All"))$mean_qaly_5yr 
+                        filter(risk_status == "All"))$mean_qaly_5yr 
 baseline_qaly_hr <- (baseline_qaly_all1 %>%
-  filter(risk_status == "High Risk"))$mean_qaly_5yr 
+                       filter(risk_status == "High Risk"))$mean_qaly_5yr 
 baseline_qaly_lr <- (baseline_qaly_all1 %>%
-  filter(risk_status == "Low Risk"))$mean_qaly_5yr 
+                       filter(risk_status == "Low Risk"))$mean_qaly_5yr 
 
 baseline_qaly_all_upper <- (baseline_qaly_all1 %>%
-  filter(risk_status == "All"))$upper_qaly_5yr 
+                              filter(risk_status == "All"))$upper_qaly_5yr 
 baseline_qaly_hr_upper <- (baseline_qaly_all1 %>%
-  filter(risk_status == "High Risk"))$upper_qaly_5yr 
+                             filter(risk_status == "High Risk"))$upper_qaly_5yr 
 baseline_qaly_lr_upper <- (baseline_qaly_all1 %>%
-  filter(risk_status == "Low Risk"))$upper_qaly_5yr 
+                             filter(risk_status == "Low Risk"))$upper_qaly_5yr 
 
 baseline_qaly_all_lower <- (baseline_qaly_all1 %>%
-  filter(risk_status == "All"))$lower_qaly_5yr 
+                              filter(risk_status == "All"))$lower_qaly_5yr 
 baseline_qaly_hr_lower <- (baseline_qaly_all1 %>%
-  filter(risk_status == "High Risk"))$lower_qaly_5yr 
+                             filter(risk_status == "High Risk"))$lower_qaly_5yr 
 baseline_qaly_lr_lower <- (baseline_qaly_all1 %>%
-  filter(risk_status == "Low Risk"))$lower_qaly_5yr 
+                             filter(risk_status == "Low Risk"))$lower_qaly_5yr 
 
 
-summary_df_full_qol_plot <- summary_df_full_qol_data %>% 
+summary_df_full_qol_eq_5d_plot <- summary_df_full_qol_data_eq_5d %>% 
   mutate(
     cohort_type = factor(cohort_type,
                          levels = c(
@@ -1557,6 +1682,7 @@ summary_df_full_qol_plot <- summary_df_full_qol_data %>%
                            "Maximum FU, US",
                            "Maximum FU, CT"
                          )),
+    auc_numeric = as.numeric(as.character(gsub("AUC ", "", auc_label))),
     mean_qaly_5yr_comp = case_when(
       risk_status == "All"       ~ mean_qaly_5yr - baseline_qaly_all,
       risk_status == "High Risk" ~ mean_qaly_5yr - baseline_qaly_hr,
@@ -1574,37 +1700,30 @@ summary_df_full_qol_plot <- summary_df_full_qol_data %>%
       risk_status == "High Risk" ~ upper_qaly_5yr - baseline_qaly_hr,
       risk_status == "Low Risk"  ~ upper_qaly_5yr - baseline_qaly_lr,
       TRUE ~ NA_real_
-    ),
-    .keep = "all"
+    )
   ) %>%
-  group_by(auc_label) %>%
-  ggplot(aes(x = auc_label, y = mean_qaly_5yr_comp, fill = risk_status)) +
-  geom_col(
-    position = position_dodge(width = 0.8),
-    width = 0.7,
-    color = "black"
-  ) +
-  geom_errorbar(
-    aes(ymin = lower_qaly_5yr_comp, ymax = upper_qaly_5yr_comp),
-    position = position_dodge(width = 0.8),
-    width = 0.3
-  ) +
+  ggplot(aes(x = auc_numeric, y = mean_qaly_5yr_comp, 
+             color = risk_status, fill = risk_status, group = risk_status)) +
+  geom_ribbon(aes(ymin = lower_qaly_5yr_comp, ymax = upper_qaly_5yr_comp), 
+              alpha = 0.3, linewidth = 0.2) +
+  geom_line(linewidth = 0.5) +
   facet_wrap(~ cohort_type) +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        strip.text = element_text(size = 10)) +
+  theme(strip.text = element_text(size = 10)) +
   labs(title = "Quality of Life",
-       x = "Cohort Type",
+       x = "AUC",
        y = "5yr QALYs Difference",
-       fill = "Risk Status") 
+       color = "Risk Status",
+       fill = "Risk Status") +
+  scale_x_continuous(breaks = seq(0.55, 0.95, by = 0.05))
 
-summary_df_full_qol_plot
+summary_df_full_qol_eq_5d_plot
 ```
 \newpage
 
 # 16. Calculate ICER with EQ-5D data
 ```{r}
-source("Model/12. Calculate ICER.R")
+source("~/Kidney-Stone-Economics/Model/12. Calculate ICER.R")
 ```
 \newpage
 
@@ -1633,7 +1752,7 @@ icer_results %>%
 ## Paper 1
 ### Collate data
 ```{r}
-# QoL
+# QoL - EQ-5D
 summary_df_full_qol_plot_eq5d_paper1 <- summary_df_full_qol_data_eq_5d %>% 
   filter(auc_label == "AUC 0.55") %>%
   mutate(
@@ -1646,45 +1765,52 @@ summary_df_full_qol_plot_eq5d_paper1 <- summary_df_full_qol_data_eq_5d %>%
                            "Maximum FU, US",
                            "Maximum FU, CT"
                          )),
+    # Split into follow-up length and imaging modality
+    fu_length = ifelse(grepl("Minimum", cohort_type), "Minimum FU", "Maximum FU"),
+    imaging = case_when(
+      grepl("XR \\+ US", cohort_type) ~ "XR + US",
+      grepl("US", cohort_type) & !grepl("XR", cohort_type) ~ "US",
+      grepl("CT", cohort_type) ~ "CT"
+    ),
+    fu_length = factor(fu_length, levels = c("Minimum FU", "Maximum FU")),
+    imaging = factor(imaging, levels = c("XR + US", "US", "CT")),
     mean_qaly_5yr_comp = case_when(
       risk_status == "All" ~ (mean_qaly_5yr - baseline_qaly_all),
       risk_status == "High Risk" ~ (mean_qaly_5yr - baseline_qaly_hr),
       risk_status == "Low Risk" ~ (mean_qaly_5yr - baseline_qaly_lr),
-      TRUE ~ NA_integer_
+      TRUE ~ NA_real_
     ),
+    # CORRECTED: Conservative CI calculation
     lower_qaly_5yr_comp = case_when(
-      risk_status == "All" ~ (upper_qaly_5yr - baseline_qaly_all_upper),
-      risk_status == "High Risk" ~ (upper_qaly_5yr - baseline_qaly_hr_upper),
-      risk_status == "Low Risk" ~ (upper_qaly_5yr - baseline_qaly_lr_upper),
-      TRUE ~ NA_integer_
+      risk_status == "All" ~ (lower_qaly_5yr - baseline_qaly_all_upper),
+      risk_status == "High Risk" ~ (lower_qaly_5yr - baseline_qaly_hr_upper),
+      risk_status == "Low Risk" ~ (lower_qaly_5yr - baseline_qaly_lr_upper),
+      TRUE ~ NA_real_
     ),
     upper_qaly_5yr_comp = case_when(
-      risk_status == "All" ~ (lower_qaly_5yr - baseline_qaly_all_lower),
-      risk_status == "High Risk" ~ (lower_qaly_5yr - baseline_qaly_hr_lower),
-      risk_status == "Low Risk" ~ (lower_qaly_5yr - baseline_qaly_lr_lower),
-      TRUE ~ NA_integer_
-    ),
-    .keep = "all"
+      risk_status == "All" ~ (upper_qaly_5yr - baseline_qaly_all_lower),
+      risk_status == "High Risk" ~ (upper_qaly_5yr - baseline_qaly_hr_lower),
+      risk_status == "Low Risk" ~ (upper_qaly_5yr - baseline_qaly_lr_lower),
+      TRUE ~ NA_real_
+    )
   ) %>%
-  ggplot(aes(x = cohort_type, y = mean_qaly_5yr_comp, fill = risk_status)) +
-  geom_col(
-    position = position_dodge(width = 0.8),
-    width = 0.7,
-    color = "black"
-  ) +
-  geom_errorbar(
-    aes(ymin = lower_qaly_5yr_comp, ymax = upper_qaly_5yr_comp),
-    position = position_dodge(width = 0.8),
-    width = 0.3
-  ) +
-  facet_wrap(~ risk_status) +
+  ggplot(aes(x = risk_status, y = mean_qaly_5yr_comp, fill = risk_status)) +
+  geom_col(width = 0.7, color = "black") +
+  geom_errorbar(aes(ymin = lower_qaly_5yr_comp, ymax = upper_qaly_5yr_comp), width = 0.2) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
+  facet_grid(fu_length ~ imaging) +
+  scale_fill_manual(values = risk_colours) +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        strip.text = element_text(size = 10)) +
-  labs(title = "Quality of Life",
-       x = "Cohort Type",
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    strip.text = element_text(size = 11, face = "bold"),
+    strip.background = element_rect(fill = "grey90")
+  ) +
+  labs(title = "Quality of Life - EQ-5D",
+       x = "Imaging Modality",
        y = "5yr QALYs Difference",
-       fill = "Risk Status") 
+       fill = "Risk Status")
 ```
 \newpage
 
@@ -1706,17 +1832,20 @@ paper_1_plot
 ### Cost-effectiveness Analyses
 ```{r}
 auc_0.55_icer_plots & theme_bw()
+icer_0.55 %>% gt()
 ```
 \newpage
 
 ## Paper 2
 ### Plot overall results
 ```{r}
+summary_df_full_qol_eq_5d_plot <- summary_df_full_qol_eq_5d_plot + scale_fill_manual(values = risk_colours)
+
 paper_2_plot <- (
   summary_df_full_cost_plot +
     summary_df_appts_plot +
     baseline_malignancies_perc_plot +
-    summary_df_full_qol_plot
+    summary_df_full_qol_eq_5d_plot
 ) +
   plot_layout(nrow = 2, ncol = 2) +
   plot_annotation(tag_levels = "A", title = "Variations in Length/Imaging Modality of Follow-up Compared to Current Minimum Standard of Care") + plot_layout(axis_titles = "collect", guides = "collect")
