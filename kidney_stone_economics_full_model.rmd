@@ -1598,7 +1598,7 @@ paper_2_plot
 
 # 15. QoL - EQ-5D
 ```{r}
-source("Model/11. Quality of Life - EQ-5D old v2.R", echo = TRUE)
+source("Model/11. Quality of Life - EQ-5D.R", echo = TRUE)
 ```
 \newpage
 
